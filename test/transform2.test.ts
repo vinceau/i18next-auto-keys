@@ -16,7 +16,7 @@ const mockedFs = fs as jest.Mocked<typeof fs>;
 
 function transformTypeScript(sourceCode: string, transformerOptions: any): string {
   const fileName = 'test.messages.ts';
-  
+
   // Create in-memory source file
   const sourceFile = ts.createSourceFile(
     fileName,
@@ -24,7 +24,7 @@ function transformTypeScript(sourceCode: string, transformerOptions: any): strin
     ts.ScriptTarget.ES2020,
     true // setParentNodes
   );
-  
+
   // Create in-memory compiler host
   const compilerHost: ts.CompilerHost = {
     getSourceFile: (name) => name === fileName ? sourceFile : undefined,
@@ -39,7 +39,7 @@ function transformTypeScript(sourceCode: string, transformerOptions: any): strin
     getDefaultLibFileName: () => 'lib.d.ts',
     resolveModuleNames: () => [],
   };
-  
+
   // Create TypeScript program with in-memory host
   const program = ts.createProgram([fileName], {
     target: ts.ScriptTarget.ES2020,
@@ -48,22 +48,22 @@ function transformTypeScript(sourceCode: string, transformerOptions: any): strin
     allowSyntheticDefaultImports: true,
     noLib: true, // Skip loading standard library for testing
   }, compilerHost);
-  
+
   // Apply transformer with mock output paths (won't be used in memory)
   const transformer = i18nMessagesTransformer(program, {
     ...transformerOptions,
     jsonOutputPath: '/mock/output.json',
     xliffOutputPath: '/mock/output.xliff',
   });
-  
+
   // Transform the source file
   const result = ts.transform(sourceFile, [transformer]);
   const transformedSourceFile = result.transformed[0] as ts.SourceFile;
-  
+
   // Print the transformed code
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
   const transformedCode = printer.printFile(transformedSourceFile);
-  
+
   result.dispose();
   return transformedCode;
 }
@@ -87,7 +87,7 @@ it("transforms TS message functions", () => {
   // Check that the functions were transformed to use i18next.t (with type annotations preserved)
   expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash('foo', 10)}")`);
   expect(transformedCode).toContain(`bar: (): string => i18next.t("${stableHash('bar', 10)}")`);
-  
+
   // Check that i18next import was added
   expect(transformedCode).toContain('import i18next from "i18next"');
 });
@@ -106,8 +106,166 @@ it("preserves functions that don't return string literals", () => {
 
   // Only foo should be transformed (with type annotations preserved)
   expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash('foo', 10)}")`);
-  
+
   // Dynamic and computed should remain unchanged
   expect(transformedCode).toContain('dynamic: (name: string): string => `Hello ${name}`');
   expect(transformedCode).toContain('computed: (): string => Math.random().toString()');
+});
+
+it("respects @noTranslate JSDoc tag", () => {
+  const input = `export const Message = {
+  /** @noTranslate */
+  skip: (): string => "do not translate",
+
+  /** This should be transformed */
+  translate: (): string => "translate me",
+
+  /**
+   * @noTranslate
+   * This function should not be transformed
+   */
+  alsoSkip: (): string => "also skip",
+};`;
+
+  const transformedCode = transformTypeScript(input, {
+    onlyMessagesFiles: false,
+    hashLength: 10,
+  });
+
+  // Functions with @noTranslate should remain unchanged
+  expect(transformedCode).toContain('skip: (): string => "do not translate"');
+  expect(transformedCode).toContain('alsoSkip: (): string => "also skip"');
+
+  // Functions without @noTranslate should be transformed
+  expect(transformedCode).toContain(`translate: (): string => i18next.t("${stableHash('translate me', 10)}")`);
+
+  // Should have i18next import since at least one function was transformed
+  expect(transformedCode).toContain('import i18next from "i18next"');
+});
+
+it("handles mixed @noTranslate scenarios", () => {
+  const input = `export const Message = {
+  normal: (): string => "normal message",
+
+  /** @noTranslate */
+  debug: (): string => "Debug: internal message",
+
+  user: (): string => "user message",
+
+  /**
+   * Some description
+   * @noTranslate
+   * More description
+   */
+  internal: (): string => "internal use only",
+};`;
+
+  const transformedCode = transformTypeScript(input, {
+    onlyMessagesFiles: false,
+    hashLength: 10,
+  });
+
+  // Normal functions should be transformed
+  expect(transformedCode).toContain(`normal: (): string => i18next.t("${stableHash('normal message', 10)}")`);
+  expect(transformedCode).toContain(`user: (): string => i18next.t("${stableHash('user message', 10)}")`);
+
+  // Functions with @noTranslate should remain unchanged
+  expect(transformedCode).toContain('debug: (): string => "Debug: internal message"');
+  expect(transformedCode).toContain('internal: (): string => "internal use only"');
+
+  // Should have i18next import
+  expect(transformedCode).toContain('import i18next from "i18next"');
+});
+
+it("handles different JSDoc comment styles for @noTranslate", () => {
+  const input = `export const Message = {
+  /** @noTranslate */
+  singleLine: (): string => "single line comment",
+
+  /**
+   * @noTranslate
+   */
+  multiLine: (): string => "multi line comment",
+
+  /**
+   * This is a description
+   * @noTranslate Some additional text
+   * More description
+   */
+  withDescription: (): string => "with description",
+
+  // This should be transformed (no JSDoc)
+  regular: (): string => "regular message",
+};`;
+
+  const transformedCode = transformTypeScript(input, {
+    onlyMessagesFiles: false,
+    hashLength: 10,
+  });
+
+  // All @noTranslate functions should remain unchanged
+  expect(transformedCode).toContain('singleLine: (): string => "single line comment"');
+  expect(transformedCode).toContain('multiLine: (): string => "multi line comment"');
+  expect(transformedCode).toContain('withDescription: (): string => "with description"');
+
+  // Regular function should be transformed
+  expect(transformedCode).toContain(`regular: (): string => i18next.t("${stableHash('regular message', 10)}")`);
+
+  // Should have i18next import
+  expect(transformedCode).toContain('import i18next from "i18next"');
+});
+
+it("does not transform any functions when all have @noTranslate", () => {
+  const input = `export const Message = {
+  /** @noTranslate */
+  first: (): string => "first message",
+
+  /** @noTranslate */
+  second: (): string => "second message",
+};`;
+
+  const transformedCode = transformTypeScript(input, {
+    onlyMessagesFiles: false,
+    hashLength: 10,
+  });
+
+  // All functions should remain unchanged
+  expect(transformedCode).toContain('first: (): string => "first message"');
+  expect(transformedCode).toContain('second: (): string => "second message"');
+
+  // Should NOT have i18next import since no functions were transformed
+  expect(transformedCode).not.toContain('import i18next from "i18next"');
+});
+
+it("handles @noTranslate with function expressions", () => {
+  const input = `export const Message = {
+  /** @noTranslate */
+  skipFunction: function(): string { return "skip this"; },
+
+  /** Transform this one */
+  transformFunction: function(): string { return "transform this"; },
+
+  /** @noTranslate */
+  skipArrow: (): string => "skip arrow",
+
+  transformArrow: (): string => "transform arrow",
+};`;
+
+  const transformedCode = transformTypeScript(input, {
+    onlyMessagesFiles: false,
+    hashLength: 10,
+  });
+
+  // Functions with @noTranslate should remain unchanged
+  expect(transformedCode).toContain('skipFunction: function (): string { return "skip this"; }');
+  expect(transformedCode).toContain('skipArrow: (): string => "skip arrow"');
+
+  // Functions without @noTranslate should be transformed
+  // Function expressions get formatted with proper indentation by TypeScript printer
+  expect(transformedCode).toContain(`return i18next.t("${stableHash('transform this', 10)}");`);
+  expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
+  expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash('transform arrow', 10)}")`);
+
+  // Should have i18next import
+  expect(transformedCode).toContain('import i18next from "i18next"');
 });
