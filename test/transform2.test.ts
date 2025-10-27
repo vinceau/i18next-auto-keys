@@ -1,64 +1,77 @@
 // test/unit.transform2.test.ts
+
+// Mock fs operations to prevent actual file I/O during tests
+jest.mock("fs", () => ({
+  ...jest.requireActual("fs"),
+  mkdirSync: jest.fn(),
+  writeFileSync: jest.fn(),
+}));
+
 import * as ts from "typescript";
 import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 import i18nMessagesTransformer from "../src/transform2";
 import { stableHash } from "../src/hash";
 
+const mockedFs = fs as jest.Mocked<typeof fs>;
+
 function transformTypeScript(sourceCode: string, transformerOptions: any): string {
-  // Create a temporary file
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'transform-test-'));
-  const tempFile = path.join(tempDir, 'test.messages.ts');
-  const outputJsonPath = path.join(tempDir, 'output.json');
-  const outputXliffPath = path.join(tempDir, 'output.xliff');
+  const fileName = 'test.messages.ts';
   
-  try {
-    // Write source to temp file
-    fs.writeFileSync(tempFile, sourceCode);
-    
-    // Create TypeScript program
-    const program = ts.createProgram([tempFile], {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ES2020,
-      esModuleInterop: true,
-      allowSyntheticDefaultImports: true,
-    });
-    
-    // Apply transformer
-    const transformer = i18nMessagesTransformer(program, {
-      ...transformerOptions,
-      jsonOutputPath: outputJsonPath,
-      xliffOutputPath: outputXliffPath,
-    });
-    
-    // Transform the source file
-    const sourceFile = program.getSourceFile(tempFile);
-    if (!sourceFile) {
-      throw new Error('Could not find source file');
-    }
-    
-    const result = ts.transform(sourceFile, [transformer]);
-    const transformedSourceFile = result.transformed[0] as ts.SourceFile;
-    
-    // Print the transformed code
-    const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
-    const transformedCode = printer.printFile(transformedSourceFile);
-    
-    result.dispose();
-    return transformedCode;
-  } finally {
-    // Cleanup temp files
-    try {
-      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-      if (fs.existsSync(outputJsonPath)) fs.unlinkSync(outputJsonPath);
-      if (fs.existsSync(outputXliffPath)) fs.unlinkSync(outputXliffPath);
-      fs.rmdirSync(tempDir);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-  }
+  // Create in-memory source file
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    sourceCode,
+    ts.ScriptTarget.ES2020,
+    true // setParentNodes
+  );
+  
+  // Create in-memory compiler host
+  const compilerHost: ts.CompilerHost = {
+    getSourceFile: (name) => name === fileName ? sourceFile : undefined,
+    writeFile: () => {}, // No-op for in-memory
+    getCurrentDirectory: () => '',
+    getDirectories: () => [],
+    fileExists: (name) => name === fileName,
+    readFile: (name) => name === fileName ? sourceCode : undefined,
+    getCanonicalFileName: (name) => name,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => '\n',
+    getDefaultLibFileName: () => 'lib.d.ts',
+    resolveModuleNames: () => [],
+  };
+  
+  // Create TypeScript program with in-memory host
+  const program = ts.createProgram([fileName], {
+    target: ts.ScriptTarget.ES2020,
+    module: ts.ModuleKind.ES2020,
+    esModuleInterop: true,
+    allowSyntheticDefaultImports: true,
+    noLib: true, // Skip loading standard library for testing
+  }, compilerHost);
+  
+  // Apply transformer with mock output paths (won't be used in memory)
+  const transformer = i18nMessagesTransformer(program, {
+    ...transformerOptions,
+    jsonOutputPath: '/mock/output.json',
+    xliffOutputPath: '/mock/output.xliff',
+  });
+  
+  // Transform the source file
+  const result = ts.transform(sourceFile, [transformer]);
+  const transformedSourceFile = result.transformed[0] as ts.SourceFile;
+  
+  // Print the transformed code
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
+  const transformedCode = printer.printFile(transformedSourceFile);
+  
+  result.dispose();
+  return transformedCode;
 }
+
+beforeEach(() => {
+  mockedFs.mkdirSync.mockClear();
+  mockedFs.writeFileSync.mockClear();
+});
 
 it("transforms TS message functions", () => {
   const input = `export const Message = {
