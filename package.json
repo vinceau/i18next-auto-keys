@@ -20,6 +20,7 @@
     "loader-utils": "^2.0.4",
     "memfs": "^4",
     "rimraf": "^6.0.1",
+    "source-map": "^0.7.6",
     "ts-jest": "^29.4.5",
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",

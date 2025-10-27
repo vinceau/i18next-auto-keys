@@ -66,3 +66,45 @@ it("preserves complex TypeScript features", () => {
   expect(code).toContain("const fooArray: Array<FooType<string>>"); // fooArray is NOT transformed (correct behavior)
   expect(code).toContain("= [bar]"); // array element foo becomes bar
 });
+
+it("generates source maps when enabled", () => {
+  const input = `const foo = 42;`;
+  
+  const { code, map } = transform(input, { filename: "test.js", sourcemap: true });
+  
+  expect(code).toBe("const bar = 42;");
+  expect(map).toBeDefined();
+  expect(map.version).toBe(3);
+  expect(map.sources).toEqual(["test.js"]);
+  expect(map.sourcesContent).toEqual([input]);
+  expect(map.mappings).toBeDefined();
+});
+
+it("skips source maps when disabled", () => {
+  const input = `const foo = 42;`;
+  
+  const { code, map } = transform(input, { filename: "test.js", sourcemap: false });
+  
+  expect(code).toBe("const bar = 42;");
+  expect(map).toBeUndefined();
+});
+
+it("preserves input source maps", () => {
+  const input = `const foo = 42;`;
+  const inputSourceMap = {
+    version: 3,
+    sources: ["original.ts"],
+    names: [],
+    mappings: "AAAA",
+    sourcesContent: ["const foo: number = 42;"]
+  };
+  
+  const { code, map } = transform(input, { 
+    filename: "compiled.js", 
+    sourcemap: true,
+    inputSourceMap: inputSourceMap
+  });
+  
+  expect(code).toBe("const bar = 42;");
+  expect(map).toBe(inputSourceMap); // Input source map is passed through unchanged
+});
