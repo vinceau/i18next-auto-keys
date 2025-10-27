@@ -2,7 +2,7 @@ import path from "node:path";
 import webpack, { Configuration } from "webpack";
 import { Volume } from "memfs";
 import { ufs } from "unionfs";
-import * as realfs from "fs";
+import realfs from "fs";
 
 export async function compileWithMemoryFS(
   entryFiles: Record<string, string>,

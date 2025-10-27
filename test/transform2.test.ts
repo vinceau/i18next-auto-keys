@@ -7,8 +7,8 @@ jest.mock("fs", () => ({
   writeFileSync: jest.fn(),
 }));
 
-import * as ts from "typescript";
-import * as fs from "fs";
+import ts from "typescript";
+import fs from "fs";
 import i18nMessagesTransformer from "../src/transform2";
 import { stableHash } from "../src/hash";
 
