@@ -75,8 +75,8 @@ beforeEach(() => {
 
 it("transforms TS message functions", () => {
   const input = `export const Message = {
-  foo: (): string => "foo",
-  bar: (): string => "bar",
+    foo: (): string => "foo",
+    bar: (): string => "bar",
 };`;
 
   const transformedCode = transformTypeScript(input, {
@@ -265,7 +265,197 @@ it("handles @noTranslate with function expressions", () => {
   expect(transformedCode).toContain(`return i18next.t("${stableHash('transform this', 10)}");`);
   expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
   expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash('transform arrow', 10)}")`);
-
+  
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
+});
+
+describe("argument parsing modes", () => {
+  it("handles array mode with no parameters", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "array",
+    });
+
+    // No parameters means no second argument to i18next.t
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash('Hello', 10)}")`);
+    expect(transformedCode).not.toContain('i18next.t("' + stableHash('Hello', 10) + '", ');
+  });
+
+  it("handles named mode with no parameters", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "named",
+    });
+
+    // No parameters means no second argument to i18next.t
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash('Hello', 10)}")`);
+    expect(transformedCode).not.toContain('i18next.t("' + stableHash('Hello', 10) + '", ');
+  });
+
+  it("handles array mode with single parameter", () => {
+    const input = `export const Message = {
+  greeting: (name: string): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "array",
+    });
+
+    // Single parameter should be passed as array
+    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", [name])`);
+  });
+
+  it("handles named mode with single parameter", () => {
+    const input = `export const Message = {
+  greeting: (name: string): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "named",
+    });
+
+    // Single parameter should be passed as object (TypeScript printer formats with newlines)
+    expect(transformedCode).toContain(`i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toContain('name');
+  });
+
+  it("handles array mode with multiple parameters", () => {
+    const input = `export const Message = {
+  greeting: (name: string, age: number): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "array",
+    });
+
+    // Multiple parameters should be passed as array
+    expect(transformedCode).toContain(`greeting: (name: string, age: number): string => i18next.t("${stableHash('Hello', 10)}", [name, age])`);
+  });
+
+  it("handles named mode with multiple parameters", () => {
+    const input = `export const Message = {
+  greeting: (name: string, age: number): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "named",
+    });
+
+    // Multiple parameters should be passed as object with shorthand properties (flexible formatting)
+    expect(transformedCode).toContain(`i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toMatch(/greeting:.*name.*age.*\}/s);
+  });
+
+  it("handles mixed parameter scenarios in array mode", () => {
+    const input = `export const Message = {
+  noParams: (): string => "No params",
+  oneParam: (name: string): string => "One param", 
+  twoParams: (name: string, count: number): string => "Two params",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "array",
+    });
+
+    // No params - no second argument
+    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
+    
+    // One param - array with single element
+    expect(transformedCode).toContain(`oneParam: (name: string): string => i18next.t("${stableHash('One param', 10)}", [name])`);
+    
+    // Two params - array with two elements
+    expect(transformedCode).toContain(`twoParams: (name: string, count: number): string => i18next.t("${stableHash('Two params', 10)}", [name, count])`);
+  });
+
+  it("handles mixed parameter scenarios in named mode", () => {
+    const input = `export const Message = {
+  noParams: (): string => "No params",
+  oneParam: (name: string): string => "One param",
+  twoParams: (name: string, count: number): string => "Two params",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "named",
+    });
+
+    // No params - no second argument
+    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
+    
+    // One param - object with single property (TypeScript printer formats with newlines)
+    expect(transformedCode).toContain(`i18next.t("${stableHash('One param', 10)}", {`);
+    expect(transformedCode).toMatch(/oneParam:.*name.*\}/s);
+    
+    // Two params - object with two properties (flexible formatting)
+    expect(transformedCode).toContain(`i18next.t("${stableHash('Two params', 10)}", {`);
+    expect(transformedCode).toMatch(/twoParams:.*name.*count.*\}/s);
+  });
+
+  it("handles function expressions with parameters in array mode", () => {
+    const input = `export const Message = {
+  greeting: function(name: string, age: number): string { return "Hello"; },
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      argMode: "array",
+    });
+
+    // Function expression with parameters should use array mode
+    expect(transformedCode).toContain(`return i18next.t("${stableHash('Hello', 10)}", [name, age]);`);
+  });
+
+  it("handles function expressions with parameters in named mode", () => {
+    const input = `export const Message = {
+  greeting: function(name: string, age: number): string { return "Hello"; },
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,  
+      argMode: "named",
+    });
+
+    // Function expression with parameters should use named mode (flexible formatting)
+    expect(transformedCode).toContain(`return i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toMatch(/name.*age.*\}/s);
+  });
+
+  it("defaults to array mode when argMode is not specified", () => {
+    const input = `export const Message = {
+  greeting: (name: string): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      // argMode not specified - should default to "array"
+    });
+
+    // Should use array mode by default
+    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", [name])`);
+  });
 });
