@@ -1,11 +1,13 @@
+// transformers/i18nMessagesTransformer.ts
 import ts from "typescript";
 import fs from "fs";
 import path from "path";
 import { stableHash } from "./hash";
+import { i18nStore, toRelPosix } from "./i18nStore";
 
 export interface I18nTransformerOptions {
   jsonOutputPath: string;
-  poOutputPath?: string;
+  poOutputPath?: string;             // (optional) plugin can use i18nStore to write POT/PO at the end
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
   argMode?: "array" | "named";
@@ -28,9 +30,9 @@ function writeDefaultJson(filePath: string, pairs: Map<string, string>) {
 /** Best-effort check for a `@noTranslate` jsdoc/tsdoc tag on this node. */
 function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
   const TAG = "noTranslate";
+  const anyTs: any = ts as any;
 
   // 1) Modern helper if present
-  const anyTs: any = ts as any;
   if (typeof anyTs.getJSDocTags === "function") {
     try {
       const tags: readonly ts.JSDocTag[] = anyTs.getJSDocTags(node);
@@ -38,9 +40,7 @@ function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
         const name = (t.tagName?.escapedText ?? t.tagName?.getText?.(sf)) as string | undefined;
         return name === TAG;
       })) return true;
-    } catch {
-      // fall through
-    }
+    } catch { /* ignore */ }
   }
 
   // 2) Legacy: node.jsDoc
@@ -54,7 +54,6 @@ function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
           if (name === TAG) return true;
         }
       }
-      // textual comment fallback
       if (typeof d.comment === "string" && /@noTranslate\b/.test(d.comment)) return true;
     }
   }
@@ -68,8 +67,42 @@ function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
       if (/@noTranslate\b/.test(comment)) return true;
     }
   }
-
   return false;
+}
+
+/** Collect leading comments as extracted translator notes. */
+function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
+  const text = sf.getFullText();
+  const ranges = ts.getLeadingCommentRanges?.(text, node.getFullStart()) || [];
+  const out: string[] = [];
+  for (const r of ranges) {
+    const raw = text.slice(r.pos, r.end);
+    if (raw.startsWith("//")) {
+      out.push(raw.replace(/^\/\/\s?/, "").trim());
+    } else if (raw.startsWith("/*")) {
+      out.push(raw.replace(/^\/\*+|\*+\/$/g, "").split("\n").map(s => s.trim()).join(" ").trim());
+    }
+  }
+  return out.filter(Boolean);
+}
+
+/** Try to return the node that actually contains the string literal content for better refs. */
+function anchorForMessageNode(fn: ts.ArrowFunction | ts.FunctionExpression): ts.Node | undefined {
+  const body = fn.body;
+  if (ts.isStringLiteral(body) || ts.isNoSubstitutionTemplateLiteral(body) || ts.isBinaryExpression(body)) {
+    return body;
+  }
+  if (ts.isBlock(body)) {
+    const stmts = body.statements;
+    if (stmts.length === 1 && ts.isReturnStatement(stmts[0]) && stmts[0].expression) {
+      const ret = stmts[0].expression!;
+      if (ts.isStringLiteral(ret) || ts.isNoSubstitutionTemplateLiteral(ret) || ts.isBinaryExpression(ret)) {
+        return ret;
+      }
+      return ret; // still useful (call/identifier) for a reference position
+    }
+  }
+  return fn;
 }
 
 function evaluateStringConcat(expr: ts.Expression): string | null {
@@ -112,6 +145,7 @@ export default function i18nMessagesTransformer(
     hashLength = 10,
     argMode = "array",
   } = options || ({} as I18nTransformerOptions);
+
   return (context: ts.TransformationContext) => {
     const f = context.factory;
 
@@ -127,7 +161,6 @@ export default function i18nMessagesTransformer(
         ts.setTextRange(call, originalNode);
         ts.setTextRange(tAccess, originalNode);
       }
-
       return call;
     };
 
@@ -138,19 +171,13 @@ export default function i18nMessagesTransformer(
 
       if (argMode === "array") {
         const elems = params.map((p) => {
-          const identifier = ts.isIdentifier(p.name) ? f.createIdentifier(p.name.text) : f.createIdentifier("undefined");
-          // Preserve source position for each parameter
-          if (p.name) {
-            ts.setTextRange(identifier, p.name);
-          }
-          return identifier;
+          const id = ts.isIdentifier(p.name) ? f.createIdentifier(p.name.text) : f.createIdentifier("undefined");
+          if (p.name) ts.setTextRange(id, p.name);
+          return id;
         });
-        const arrayExpr = f.createArrayLiteralExpression(elems, false);
-        // Set source range based on the first and last parameters
-        if (params.length > 0) {
-          ts.setTextRange(arrayExpr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
-        }
-        return arrayExpr;
+        const arr = f.createArrayLiteralExpression(elems, false);
+        if (params.length > 0) ts.setTextRange(arr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
+        return arr;
       }
 
       // "named"
@@ -158,19 +185,15 @@ export default function i18nMessagesTransformer(
       for (const p of params) {
         if (ts.isIdentifier(p.name)) {
           const prop = f.createShorthandPropertyAssignment(p.name);
-          // Preserve source position for each property
           ts.setTextRange(prop, p.name);
           namedProps.push(prop);
         }
       }
       if (namedProps.length === 0) return undefined;
 
-      const objectExpr = f.createObjectLiteralExpression(namedProps, true);
-      // Set source range based on the first and last parameters
-      if (params.length > 0) {
-        ts.setTextRange(objectExpr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
-      }
-      return objectExpr;
+      const obj = f.createObjectLiteralExpression(namedProps, true);
+      if (params.length > 0) ts.setTextRange(obj, { pos: params[0].pos, end: params[params.length - 1].end } as any);
+      return obj;
     };
 
     let didRewrite = false;
@@ -182,11 +205,12 @@ export default function i18nMessagesTransformer(
         (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
       ) {
         const fn = node.initializer as ts.ArrowFunction | ts.FunctionExpression;
-        const sf = node.getSourceFile?.() ?? (node as any).parent?.getSourceFile?.() ?? (program as any).getSourceFile;
+        const sf = node.getSourceFile?.() ?? (node as any).parent?.getSourceFile?.();
+        if (!sf) return ts.visitEachChild(node, visitNode, context);
 
         // Skip if @noTranslate appears on the property OR the function
-        if (sf && (hasNoTranslateTag(node, sf) || hasNoTranslateTag(fn, sf))) {
-          return ts.visitEachChild(node, visitNode, context); // leave untouched, but still traverse children
+        if (hasNoTranslateTag(node, sf) || hasNoTranslateTag(fn, sf)) {
+          return ts.visitEachChild(node, visitNode, context);
         }
 
         const original = extractReturnStringLiteral(fn);
@@ -202,9 +226,29 @@ export default function i18nMessagesTransformer(
             globalStore.reverse.set(original, id);
           }
 
+          // ── NEW: record reference + comments for POT/PO
+          const anchor = anchorForMessageNode(fn) ?? node;
+          const start = sf.getLineAndCharacterOfPosition(anchor.getStart(sf)); // 0-based
+          const rel = toRelPosix(sf.fileName);
+          const line = start.line + 1;
+          const column = start.character + 1;
+          const comments = [
+            // comments on the property (key) itself
+            ...getLeadingComments(sf, node),
+            // and on the actual literal/return expression if different
+            ...(anchor !== node ? getLeadingComments(sf, anchor) : []),
+          ];
+
+          i18nStore.add({
+            id,
+            source: original,
+            ref: { file: rel, line, column },
+            comments,
+          });
+          // ── END NEW
+
           const argsExpr = buildArgsExpr(fn.parameters);
           const newBodyExpr = makeI18nextCall(id, argsExpr, fn.body);
-          // Source range is now set in makeI18nextCall for better coverage
 
           let newFn: ts.ArrowFunction | ts.FunctionExpression;
           if (ts.isArrowFunction(fn)) {
@@ -219,13 +263,9 @@ export default function i18nMessagesTransformer(
             );
           } else {
             const returnStmt = f.createReturnStatement(newBodyExpr);
-            // Preserve source range for the return statement
             ts.setTextRange(returnStmt, fn.body);
-
             const block = f.createBlock([returnStmt], true);
-            // Preserve source range for the block
             ts.setTextRange(block, fn.body);
-
             newFn = f.updateFunctionExpression(
               fn,
               fn.modifiers,
@@ -238,15 +278,14 @@ export default function i18nMessagesTransformer(
             );
           }
 
-          // Preserve source range for the entire new function
           ts.setTextRange(newFn, fn);
 
           didRewrite = true;
           const updated = f.updatePropertyAssignment(node, node.name, newFn);
-          // Preserve source range for the property assignment
           ts.setTextRange(updated, node);
 
-          writeDefaultJson(jsonOutputPath, globalStore.seen);
+          // (Optional) still writing JSON here; consider moving this to a Webpack plugin to write once per build.
+          writeDefaultJson(options.jsonOutputPath, globalStore.seen);
           return updated;
         }
       }
@@ -255,9 +294,7 @@ export default function i18nMessagesTransformer(
 
     return (sf: ts.SourceFile) => {
       const updated = ts.visitNode(sf, visitNode) as ts.SourceFile;
-      if (!updated) {
-        return sf;
-      }
+      if (!updated) return sf;
 
       if (didRewrite) {
         const hasImport = updated.statements.some(

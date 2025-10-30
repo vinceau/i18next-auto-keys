@@ -1,0 +1,61 @@
+// transformers/i18nStore.ts
+import path from "path";
+
+export type PoRef = {
+  file: string;        // e.g. "src/views/MainView.messages.ts"
+  line: number;        // 1-based
+  column: number;      // 1-based
+};
+
+export type Entry = {
+  id: string;                      // hash key (msgctxt)
+  source: string;                  // English ICU text (msgid)
+  refs: Set<string>;               // "file:line:column" strings (deduped)
+  extractedComments: Set<string>;  // "#. comment" lines
+};
+
+class I18nStore {
+  private map = new Map<string, Entry>();
+
+  clear() {
+    this.map.clear();
+  }
+
+  all(): ReadonlyMap<string, Entry> {
+    return this.map;
+  }
+
+  /** Adds/merges an entry with reference and comments */
+  add(params: {
+    id: string;
+    source: string;
+    ref: PoRef;
+    comments?: string[];
+  }) {
+    const key = params.id;
+    let e = this.map.get(key);
+    if (!e) {
+      e = { id: key, source: params.source, refs: new Set(), extractedComments: new Set() };
+      this.map.set(key, e);
+    } else {
+      // keep latest source if it somehow changed
+      e.source = params.source;
+    }
+
+    const refKey = `${params.ref.file}:${params.ref.line}:${params.ref.column}`;
+    e.refs.add(refKey);
+    if (params.comments) {
+      for (const c of params.comments) {
+        const trimmed = (c || "").trim();
+        if (trimmed) e.extractedComments.add(trimmed);
+      }
+    }
+  }
+}
+
+export const i18nStore = new I18nStore();
+
+/** Utility to make a repo-relative, POSIX-style path for PO refs */
+export function toRelPosix(abs: string): string {
+  return path.relative(process.cwd(), abs).split(path.sep).join("/");
+}
