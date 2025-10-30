@@ -117,13 +117,19 @@ export default function i18nMessagesTransformer(
   return (context: ts.TransformationContext) => {
     const f = context.factory;
 
-    const makeI18nextCall = (hashId: string, argsExpr?: ts.Expression): ts.CallExpression => {
+    const makeI18nextCall = (hashId: string, argsExpr?: ts.Expression, originalNode?: ts.Node): ts.CallExpression => {
       const i18nextIdent = f.createIdentifier("i18next");
       const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
       const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
       if (argsExpr) callArgs.push(argsExpr);
       const call = f.createCallExpression(tAccess, undefined, callArgs);
-      // Help sourcemaps a bit by inheriting the span of the original body (set later).
+
+      // Preserve source map information from the original node
+      if (originalNode) {
+        ts.setTextRange(call, originalNode);
+        ts.setTextRange(tAccess, originalNode);
+      }
+
       return call;
     };
 
@@ -133,21 +139,40 @@ export default function i18nMessagesTransformer(
       if (params.length === 0) return undefined;
 
       if (argMode === "array") {
-        const elems = params.map((p) =>
-          ts.isIdentifier(p.name) ? f.createIdentifier(p.name.text) : f.createIdentifier("undefined")
-        );
-        return f.createArrayLiteralExpression(elems, false);
+        const elems = params.map((p) => {
+          const identifier = ts.isIdentifier(p.name) ? f.createIdentifier(p.name.text) : f.createIdentifier("undefined");
+          // Preserve source position for each parameter
+          if (p.name) {
+            ts.setTextRange(identifier, p.name);
+          }
+          return identifier;
+        });
+        const arrayExpr = f.createArrayLiteralExpression(elems, false);
+        // Set source range based on the first and last parameters
+        if (params.length > 0) {
+          ts.setTextRange(arrayExpr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
+        }
+        return arrayExpr;
       }
 
       // "named"
       const namedProps: ts.ShorthandPropertyAssignment[] = [];
       for (const p of params) {
         if (ts.isIdentifier(p.name)) {
-          namedProps.push(f.createShorthandPropertyAssignment(p.name));
+          const prop = f.createShorthandPropertyAssignment(p.name);
+          // Preserve source position for each property
+          ts.setTextRange(prop, p.name);
+          namedProps.push(prop);
         }
       }
       if (namedProps.length === 0) return undefined;
-      return f.createObjectLiteralExpression(namedProps, true);
+
+      const objectExpr = f.createObjectLiteralExpression(namedProps, true);
+      // Set source range based on the first and last parameters
+      if (params.length > 0) {
+        ts.setTextRange(objectExpr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
+      }
+      return objectExpr;
     };
 
     let didRewrite = false;
@@ -180,9 +205,8 @@ export default function i18nMessagesTransformer(
           }
 
           const argsExpr = buildArgsExpr(fn.parameters);
-          const newBodyExpr = makeI18nextCall(id, argsExpr);
-          // optional: improve mapping by inheriting the old body span
-          ts.setTextRange(newBodyExpr, fn.body);
+          const newBodyExpr = makeI18nextCall(id, argsExpr, fn.body);
+          // Source range is now set in makeI18nextCall for better coverage
 
           let newFn: ts.ArrowFunction | ts.FunctionExpression;
           if (ts.isArrowFunction(fn)) {
@@ -196,6 +220,14 @@ export default function i18nMessagesTransformer(
               newBodyExpr
             );
           } else {
+            const returnStmt = f.createReturnStatement(newBodyExpr);
+            // Preserve source range for the return statement
+            ts.setTextRange(returnStmt, fn.body);
+
+            const block = f.createBlock([returnStmt], true);
+            // Preserve source range for the block
+            ts.setTextRange(block, fn.body);
+
             newFn = f.updateFunctionExpression(
               fn,
               fn.modifiers,
@@ -204,12 +236,18 @@ export default function i18nMessagesTransformer(
               fn.typeParameters,
               fn.parameters,
               fn.type,
-              f.createBlock([f.createReturnStatement(newBodyExpr)], true)
+              block
             );
           }
 
+          // Preserve source range for the entire new function
+          ts.setTextRange(newFn, fn);
+
           didRewrite = true;
           const updated = f.updatePropertyAssignment(node, node.name, newFn);
+          // Preserve source range for the property assignment
+          ts.setTextRange(updated, node);
+
           writeDefaultJson(jsonOutputPath, globalStore.seen);
           return updated;
         }
