@@ -4,6 +4,7 @@ import fs from "fs";
 import path from "path";
 import { stableHash } from "./hash";
 import { i18nStore, toRelPosix } from "./i18nStore";
+import { stringPool } from "./stringPool";
 
 export interface I18nTransformerOptions {
   jsonOutputPath: string;
@@ -215,15 +216,18 @@ export default function i18nMessagesTransformer(
 
         const original = extractReturnStringLiteral(fn);
         if (original !== null) {
+          // Intern the string to eliminate memory duplication across stores
+          const internedOriginal = stringPool.intern(original);
+
           // reuse/assign hash
-          let id = globalStore.reverse.get(original);
+          let id = globalStore.reverse.get(internedOriginal);
           if (!id) {
-            id = stableHash(original, hashLength);
-            while (globalStore.seen.has(id) && globalStore.seen.get(id) !== original) {
-              id = stableHash(original + ":" + id, Math.min(40, hashLength + 2));
+            id = stableHash(internedOriginal, hashLength);
+            while (globalStore.seen.has(id) && globalStore.seen.get(id) !== internedOriginal) {
+              id = stableHash(internedOriginal + ":" + id, Math.min(40, hashLength + 2));
             }
-            globalStore.seen.set(id, original);
-            globalStore.reverse.set(original, id);
+            globalStore.seen.set(id, internedOriginal);
+            globalStore.reverse.set(internedOriginal, id);
           }
 
           // ── NEW: record reference + comments for POT/PO
@@ -241,7 +245,7 @@ export default function i18nMessagesTransformer(
 
           i18nStore.add({
             id,
-            source: original,
+            source: internedOriginal, // Use interned string to avoid duplication
             ref: { file: rel, line, column },
             comments,
           });

@@ -265,7 +265,7 @@ it("handles @noTranslate with function expressions", () => {
   expect(transformedCode).toContain(`return i18next.t("${stableHash('transform this', 10)}");`);
   expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
   expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash('transform arrow', 10)}")`);
-  
+
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
 });
@@ -368,7 +368,7 @@ describe("argument parsing modes", () => {
   it("handles mixed parameter scenarios in array mode", () => {
     const input = `export const Message = {
   noParams: (): string => "No params",
-  oneParam: (name: string): string => "One param", 
+  oneParam: (name: string): string => "One param",
   twoParams: (name: string, count: number): string => "Two params",
 };`;
 
@@ -380,10 +380,10 @@ describe("argument parsing modes", () => {
 
     // No params - no second argument
     expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
-    
+
     // One param - array with single element
     expect(transformedCode).toContain(`oneParam: (name: string): string => i18next.t("${stableHash('One param', 10)}", [name])`);
-    
+
     // Two params - array with two elements
     expect(transformedCode).toContain(`twoParams: (name: string, count: number): string => i18next.t("${stableHash('Two params', 10)}", [name, count])`);
   });
@@ -403,11 +403,11 @@ describe("argument parsing modes", () => {
 
     // No params - no second argument
     expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
-    
+
     // One param - object with single property (TypeScript printer formats with newlines)
     expect(transformedCode).toContain(`i18next.t("${stableHash('One param', 10)}", {`);
     expect(transformedCode).toMatch(/oneParam:.*name.*\}/s);
-    
+
     // Two params - object with two properties (flexible formatting)
     expect(transformedCode).toContain(`i18next.t("${stableHash('Two params', 10)}", {`);
     expect(transformedCode).toMatch(/twoParams:.*name.*count.*\}/s);
@@ -435,7 +435,7 @@ describe("argument parsing modes", () => {
 
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
-      hashLength: 10,  
+      hashLength: 10,
       argMode: "named",
     });
 

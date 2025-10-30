@@ -1,5 +1,6 @@
 // transformers/i18nStore.ts
 import path from "path";
+import { stringPool } from "./stringPool";
 
 export type PoRef = {
   file: string;        // e.g. "src/views/MainView.messages.ts"
@@ -33,13 +34,16 @@ class I18nStore {
     comments?: string[];
   }) {
     const key = params.id;
+    // Intern the source string to avoid duplication
+    const internedSource = stringPool.intern(params.source);
+
     let e = this.map.get(key);
     if (!e) {
-      e = { id: key, source: params.source, refs: new Set(), extractedComments: new Set() };
+      e = { id: key, source: internedSource, refs: new Set(), extractedComments: new Set() };
       this.map.set(key, e);
     } else {
       // keep latest source if it somehow changed
-      e.source = params.source;
+      e.source = internedSource;
     }
 
     const refKey = `${params.ref.file}:${params.ref.line}:${params.ref.column}`;
