@@ -6,8 +6,6 @@ import { transform } from "./transform";
 export interface LoaderOptions {
     sourcemap?: boolean;
     include: RegExp | RegExp[];
-    jsonOutputPath?: string;
-    poOutputPath?: string;
     hashLength?: number;
     argMode?: "array" | "named";
 }
@@ -22,8 +20,6 @@ const schema = {
           { type: 'array', items: { instanceof: 'RegExp' } }
         ]
       },
-      jsonOutputPath: { type: 'string' },
-      poOutputPath: { type: 'string' },
       hashLength: { type: 'number', minimum: 10 },
       argMode: { type: 'string', enum: ['array', 'named'] }
     },

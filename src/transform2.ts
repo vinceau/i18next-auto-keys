@@ -7,8 +7,6 @@ import { i18nStore, toRelPosix } from "./i18nStore";
 import { stringPool } from "./stringPool";
 
 export interface I18nTransformerOptions {
-  jsonOutputPath: string;
-  poOutputPath?: string;             // (optional) plugin can use i18nStore to write POT/PO at the end
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
   argMode?: "array" | "named";
@@ -142,7 +140,6 @@ export default function i18nMessagesTransformer(
   options: I18nTransformerOptions
 ): ts.TransformerFactory<ts.SourceFile> {
   const {
-    jsonOutputPath,
     hashLength = 10,
     argMode = "array",
   } = options || ({} as I18nTransformerOptions);
@@ -289,7 +286,7 @@ export default function i18nMessagesTransformer(
           ts.setTextRange(updated, node);
 
           // (Optional) still writing JSON here; consider moving this to a Webpack plugin to write once per build.
-          writeDefaultJson(options.jsonOutputPath, globalStore.seen);
+        //   writeDefaultJson(options.jsonOutputPath, globalStore.seen);
           return updated;
         }
       }
