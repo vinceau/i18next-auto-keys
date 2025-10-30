@@ -4,11 +4,8 @@ import path from "path";
 import { stableHash } from "./hash";
 
 export interface I18nTransformerOptions {
-  xliffOutputPath: string;
   jsonOutputPath: string;
-  srcLang?: string;
-  trgLang?: string;
-  fileId?: string;
+  poOutputPath?: string;
   hashLength?: number;
   onlyMessagesFiles?: boolean;
   /** How to pass runtime args into i18next.t */
@@ -112,20 +109,11 @@ export default function i18nMessagesTransformer(
   options: I18nTransformerOptions
 ): ts.TransformerFactory<ts.SourceFile> {
   const {
-    xliffOutputPath,
     jsonOutputPath,
-    srcLang = "en-US",
-    trgLang = "de",
-    fileId = "translation",
     hashLength = 10,
     onlyMessagesFiles = true,
     argMode = "array",
   } = options || ({} as I18nTransformerOptions);
-
-  if (!xliffOutputPath) {
-    throw new Error("[i18nMessagesTransformer] 'xliffOutputPath' option is required.");
-  }
-
   return (context: ts.TransformationContext) => {
     const f = context.factory;
 
