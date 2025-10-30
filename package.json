@@ -27,5 +27,8 @@
     "typescript": "^5",
     "unionfs": "^4",
     "webpack": "^5"
+  },
+  "dependencies": {
+    "schema-utils": "^4.3.3"
   }
 }
