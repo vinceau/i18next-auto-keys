@@ -7,7 +7,6 @@ export interface I18nTransformerOptions {
   jsonOutputPath: string;
   poOutputPath?: string;
   hashLength?: number;
-  onlyMessagesFiles?: boolean;
   /** How to pass runtime args into i18next.t */
   argMode?: "array" | "named";
 }
@@ -111,7 +110,6 @@ export default function i18nMessagesTransformer(
   const {
     jsonOutputPath,
     hashLength = 10,
-    onlyMessagesFiles = true,
     argMode = "array",
   } = options || ({} as I18nTransformerOptions);
   return (context: ts.TransformationContext) => {
@@ -256,10 +254,6 @@ export default function i18nMessagesTransformer(
     };
 
     return (sf: ts.SourceFile) => {
-    //   if (onlyMessagesFiles && !/\.messages\.ts$/.test(sf.fileName)) {
-    //     return sf;
-    //   }
-
       const updated = ts.visitNode(sf, visitNode) as ts.SourceFile;
       if (!updated) {
         return sf;
