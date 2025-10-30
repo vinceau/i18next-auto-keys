@@ -5,7 +5,7 @@ import { transform } from "./transform";
 
 export interface LoaderOptions {
     sourcemap?: boolean;
-    include?: RegExp | RegExp[];
+    include: RegExp | RegExp[];
     jsonOutputPath?: string;
     poOutputPath?: string;
     hashLength?: number;
@@ -30,7 +30,13 @@ const schema = {
     additionalProperties: false
   };
 
-export default function myLoader(this: LoaderContext<LoaderOptions>, source: string, inputMap?: RawSourceMap) {
+function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
+    if (!include) return true; // no include => process everything
+    const arr = Array.isArray(include) ? include : [include];
+    return arr.some((re) => re.test(resourcePath));
+}
+
+export default function myLoader(this: LoaderContext<LoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
   // v5 has getOptions; v4 needs loader-utils
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const options: LoaderOptions = this.getOptions
@@ -41,15 +47,23 @@ export default function myLoader(this: LoaderContext<LoaderOptions>, source: str
   validate(schema as any, options, { name: 'i18next-icu-loader' });
 
   this.cacheable && this.cacheable(true);
+
+  // Skip if not included
+  if (!matchesInclude(options.include, this.resourcePath)) {
+    // pass through unchanged (preserve prior sourcemap if present)
+    this.callback(null, source, inputMap, meta);
+    return;
+  }
+
   const asyncCb = this.async();
   try {
     const { code, map } = transform(source, {
       filename: this.resourcePath,
       sourcemap: options.sourcemap !== false,
-      inputSourceMap: inputMap as any
+      inputSourceMap: inputMap,
     });
-    asyncCb(null, code, map as any);
-  } catch (err: any) {
-    asyncCb(err);
+    asyncCb(null, code, map);
+  } catch (err: unknown) {
+    asyncCb(err as Error);
   }
 }
