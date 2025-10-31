@@ -13,9 +13,11 @@
     "prepublishOnly": "npm run clean && npm run build"
   },
   "devDependencies": {
+    "@types/gettext-parser": "^8.0.0",
     "@types/jest": "^29",
     "@types/webpack": "^5",
     "esbuild-loader": "^4.4.0",
+    "gettext-parser": "^8.0.0",
     "jest": "^29",
     "loader-utils": "^2.0.4",
     "memfs": "^4",
