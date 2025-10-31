@@ -1,6 +1,7 @@
 // plugins/I18nEmitPlugin.ts
 import type * as webpack from "webpack";
 import { i18nStore } from "./i18nStore";
+import type { GetTextTranslationRecord } from "gettext-parser";
 
 // Optional dependency: only needed if you set `potOutputPath`
 let gettextParser: typeof import("gettext-parser") | undefined;
@@ -64,7 +65,7 @@ export default class I18nEmitPlugin {
 
           // --- POT (optional) ---
           if (this.potOutputPath && gettextParser) {
-            const catalog: any = {
+            const catalog = {
               charset: "utf-8",
               headers: {
                 "project-id-version": this.projectIdVersion,
@@ -74,7 +75,7 @@ export default class I18nEmitPlugin {
                 "x-generator": pluginName,
                 language: "", // empty in POT templates
               },
-              translations: { "": {} },
+              translations: { "": {} } as GetTextTranslationRecord,
             };
 
             for (const e of entries) {
@@ -89,7 +90,7 @@ export default class I18nEmitPlugin {
               };
             }
 
-            const potBuf = (gettextParser as any).po.compile(catalog);
+            const potBuf = gettextParser.po.compile(catalog);
             compilation.emitAsset(this.normalize(this.potOutputPath), new sources.RawSource(potBuf));
           }
         }
