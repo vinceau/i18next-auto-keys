@@ -34,11 +34,8 @@ function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
 }
 
 export function i18nextTranslationLoader(this: LoaderContext<I18nextTranslationLoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
-  // v5 has getOptions; v4 needs loader-utils
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const options: I18nextTranslationLoaderOptions = this.getOptions
-    ? this.getOptions()
-    : (require('loader-utils').getOptions(this) || {});
+  // Use webpack 5's getOptions method (this loader targets webpack 5+)
+  const options: I18nextTranslationLoaderOptions = this.getOptions() || {};
 
   // validate in a version-agnostic way
   validate(schema as any, options, { name: 'i18next-icu-loader' });
