@@ -1,9 +1,12 @@
 {
   "name": "i18next-icu-loader",
+  "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist/index.js",
+    "dist/index.js.map",
+    "dist/index.d.ts"
   ],
   "scripts": {
     "build": "npm run build:js && npm run build:types && npm run build:clean",
