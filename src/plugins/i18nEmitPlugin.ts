@@ -1,5 +1,5 @@
 // plugins/I18nEmitPlugin.ts
-import type * as webpack from "webpack";
+import type { Compiler} from "webpack";
 import { i18nStore } from "../common/i18nStore";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
@@ -37,7 +37,7 @@ export class I18nEmitPlugin {
     this.projectIdVersion = opts.projectIdVersion ?? "app 1.0";
   }
 
-  apply(compiler: webpack.Compiler): void {
+  apply(compiler: Compiler): void {
     const { Compilation, sources } = compiler.webpack;
     const pluginName = "I18nEmitPlugin";
 
