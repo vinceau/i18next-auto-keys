@@ -117,8 +117,8 @@ describe("I18nEmitPlugin integration", () => {
 
       // Verify POT file contains expected structure
       expect(potContent).toContain("Project-Id-Version: test-app 1.0");
-      expect(potContent).toContain("Content-Type: text/plain; charset=UTF-8");
-      expect(potContent).toContain("X-Generator: I18nEmitPlugin");
+      expect(potContent).toContain("Content-Type: text/plain; charset=utf-8");
+      expect(potContent).toContain("x-generator: I18nEmitPlugin");
 
       // Verify it contains our messages
       expect(potContent).toContain("Welcome to our app!");
