@@ -4,7 +4,7 @@ import type { RawSourceMap } from "source-map";
 import ts from "typescript";
 import { createI18nextTranslationTransformerFactory } from "../transformers/i18nextTranslationTransformer";
 
-export interface LoaderOptions {
+export type I18nextTranslationLoaderOptions = {
     sourcemap?: boolean;
     include: RegExp | RegExp[];
     hashLength?: number;
@@ -33,10 +33,10 @@ function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
     return arr.some((re) => re.test(resourcePath));
 }
 
-export function i18nextTranslationLoader(this: LoaderContext<LoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
+export function i18nextTranslationLoader(this: LoaderContext<I18nextTranslationLoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
   // v5 has getOptions; v4 needs loader-utils
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const options: LoaderOptions = this.getOptions
+  const options: I18nextTranslationLoaderOptions = this.getOptions
     ? this.getOptions()
     : (require('loader-utils').getOptions(this) || {});
 
