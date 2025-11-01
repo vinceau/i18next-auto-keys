@@ -66,7 +66,7 @@ describe("StringPool", () => {
     const savings = totalChars - uniqueChars;
 
     expect(savings).toBeGreaterThan(0);
-    console.log(`Memory savings: ${savings} characters (${Math.round(savings/totalChars*100)}%)`);
+    // console.log(`Memory savings: ${savings} characters (${Math.round(savings/totalChars*100)}%)`);
   });
 
   it("works correctly with empty strings and special characters", () => {
