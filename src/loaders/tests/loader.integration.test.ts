@@ -1,27 +1,31 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
 describe("i18next-icu-loader integration", () => {
-  test("loader resolves correctly and processes JS files", async () => {
+  test("transforms .messages.js files correctly", async () => {
     const rules = [
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        use: [{ loader: "i18next-icu-loader", options: { include: /.*/ } }],
+        use: [{ loader: "i18next-icu-loader", options: { include: /\.messages\.js$/, hashLength: 10 } }],
       },
     ];
 
-    // Should not throw errors - loader is found and runs
-    await expect(
-      compileWithMemoryFS(
-        {
-          "src/entry.js": `export const test = "hello";`,
-        },
-        rules
-      )
-    ).resolves.toBeTruthy();
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.js": `import { Messages } from './ui.messages.js'; console.log(Messages.greeting());`,
+        "src/ui.messages.js": `export const Messages = { greeting: () => "Hello, World!" };`,
+      },
+      rules,
+      { entry: "/src/entry.js" }
+    );
+
+    // Verify transformation happened (webpack mangles import names)
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should contain .t() calls with hash
+    expect(bundle).not.toContain("Hello, World!"); // Original string should be replaced
+    expect(bundle).toContain('i18next'); // Should reference i18next (webpack externals)
   });
 
-  test("loader resolves correctly and processes TS files", async () => {
+  test("transforms .messages.ts files correctly", async () => {
     const rules = [
       {
         test: /\.ts$/,
@@ -34,41 +38,119 @@ describe("i18next-icu-loader integration", () => {
               target: "es2020",
             },
           },
-          { loader: "i18next-icu-loader", options: { include: /.*/ } },
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              argMode: "array"
+            }
+          },
         ],
       },
     ];
 
-    // Should not throw errors - loader is found and runs
-    await expect(
-      compileWithMemoryFS(
-        {
-          "src/entry.ts": `export const test: string = "hello";`,
-        },
-        rules
-      )
-    ).resolves.toBeTruthy();
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `import { Messages } from './ui.messages'; console.log(Messages.welcome());`,
+        "src/ui.messages.ts": `export const Messages = {
+          welcome: (): string => "Welcome to our app!",
+          goodbye: (): string => "Goodbye!",
+        };`,
+      },
+      rules,
+      { entry: "/src/entry.ts" }
+    );
+
+    // Verify transformations happened
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should contain .t() calls with hash
+    expect(bundle).not.toContain("Welcome to our app!"); // Original strings should be replaced
+    expect(bundle).not.toContain("Goodbye!");
+    expect(bundle).toContain('i18next'); // Should reference i18next
   });
 
-  test("webpack can resolve loader by package name", async () => {
+  test("transforms messages with parameters correctly", async () => {
     const rules = [
       {
-        test: /\.js$/,
-        use: [{ loader: "i18next-icu-loader", options: { include: /.*/ } }],
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              argMode: "named"
+            }
+          },
+        ],
       },
     ];
 
-    const result = await compileWithMemoryFS(
+    const { bundle } = await compileWithMemoryFS(
       {
-        "src/entry.js": `console.log("test");`,
+        "src/entry.ts": `import { Messages } from './user.messages'; console.log(Messages.greeting({ name: "John" }));`,
+        "src/user.messages.ts": `export const Messages = {
+          greeting: (name: string): string => "Hello",
+          itemCount: (count: number): string => "You have items",
+        };`,
       },
       rules,
-      { entry: "/src/entry.js" }  // Explicit entry to avoid conflicts
+      { entry: "/src/entry.ts" }
     );
 
-    // Verify webpack compilation succeeded
-    expect(result.bundle).toContain('console.log("test")');
-    expect(result.stats.hasErrors()).toBe(false);
+    // Verify transformations work (even with parameters, simple string literals are transformed)
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']/); // Should contain .t() calls with hash
+    expect(bundle).not.toContain('"Hello"'); // String literals should be replaced
+    expect(bundle).not.toContain('"You have items"');
+    expect(bundle).toContain('i18next'); // Should reference i18next
+  });
+
+  test("only transforms files matching include pattern", async () => {
+    const rules = [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10
+            }
+          },
+        ],
+      },
+    ];
+
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `import { Messages } from './ui.messages'; import { Utils } from './utils'; console.log(Messages.greeting(), Utils.helper());`,
+        "src/ui.messages.ts": `export const Messages = { greeting: (): string => "Hello!" };`,
+        "src/utils.ts": `export const Utils = { helper: (): string => "This should not be transformed" };`, // This should NOT be transformed
+      },
+      rules,
+      { entry: "/src/entry.ts" }
+    );
+
+    // Should transform messages file but not utils file
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should contain .t() for messages
+    expect(bundle).not.toContain("Hello!"); // Messages should be transformed
+    expect(bundle).toContain("This should not be transformed"); // Utils should remain unchanged
   });
 
   test("emits source maps when requested", async () => {
@@ -84,16 +166,25 @@ describe("i18next-icu-loader integration", () => {
               target: "es2020",
             },
           },
-          { loader: "i18next-icu-loader", options: { include: /.*/, sourcemap: true } },
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              sourcemap: true,
+              hashLength: 10
+            }
+          },
         ],
       },
     ];
 
     const { map } = await compileWithMemoryFS(
       {
-        "src/entry.ts": `export const test: string = "hello";`
+        "src/entry.ts": `import { Messages } from './test.messages'; console.log(Messages.test());`,
+        "src/test.messages.ts": `export const Messages = { test: (): string => "Test message" };`
       },
-      rules
+      rules,
+      { entry: "/src/entry.ts" }
     );
 
     expect(map).toBeDefined();

@@ -52,19 +52,28 @@ export function i18nextTranslationLoader(this: LoaderContext<I18nextTranslationL
     return;
   }
 
-  const asyncCb = this.async();
-  try {
-    const transformer = createI18nextTranslationTransformerFactory({
-      hashLength: options.hashLength,
-      argMode: options.argMode,
-    });
-    const sourceFile = ts.createSourceFile(this.resourcePath, source, ts.ScriptTarget.Latest);
-    const transformationResult = ts.transform(sourceFile, [transformer]);
-    const transformedSourceFile = transformationResult.transformed[0];
-    const printer = ts.createPrinter();
-    const result = printer.printNode(ts.EmitHint.Unspecified, transformedSourceFile, sourceFile);
-    asyncCb(null, result, inputMap, meta);
-  } catch (err: unknown) {
-    asyncCb(err as Error);
-  }
+  // ✅ Minimal working version - simpler than full program but still correct
+  const sourceFile = ts.createSourceFile(
+    this.resourcePath,
+    source,
+    ts.ScriptTarget.Latest,
+    true  // ⚠️ setParentNodes REQUIRED for transformations
+  );
+
+  const transformer = createI18nextTranslationTransformerFactory({
+    hashLength: options.hashLength,
+    argMode: options.argMode,
+  });
+
+  const transformationResult = ts.transform(sourceFile, [transformer]);
+  const transformedSourceFile = transformationResult.transformed[0] as ts.SourceFile;
+
+  const printer = ts.createPrinter();
+  const result = printer.printFile(transformedSourceFile);  // Use printFile for SourceFile
+
+  transformationResult.dispose();  // Clean up
+
+  // ✅ Proper webpack loader protocol
+  this.callback(null, result, inputMap, meta);
+
 }

@@ -1,7 +1,7 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
 describe("i18next-icu-loader pipeline", () => {
-  test("works in loader chain with esbuild-loader", async () => {
+  test("transforms .messages.ts files then compiles with esbuild-loader", async () => {
     const rules = [
       {
         test: /\.ts$/,
@@ -15,19 +15,33 @@ describe("i18next-icu-loader pipeline", () => {
               target: "es2020",
             },
           },
-          // our loader processes the TypeScript first
-          { loader: "i18next-icu-loader", options: { include: /.*/ } },
+          // our loader transforms message functions to i18next.t() calls (first step)
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              argMode: "array"
+            }
+          },
         ],
       },
     ];
 
-    const result = await compileWithMemoryFS(
-      { "src/entry.ts": `export const test: string = "hello";` },
-      rules
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/app.messages.ts": `export const Messages = {
+          hello: (): string => "Hello",
+          welcome: (name: string): string => \`Welcome, \${name}!\`
+        };`
+      },
+      rules,
+      { entry: "/src/app.messages.ts" }
     );
 
-    // Verify the pipeline worked without errors
-    expect(result.stats.hasErrors()).toBe(false);
-    expect(result.bundle).toContain("hello");
+    // Verify the pipeline worked: transformation -> compilation (webpack mangles imports)
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should transform to .t() calls with hash
+    expect(bundle).not.toContain("Hello"); // Original strings should be replaced
+    expect(bundle).toContain('i18next'); // Should reference i18next
   });
 });

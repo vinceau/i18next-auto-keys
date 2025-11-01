@@ -37,11 +37,17 @@ export async function compileWithMemoryFS(
     context: "/",
     entry: entryPath,
     output: { path: "/dist", filename: "bundle.js" },
-    resolve: { extensions: [".ts", ".tsx", ".js", ".jsx"] },
+    resolve: {
+      extensions: [".ts", ".tsx", ".js", ".jsx"]
+    },
     resolveLoader: {
       alias: {
         "i18next-icu-loader": LOADER_PATH
       }
+    },
+    externals: {
+      // Treat i18next as external to avoid resolution errors
+      "i18next": "i18next"
     },
     module: { rules },
     devtool: "source-map",
