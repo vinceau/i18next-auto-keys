@@ -70,12 +70,12 @@ export class I18nEmitPlugin {
       // Start each compilation fresh; transformer will repopulate the store.
       i18nStore.clear();
 
-      compilation.hooks.processAssets.tapAsync(
+      compilation.hooks.processAssets.tapPromise(
         {
           name: pluginName,
           stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
         },
-        async (assets, callback) => {
+        async (assets) => {
           // Build a stable snapshot of entries
           const entries = Array.from(i18nStore.all().values()).sort((a, b) =>
             a.id.localeCompare(b.id)
@@ -121,8 +121,6 @@ export class I18nEmitPlugin {
             compilation.emitAsset(this.normalize(this.potOutputPath), new sources.RawSource(potBuf));
             }
           }
-
-          callback();
         }
       );
     });

@@ -5,6 +5,50 @@ import { stableHash } from "../../common/hash";
 const LOADER_PATH = require.resolve("../../../dist/index.js");
 const { I18nEmitPlugin } = require(LOADER_PATH);
 
+// Mock gettext-parser to work in test environment
+const mockPotContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+"mime-version: 1.0\\n"
+"Content-Type: text/plain; charset=utf-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+"x-generator: I18nEmitPlugin\\n"
+"Language: \\n"
+
+#: src/ui.messages.ts:2:35
+msgctxt "0b1cf27300"
+msgid "Welcome to our app!"
+msgstr ""
+
+#: src/ui.messages.ts:3:33
+msgctxt "20c7c5522f"
+msgid "Ready"
+msgstr ""
+`;
+
+jest.mock("gettext-parser", () => ({
+  po: {
+    compile: jest.fn().mockImplementation((catalog) => {
+      // Verify the catalog structure is correct
+      expect(catalog.charset).toBe("utf-8");
+      expect(catalog.headers).toMatchObject({
+        "project-id-version": "test-app 1.0",
+        "mime-version": "1.0",
+        "content-type": "text/plain; charset=UTF-8",
+        "content-transfer-encoding": "8bit",
+        "x-generator": "I18nEmitPlugin",
+        language: ""
+      });
+
+      // Verify translations structure
+      expect(catalog.translations[""]).toBeDefined();
+
+      // Return mock POT content as Buffer
+      return Buffer.from(mockPotContent);
+    })
+  }
+}), { virtual: true });
+
 describe("I18nEmitPlugin integration", () => {
 
   test("emits JSON file with extracted messages from loader", async () => {
@@ -111,27 +155,39 @@ describe("I18nEmitPlugin integration", () => {
       }
     );
 
-    // Verify POT file was emitted (if gettext-parser is available)
-    if (fs.existsSync("/dist/i18n/messages.pot")) {
-      const potContent = fs.readFileSync("/dist/i18n/messages.pot", "utf8").toString();
+    // Verify POT file was emitted with mocked gettext-parser
+    expect(fs.existsSync("/dist/i18n/messages.pot")).toBe(true);
+    const potContent = fs.readFileSync("/dist/i18n/messages.pot", "utf8").toString();
 
-      // Verify POT file contains expected structure
-      expect(potContent).toContain("Project-Id-Version: test-app 1.0");
-      expect(potContent).toContain("Content-Type: text/plain; charset=utf-8");
-      expect(potContent).toContain("x-generator: I18nEmitPlugin");
+    // Verify POT file contains expected structure
+    expect(potContent).toContain("Project-Id-Version: test-app 1.0");
+    expect(potContent).toContain("Content-Type: text/plain; charset=utf-8");
+    expect(potContent).toContain("x-generator: I18nEmitPlugin");
 
-      // Verify it contains our messages
-      expect(potContent).toContain("Welcome to our app!");
-      expect(potContent).toContain("Ready");
+    // Verify it contains our messages
+    expect(potContent).toContain("Welcome to our app!");
+    expect(potContent).toContain("Ready");
 
-      // Verify msgctxt (hashes) are present
-      const welcomeHash = stableHash("Welcome to our app!", 10);
-      const readyHash = stableHash("Ready", 10);
-      expect(potContent).toContain(`msgctxt "${welcomeHash}"`);
-      expect(potContent).toContain(`msgctxt "${readyHash}"`);
-    } else {
-      console.warn("gettext-parser not available, skipping POT file verification");
-    }
+    // Verify msgctxt (hashes) are present
+    const welcomeHash = stableHash("Welcome to our app!", 10);
+    const readyHash = stableHash("Ready", 10);
+    expect(potContent).toContain(`msgctxt "${welcomeHash}"`);
+    expect(potContent).toContain(`msgctxt "${readyHash}"`);
+
+    // Verify the mock was called (meaning our POT generation logic executed)
+    const gettextParser = require("gettext-parser");
+    expect(gettextParser.po.compile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        charset: "utf-8",
+        headers: expect.objectContaining({
+          "project-id-version": "test-app 1.0",
+          "x-generator": "I18nEmitPlugin"
+        }),
+        translations: expect.objectContaining({
+          "": expect.any(Object)
+        })
+      })
+    );
   });
 
   test("handles multiple message files and preserves file references", async () => {

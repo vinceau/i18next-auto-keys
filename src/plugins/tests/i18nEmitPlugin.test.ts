@@ -17,7 +17,8 @@ const mockSources = {
 const mockCompilation = {
   hooks: {
     processAssets: {
-      tap: jest.fn()
+      tap: jest.fn(),
+      tapPromise: jest.fn()
     }
   },
   emitAsset: jest.fn()
@@ -104,7 +105,7 @@ describe("I18nEmitPlugin", () => {
       const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
       compilationCallback(mockCompilation);
 
-      expect(mockCompilation.hooks.processAssets.tap).toHaveBeenCalledWith(
+      expect(mockCompilation.hooks.processAssets.tapPromise).toHaveBeenCalledWith(
         {
           name: "I18nEmitPlugin",
           stage: "additional"
@@ -115,7 +116,7 @@ describe("I18nEmitPlugin", () => {
   });
 
   describe("JSON output generation", () => {
-    it("should emit JSON file with entries from i18nStore", () => {
+    it("should emit JSON file with entries from i18nStore", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
@@ -136,8 +137,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test2.ts", line: 20, column: 10 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       // Verify JSON content
       expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
@@ -156,7 +157,7 @@ describe("I18nEmitPlugin", () => {
       });
     });
 
-    it("should sort entries by id for consistent output", () => {
+    it("should sort entries by id for consistent output", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "output.json"
       });
@@ -182,8 +183,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test.ts", line: 3, column: 1 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -192,7 +193,7 @@ describe("I18nEmitPlugin", () => {
       expect(keys).toEqual(["alpha", "beta", "zebra"]);
     });
 
-    it("should handle empty store gracefully", () => {
+    it("should handle empty store gracefully", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "empty.json"
       });
@@ -201,8 +202,8 @@ describe("I18nEmitPlugin", () => {
       const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
       compilationCallback(mockCompilation);
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -210,7 +211,7 @@ describe("I18nEmitPlugin", () => {
       expect(jsonContent).toEqual({});
     });
 
-    it("should handle special characters in strings", () => {
+    it("should handle special characters in strings", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "special.json"
       });
@@ -226,8 +227,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test.ts", line: 1, column: 1 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -246,7 +247,7 @@ describe("I18nEmitPlugin", () => {
       jest.dontMock("gettext-parser");
     });
 
-    it("should not emit POT file when potOutputPath is not provided", () => {
+    it("should not emit POT file when potOutputPath is not provided", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -262,8 +263,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test.ts", line: 1, column: 1 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       // Should only emit JSON file
       expect(mockCompilation.emitAsset).toHaveBeenCalledTimes(1);
@@ -273,7 +274,7 @@ describe("I18nEmitPlugin", () => {
       );
     });
 
-    it("should emit POT file when potOutputPath is provided and gettext-parser is available", () => {
+    it("should emit POT file when potOutputPath is provided and gettext-parser is available", async () => {
       // This test verifies the logic path for POT generation
       // Note: Actual gettext-parser integration is difficult to test due to optional loading
       const plugin = new I18nEmitPlugin({
@@ -294,8 +295,8 @@ describe("I18nEmitPlugin", () => {
         comments: ["Test comment", "Another comment"]
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       // Should emit at least JSON file (POT depends on gettext-parser availability)
       expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
@@ -304,7 +305,7 @@ describe("I18nEmitPlugin", () => {
       );
     });
 
-    it("should include references and comments in POT file", () => {
+    it("should include references and comments in POT file", async () => {
       // This test verifies the structure of the catalog object passed to gettext-parser
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json",
@@ -330,8 +331,8 @@ describe("I18nEmitPlugin", () => {
         comments: ["Service error message"]
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       // The logic should create a catalog with proper structure
       // We can verify this by checking the i18nStore contents
@@ -343,7 +344,7 @@ describe("I18nEmitPlugin", () => {
   });
 
   describe("Path normalization", () => {
-    it("should normalize backslashes to forward slashes", () => {
+    it("should normalize backslashes to forward slashes", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "i18n\\en.json" // Windows-style path
       });
@@ -358,8 +359,8 @@ describe("I18nEmitPlugin", () => {
       const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
       compilationCallback(mockCompilation);
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
         "i18n/en.json", // Normalized to forward slashes
@@ -367,7 +368,7 @@ describe("I18nEmitPlugin", () => {
       );
     });
 
-    it("should handle already normalized paths", () => {
+    it("should handle already normalized paths", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "i18n/subdirectory/messages.json"
       });
@@ -382,8 +383,8 @@ describe("I18nEmitPlugin", () => {
       const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
       compilationCallback(mockCompilation);
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
         "i18n/subdirectory/messages.json",
@@ -393,7 +394,7 @@ describe("I18nEmitPlugin", () => {
   });
 
   describe("Edge cases", () => {
-    it("should handle entries with no references", () => {
+    it("should handle entries with no references", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -413,8 +414,8 @@ describe("I18nEmitPlugin", () => {
       // Add to store manually to simulate edge case
       (i18nStore as any).map.set("orphan", entry);
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -424,7 +425,7 @@ describe("I18nEmitPlugin", () => {
       });
     });
 
-    it("should handle entries with no comments", () => {
+    it("should handle entries with no comments", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -441,13 +442,13 @@ describe("I18nEmitPlugin", () => {
         // No comments provided
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       expect(mockCompilation.emitAsset).toHaveBeenCalled();
     });
 
-    it("should handle very long messages", () => {
+    it("should handle very long messages", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -464,8 +465,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test.ts", line: 1, column: 1 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -473,7 +474,7 @@ describe("I18nEmitPlugin", () => {
       expect(jsonContent.long_msg).toBe(longMessage);
     });
 
-    it("should handle unicode characters", () => {
+    it("should handle unicode characters", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -490,8 +491,8 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test.ts", line: 1, column: 1 }
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
@@ -499,7 +500,7 @@ describe("I18nEmitPlugin", () => {
       expect(jsonContent.unicode).toBe(unicodeMessage);
     });
 
-    it("should handle multiple compilations", () => {
+    it("should handle multiple compilations", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "test.json"
       });
@@ -517,7 +518,7 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test1.ts", line: 1, column: 1 }
       });
 
-      let processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
+      let processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
       processAssetsCallback();
 
       // Second compilation - store should be cleared when compilation callback runs
@@ -533,7 +534,7 @@ describe("I18nEmitPlugin", () => {
         ref: { file: "test2.ts", line: 1, column: 1 }
       });
 
-      processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[1][1];
+      processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[1][1];
       processAssetsCallback();
 
       // Should have emitted assets twice
@@ -542,7 +543,7 @@ describe("I18nEmitPlugin", () => {
   });
 
   describe("Integration scenarios", () => {
-    it("should work with complex real-world data", () => {
+    it("should work with complex real-world data", async () => {
       const plugin = new I18nEmitPlugin({
         jsonOutputPath: "dist/locales/en.json",
         potOutputPath: "src/locales/messages.pot",
@@ -587,8 +588,8 @@ describe("I18nEmitPlugin", () => {
         });
       });
 
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tap as jest.Mock).mock.calls[0][1];
-      processAssetsCallback();
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
 
       // Verify JSON output
       const jsonEmitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
