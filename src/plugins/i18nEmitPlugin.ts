@@ -4,12 +4,37 @@ import { i18nStore } from "../common/i18nStore";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
 // Optional dependency: only needed if you set `potOutputPath`
+// Support both CommonJS (v7.x) and ESM (v8.x+) versions
 let gettextParser: typeof import("gettext-parser") | undefined;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  gettextParser = require("gettext-parser");
-} catch {
-  // Not installed; POT emission will be skipped if potOutputPath is set
+let gettextParserLoadPromise: Promise<typeof import("gettext-parser")> | undefined;
+
+async function loadGettextParser(): Promise<typeof import("gettext-parser") | undefined> {
+  // Return cached result if already loaded
+  if (gettextParser) return gettextParser;
+
+  // Return cached promise if already loading
+  if (gettextParserLoadPromise) return gettextParserLoadPromise;
+
+  // Try CommonJS first (gettext-parser v7.x and below)
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    gettextParser = require("gettext-parser");
+    return gettextParser;
+  } catch (error: any) {
+    // If it's an ESM error, try dynamic import (gettext-parser v8.x+)
+    if (error?.code === 'ERR_REQUIRE_ESM') {
+      try {
+        gettextParserLoadPromise = import("gettext-parser");
+        gettextParser = await gettextParserLoadPromise;
+        return gettextParser;
+      } catch (importError: any) {
+        console.warn("I18nEmitPlugin: Could not load gettext-parser:", importError.message);
+        return undefined;
+      }
+    }
+    // Package not installed
+    return undefined;
+  }
 }
 
 export interface I18nEmitPluginOptions {
@@ -45,12 +70,12 @@ export class I18nEmitPlugin {
       // Start each compilation fresh; transformer will repopulate the store.
       i18nStore.clear();
 
-      compilation.hooks.processAssets.tap(
+      compilation.hooks.processAssets.tapAsync(
         {
           name: pluginName,
           stage: Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL,
         },
-        () => {
+        async (assets, callback) => {
           // Build a stable snapshot of entries
           const entries = Array.from(i18nStore.all().values()).sort((a, b) =>
             a.id.localeCompare(b.id)
@@ -64,7 +89,9 @@ export class I18nEmitPlugin {
           compilation.emitAsset(this.normalize(this.jsonOutputPath), new sources.RawSource(jsonBuf));
 
           // --- POT (optional) ---
-          if (this.potOutputPath && gettextParser) {
+          if (this.potOutputPath) {
+            const parser = await loadGettextParser();
+            if (parser) {
             const catalog = {
               charset: "utf-8",
               headers: {
@@ -90,9 +117,12 @@ export class I18nEmitPlugin {
               };
             }
 
-            const potBuf = gettextParser.po.compile(catalog);
+            const potBuf = parser.po.compile(catalog);
             compilation.emitAsset(this.normalize(this.potOutputPath), new sources.RawSource(potBuf));
+            }
           }
+
+          callback();
         }
       );
     });
