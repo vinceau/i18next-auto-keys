@@ -4,11 +4,20 @@ import { Volume } from "memfs";
 import { ufs } from "unionfs";
 import realfs from "fs";
 
+// Absolute path to the built loader for testing
+const LOADER_PATH = path.resolve(__dirname, '../../../../dist/index.js');
+
 export async function compileWithMemoryFS(
   entryFiles: Record<string, string>,
   rules: NonNullable<Configuration["module"]>["rules"],
   extra?: Partial<Configuration>
 ) {
+  // Auto-detect entry point from the files provided, prefer explicit entry config
+  const explicitEntry = extra?.entry;
+  const entryFile = explicitEntry
+    ? (typeof explicitEntry === 'string' ? explicitEntry.replace(/^\//, '') : Object.keys(entryFiles)[0])
+    : (Object.keys(entryFiles).find(f => f.startsWith('src/entry')) || Object.keys(entryFiles)[0]);
+  const entryPath = explicitEntry || ("/" + entryFile.replace(/^\//, "").replace(/\.[^/.]+$/, ""));
   const vol = new Volume();
 
   // ✅ Memfs MUST take precedence over the real FS
@@ -26,9 +35,14 @@ export async function compileWithMemoryFS(
   const config: Configuration = {
     mode: "development",
     context: "/",
-    entry: "/src/entry",
+    entry: entryPath,
     output: { path: "/dist", filename: "bundle.js" },
     resolve: { extensions: [".ts", ".tsx", ".js", ".jsx"] },
+    resolveLoader: {
+      alias: {
+        "i18next-icu-loader": LOADER_PATH
+      }
+    },
     module: { rules },
     devtool: "source-map",
     infrastructureLogging: { level: "error" },

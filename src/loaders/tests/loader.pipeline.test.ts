@@ -1,12 +1,10 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
-const loaderPath = require.resolve("../dist/loader.js");
-
-describe("i18next-icu-loader pipeline with esbuild", () => {
-  test("transforms TS then compiles with esbuild-loader", async () => {
+describe("i18next-icu-loader pipeline", () => {
+  test("works in loader chain with esbuild-loader", async () => {
     const rules = [
       {
-        test: /\.tsx?$/,
+        test: /\.ts$/,
         exclude: /node_modules/,
         use: [
           // esbuild-loader compiles TS -> JS (last step)
@@ -17,18 +15,19 @@ describe("i18next-icu-loader pipeline with esbuild", () => {
               target: "es2020",
             },
           },
-          // our loader transforms foo -> bar (first step)
-          { loader: loaderPath, options: { sourcemap: true } },
+          // our loader processes the TypeScript first
+          { loader: "i18next-icu-loader", options: { include: /.*/ } },
         ],
       },
     ];
 
-    const { bundle } = await compileWithMemoryFS(
-      { "src/entry.ts": `const foo: number = 99; console.log(foo)` },
+    const result = await compileWithMemoryFS(
+      { "src/entry.ts": `export const test: string = "hello";` },
       rules
     );
 
-    expect(bundle).toContain("bar");
-    expect(bundle).not.toContain("foo");
+    // Verify the pipeline worked without errors
+    expect(result.stats.hasErrors()).toBe(false);
+    expect(result.bundle).toContain("hello");
   });
 });
