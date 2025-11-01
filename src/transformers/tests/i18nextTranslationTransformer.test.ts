@@ -444,7 +444,7 @@ describe("argument parsing modes", () => {
     expect(transformedCode).toMatch(/name.*age.*\}/s);
   });
 
-  it("defaults to array mode when argMode is not specified", () => {
+  it("defaults to named mode when argMode is not specified", () => {
     const input = `export const Message = {
   greeting: (name: string): string => "Hello",
 };`;
@@ -452,10 +452,11 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      // argMode not specified - should default to "array"
+      // argMode not specified - should default to "named"
     });
 
-    // Should use array mode by default
-    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", [name])`);
+    // Should use named mode by default
+    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toContain('name');
   });
 });

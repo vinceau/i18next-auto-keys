@@ -136,7 +136,7 @@ export function createI18nextTranslationTransformerFactory(
 ): ts.TransformerFactory<ts.SourceFile> {
   const {
     hashLength = 10,
-    argMode = "array",
+    argMode = "named", // Default to named to better support default i18next usage
   } = options;
 
   return (context: ts.TransformationContext) => {
