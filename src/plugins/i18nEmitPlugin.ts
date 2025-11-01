@@ -37,7 +37,7 @@ async function loadGettextParser(): Promise<typeof import("gettext-parser") | un
   }
 }
 
-export interface I18nEmitPluginOptions {
+export type I18nEmitPluginOptions = {
   /** Path inside Webpack output where the runtime JSON should be emitted (e.g. "i18n/en.json"). */
   jsonOutputPath: string;
   /** Optional path inside Webpack output where the POT template should be emitted (e.g. "i18n/messages.pot"). */
