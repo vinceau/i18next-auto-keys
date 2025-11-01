@@ -1,4 +1,4 @@
-import { stringPool } from "../src/stringPool";
+import { stringPool } from "../src/common/stringPool";
 
 describe("StringPool", () => {
   beforeEach(() => {

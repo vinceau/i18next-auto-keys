@@ -1,5 +1,5 @@
-import I18nEmitPlugin from "../src/i18nEmitPlugin";
-import { i18nStore } from "../src/i18nStore";
+import { I18nEmitPlugin } from "../i18nEmitPlugin";
+import { i18nStore } from "../../common/i18nStore";
 import type { Compiler, Compilation } from "webpack";
 
 // Mock gettext-parser

@@ -1,7 +1,8 @@
 import { validate } from "schema-utils";
 import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
-import { transform } from "./transform";
+import ts from "typescript";
+import { createI18nextTranslationTransformerFactory } from "../transformers/i18nextTranslationTransformer";
 
 export interface LoaderOptions {
     sourcemap?: boolean;
@@ -32,7 +33,7 @@ function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
     return arr.some((re) => re.test(resourcePath));
 }
 
-export default function myLoader(this: LoaderContext<LoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
+export function i18nextTranslationLoader(this: LoaderContext<LoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
   // v5 has getOptions; v4 needs loader-utils
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const options: LoaderOptions = this.getOptions
@@ -53,12 +54,16 @@ export default function myLoader(this: LoaderContext<LoaderOptions>, source: str
 
   const asyncCb = this.async();
   try {
-    const { code, map } = transform(source, {
-      filename: this.resourcePath,
-      sourcemap: options.sourcemap !== false,
-      inputSourceMap: inputMap,
+    const transformer = createI18nextTranslationTransformerFactory({
+      hashLength: options.hashLength,
+      argMode: options.argMode,
     });
-    asyncCb(null, code, map);
+    const sourceFile = ts.createSourceFile(this.resourcePath, source, ts.ScriptTarget.Latest);
+    const transformationResult = ts.transform(sourceFile, [transformer]);
+    const transformedSourceFile = transformationResult.transformed[0];
+    const printer = ts.createPrinter();
+    const result = printer.printNode(ts.EmitHint.Unspecified, transformedSourceFile, sourceFile);
+    asyncCb(null, result, inputMap, meta);
   } catch (err: unknown) {
     asyncCb(err as Error);
   }

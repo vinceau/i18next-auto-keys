@@ -1,6 +1,6 @@
 // plugins/I18nEmitPlugin.ts
 import type * as webpack from "webpack";
-import { i18nStore } from "./i18nStore";
+import { i18nStore } from "../common/i18nStore";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
 // Optional dependency: only needed if you set `potOutputPath`
@@ -26,7 +26,7 @@ export interface I18nEmitPluginOptions {
  * - JSON: { [id]: sourceString }
  * - POT: msgctxt=id, msgid=source, with "#: file:line:column" and "#. comment" lines
  */
-export default class I18nEmitPlugin {
+export class I18nEmitPlugin {
   private readonly jsonOutputPath: string;
   private readonly potOutputPath?: string;
   private readonly projectIdVersion: string;

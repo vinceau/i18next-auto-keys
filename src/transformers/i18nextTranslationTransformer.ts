@@ -1,17 +1,19 @@
 // transformers/i18nMessagesTransformer.ts
 import ts from "typescript";
-import fs from "fs";
-import path from "path";
-import { stableHash } from "./hash";
-import { i18nStore, toRelPosix } from "./i18nStore";
-import { stringPool } from "./stringPool";
+import { stableHash } from "../common/hash";
+import { i18nStore, toRelPosix } from "../common/i18nStore";
+import { stringPool } from "../common/stringPool";
 
-export interface I18nTransformerOptions {
+export type I18nextTranslationTransformerOptions = {
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
   argMode?: "array" | "named";
-}
+};
 
+/** Global store for tracking seen strings and their hashes.
+ * We store a mapping of string to hash and a reverse mapping of hash to string.
+ * This is used to avoid duplicate ids when same string produces the same hash.
+ */
 const globalStore: {
   seen: Map<string, string>;
   reverse: Map<string, string>;
@@ -19,12 +21,6 @@ const globalStore: {
   seen: new Map(),
   reverse: new Map(),
 };
-
-function writeDefaultJson(filePath: string, pairs: Map<string, string>) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const json = JSON.stringify(Object.fromEntries(pairs), null, 2);
-  fs.writeFileSync(filePath, json, "utf8");
-}
 
 /** Best-effort check for a `@noTranslate` jsdoc/tsdoc tag on this node. */
 function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
@@ -135,14 +131,13 @@ function extractReturnStringLiteral(fn: ts.ArrowFunction | ts.FunctionExpression
   return null;
 }
 
-export default function i18nMessagesTransformer(
-  program: ts.Program,
-  options: I18nTransformerOptions
+export function createI18nextTranslationTransformerFactory(
+  options: I18nextTranslationTransformerOptions = {}
 ): ts.TransformerFactory<ts.SourceFile> {
   const {
     hashLength = 10,
     argMode = "array",
-  } = options || ({} as I18nTransformerOptions);
+  } = options;
 
   return (context: ts.TransformationContext) => {
     const f = context.factory;
