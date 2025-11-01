@@ -44,6 +44,8 @@ export interface I18nEmitPluginOptions {
   potOutputPath?: string;
   /** Optional "Project-Id-Version" header value for POT. */
   projectIdVersion?: string; // e.g., "slippi-stats 1.0"
+  /** Optional top level key to wrap translations under. If undefined, translations are placed at root level. */
+  topLevelKey?: string;
 }
 
 /**
@@ -55,11 +57,13 @@ export class I18nEmitPlugin {
   private readonly jsonOutputPath: string;
   private readonly potOutputPath?: string;
   private readonly projectIdVersion: string;
+  private readonly topLevelKey?: string;
 
   constructor(opts: I18nEmitPluginOptions) {
     this.jsonOutputPath = opts.jsonOutputPath;
     this.potOutputPath = opts.potOutputPath;
     this.projectIdVersion = opts.projectIdVersion ?? "app 1.0";
+    this.topLevelKey = opts.topLevelKey;
   }
 
   apply(compiler: Compiler): void {
@@ -85,7 +89,12 @@ export class I18nEmitPlugin {
           const dict: Record<string, string> = {};
           for (const e of entries) dict[e.id] = e.source;
 
-          const jsonBuf = Buffer.from(JSON.stringify(dict, null, 2), "utf8");
+          // Optionally wrap under topLevelKey
+          const finalOutput = this.topLevelKey
+            ? { [this.topLevelKey]: dict }
+            : dict;
+
+          const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, 2), "utf8");
           compilation.emitAsset(this.normalize(this.jsonOutputPath), new sources.RawSource(jsonBuf));
 
           // --- POT (optional) ---

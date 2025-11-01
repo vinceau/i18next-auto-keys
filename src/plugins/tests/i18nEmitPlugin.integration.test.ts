@@ -309,4 +309,68 @@ describe("I18nEmitPlugin integration", () => {
 
     expect(messagesDict).toEqual({});
   });
+
+  test("should generate JSON with topLevelKey when specified", async () => {
+    const rules = [
+      {
+        test: /\.ts$/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-icu-loader",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+            }
+          },
+        ],
+      },
+    ];
+
+    const plugin = new I18nEmitPlugin({
+      jsonOutputPath: "i18n/nested.json",
+      topLevelKey: "translations"
+    });
+
+    const { fs } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `
+          import { Messages } from './app.messages';
+          console.log(Messages.welcome(), Messages.loading());
+        `,
+        "src/app.messages.ts": `export const Messages = {
+          welcome: (): string => "Welcome user!",
+          loading: (): string => "Loading data...",
+        };`,
+      },
+      rules,
+      {
+        entry: "/src/entry.ts",
+        plugins: [plugin]
+      }
+    );
+
+    // Verify JSON file has translations wrapped under topLevelKey
+    const jsonContent = fs.readFileSync("/dist/i18n/nested.json", "utf8");
+    const parsed = JSON.parse(jsonContent.toString());
+
+    // Should have wrapper object with specified key
+    expect(Object.keys(parsed)).toHaveLength(1);
+    expect(parsed).toHaveProperty("translations");
+    expect(typeof parsed.translations).toBe("object");
+
+    // The actual translations should be nested under the topLevelKey
+    const translations = parsed.translations;
+    expect(Object.keys(translations)).toHaveLength(2);
+    expect(translations).toHaveProperty(stableHash("Welcome user!", 10));
+    expect(translations).toHaveProperty(stableHash("Loading data...", 10));
+    expect(translations[stableHash("Welcome user!", 10)]).toBe("Welcome user!");
+    expect(translations[stableHash("Loading data...", 10)]).toBe("Loading data...");
+  });
 });
