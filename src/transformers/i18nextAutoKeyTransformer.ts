@@ -4,7 +4,7 @@ import { stableHash } from "../common/hash";
 import { i18nStore, toRelPosix } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
-export type I18nextTranslationTransformerOptions = {
+export type I18nextAutoKeyTransformerOptions = {
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
   argMode?: "array" | "named";
@@ -131,8 +131,8 @@ function extractReturnStringLiteral(fn: ts.ArrowFunction | ts.FunctionExpression
   return null;
 }
 
-export function createI18nextTranslationTransformerFactory(
-  options: I18nextTranslationTransformerOptions = {}
+export function createI18nextAutoKeyTransformerFactory(
+  options: I18nextAutoKeyTransformerOptions = {}
 ): ts.TransformerFactory<ts.SourceFile> {
   const {
     hashLength = 10,

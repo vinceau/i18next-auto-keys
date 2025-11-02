@@ -1,4 +1,4 @@
-// plugins/I18nEmitPlugin.ts
+// plugins/I18nextAutoKeyEmitPlugin.ts
 import type { Compiler } from "webpack";
 import { i18nStore } from "../common/i18nStore";
 import type { GetTextTranslationRecord } from "gettext-parser";
@@ -29,7 +29,7 @@ async function loadGettextParser(): Promise<typeof import("gettext-parser") | un
         gettextParser = await gettextParserLoadPromise;
         return gettextParser;
       } catch (importError: any) {
-        console.warn("I18nEmitPlugin: Could not load gettext-parser:", importError.message);
+        console.warn("I18nextAutoKeyEmitPlugin: Could not load gettext-parser:", importError.message);
         return undefined;
       }
     }
@@ -38,7 +38,7 @@ async function loadGettextParser(): Promise<typeof import("gettext-parser") | un
   }
 }
 
-export type I18nEmitPluginOptions = {
+export type I18nextAutoKeyEmitPluginOptions = {
   /** Path inside Webpack output where the runtime JSON should be emitted (e.g. "i18n/en.json"). */
   jsonOutputPath: string;
   /** Optional path inside Webpack output where the POT template should be emitted (e.g. "i18n/messages.pot"). */
@@ -54,13 +54,13 @@ export type I18nEmitPluginOptions = {
  * - JSON: { [id]: sourceString }
  * - POT: msgctxt=id, msgid=source, with "#: file:line:column" and "#. comment" lines
  */
-export class I18nEmitPlugin {
+export class I18nextAutoKeyEmitPlugin {
   private readonly jsonOutputPath: string;
   private readonly potOutputPath?: string;
   private readonly projectIdVersion: string;
   private readonly topLevelKey?: string;
 
-  constructor(opts: I18nEmitPluginOptions) {
+  constructor(opts: I18nextAutoKeyEmitPluginOptions) {
     this.jsonOutputPath = opts.jsonOutputPath;
     this.potOutputPath = opts.potOutputPath;
     this.projectIdVersion = opts.projectIdVersion ?? "app 1.0";
@@ -69,7 +69,7 @@ export class I18nEmitPlugin {
 
   apply(compiler: Compiler): void {
     const { Compilation, sources } = compiler.webpack;
-    const pluginName = "I18nEmitPlugin";
+    const pluginName = "I18nextAutoKeyEmitPlugin";
 
     compiler.hooks.thisCompilation.tap(pluginName, (compilation) => {
       // Start each compilation fresh; transformer will repopulate the store.

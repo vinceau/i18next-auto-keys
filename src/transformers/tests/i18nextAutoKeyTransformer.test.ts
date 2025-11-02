@@ -9,7 +9,7 @@ jest.mock("fs", () => ({
 
 import ts from "typescript";
 import fs from "fs";
-import { createI18nextTranslationTransformerFactory } from "../i18nextTranslationTransformer";
+import { createI18nextAutoKeyTransformerFactory } from "../i18nextAutoKeyTransformer";
 import { stableHash } from "../../common/hash";
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
@@ -50,7 +50,7 @@ function transformTypeScript(sourceCode: string, transformerOptions: any): strin
   }, compilerHost);
 
   // Apply transformer with mock output paths (won't be used in memory)
-  const transformer = createI18nextTranslationTransformerFactory({
+  const transformer = createI18nextAutoKeyTransformerFactory({
     ...transformerOptions,
     jsonOutputPath: '/mock/output.json',
     xliffOutputPath: '/mock/output.xliff',

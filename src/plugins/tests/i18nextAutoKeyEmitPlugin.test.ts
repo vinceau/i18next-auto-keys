@@ -1,4 +1,4 @@
-import { I18nEmitPlugin } from "../i18nEmitPlugin";
+import { I18nextAutoKeyEmitPlugin } from "../i18nextAutoKeyEmitPlugin";
 import { i18nStore } from "../../common/i18nStore";
 import type { Compiler, Compilation } from "webpack";
 
@@ -38,7 +38,7 @@ const mockCompiler = {
   }
 } as unknown as Compiler;
 
-describe("I18nEmitPlugin", () => {
+describe("I18nextAutoKeyEmitPlugin", () => {
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
@@ -52,30 +52,30 @@ describe("I18nEmitPlugin", () => {
 
   describe("Constructor", () => {
     it("should initialize with required options", () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
 
-      expect(plugin).toBeInstanceOf(I18nEmitPlugin);
+      expect(plugin).toBeInstanceOf(I18nextAutoKeyEmitPlugin);
     });
   });
 
   describe("apply method", () => {
     it("should register thisCompilation hook", () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
 
       plugin.apply(mockCompiler);
 
       expect(mockCompiler.hooks.thisCompilation.tap).toHaveBeenCalledWith(
-        "I18nEmitPlugin",
+        "I18nextAutoKeyEmitPlugin",
         expect.any(Function)
       );
     });
 
     it("should clear i18nStore on new compilation", () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
 
@@ -97,7 +97,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should register processAssets hook with correct stage", () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
 
@@ -107,7 +107,7 @@ describe("I18nEmitPlugin", () => {
 
       expect(mockCompilation.hooks.processAssets.tapPromise).toHaveBeenCalledWith(
         {
-          name: "I18nEmitPlugin",
+          name: "I18nextAutoKeyEmitPlugin",
           stage: "additional"
         },
         expect.any(Function)
@@ -117,7 +117,7 @@ describe("I18nEmitPlugin", () => {
 
   describe("JSON output generation", () => {
     it("should emit JSON file with entries from i18nStore", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/en.json"
       });
 
@@ -158,7 +158,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should sort entries by id for consistent output", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "output.json"
       });
 
@@ -194,7 +194,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle empty store gracefully", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "empty.json"
       });
 
@@ -212,7 +212,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle special characters in strings", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "special.json"
       });
 
@@ -248,7 +248,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should not emit POT file when potOutputPath is not provided", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -277,7 +277,7 @@ describe("I18nEmitPlugin", () => {
     it("should emit POT file when potOutputPath is provided and gettext-parser is available", async () => {
       // This test verifies the logic path for POT generation
       // Note: Actual gettext-parser integration is difficult to test due to optional loading
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json",
         potOutputPath: "messages.pot",
         projectIdVersion: "test-app 1.0"
@@ -307,7 +307,7 @@ describe("I18nEmitPlugin", () => {
 
     it("should include references and comments in POT file", async () => {
       // This test verifies the structure of the catalog object passed to gettext-parser
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json",
         potOutputPath: "messages.pot"
       });
@@ -345,7 +345,7 @@ describe("I18nEmitPlugin", () => {
 
   describe("Path normalization", () => {
     it("should normalize backslashes to forward slashes", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n\\en.json" // Windows-style path
       });
 
@@ -369,7 +369,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle already normalized paths", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "i18n/subdirectory/messages.json"
       });
 
@@ -395,7 +395,7 @@ describe("I18nEmitPlugin", () => {
 
   describe("Edge cases", () => {
     it("should handle entries with no references", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -426,7 +426,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle entries with no comments", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -449,7 +449,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle very long messages", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -475,7 +475,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle unicode characters", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -501,7 +501,7 @@ describe("I18nEmitPlugin", () => {
     });
 
     it("should handle multiple compilations", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json"
       });
 
@@ -544,7 +544,7 @@ describe("I18nEmitPlugin", () => {
 
   describe("Integration scenarios", () => {
     it("should work with complex real-world data", async () => {
-      const plugin = new I18nEmitPlugin({
+      const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "dist/locales/en.json",
         potOutputPath: "src/locales/messages.pot",
         projectIdVersion: "my-app 2.1.0"

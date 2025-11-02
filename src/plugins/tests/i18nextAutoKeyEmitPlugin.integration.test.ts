@@ -3,7 +3,7 @@ import { stableHash } from "../../common/hash";
 
 // Import from the SAME path that the bundled loader uses to ensure same instance
 const LOADER_PATH = require.resolve("../../../dist/index.js");
-const { I18nEmitPlugin } = require(LOADER_PATH);
+const { I18nextAutoKeyEmitPlugin } = require(LOADER_PATH);
 
 // Mock gettext-parser to work in test environment
 const mockPotContent = `msgid ""
@@ -12,7 +12,7 @@ msgstr ""
 "mime-version: 1.0\\n"
 "Content-Type: text/plain; charset=utf-8\\n"
 "Content-Transfer-Encoding: 8bit\\n"
-"x-generator: I18nEmitPlugin\\n"
+"x-generator: I18nextAutoKeyEmitPlugin\\n"
 "Language: \\n"
 
 #: src/ui.messages.ts:2:35
@@ -36,7 +36,7 @@ jest.mock("gettext-parser", () => ({
         "mime-version": "1.0",
         "content-type": "text/plain; charset=UTF-8",
         "content-transfer-encoding": "8bit",
-        "x-generator": "I18nEmitPlugin",
+        "x-generator": "I18nextAutoKeyEmitPlugin",
         language: ""
       });
 
@@ -49,7 +49,7 @@ jest.mock("gettext-parser", () => ({
   }
 }), { virtual: true });
 
-describe("I18nEmitPlugin integration", () => {
+describe("I18nextAutoKeyEmitPlugin integration", () => {
 
   test("emits JSON file with extracted messages from loader", async () => {
     const rules = [
@@ -75,7 +75,7 @@ describe("I18nEmitPlugin integration", () => {
       },
     ];
 
-    const plugin = new I18nEmitPlugin({
+        const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/messages.json"
     });
 
@@ -134,7 +134,7 @@ describe("I18nEmitPlugin integration", () => {
       },
     ];
 
-    const plugin = new I18nEmitPlugin({
+        const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/messages.json",
       potOutputPath: "i18n/messages.pot",
       projectIdVersion: "test-app 1.0"
@@ -162,7 +162,7 @@ describe("I18nEmitPlugin integration", () => {
     // Verify POT file contains expected structure
     expect(potContent).toContain("Project-Id-Version: test-app 1.0");
     expect(potContent).toContain("Content-Type: text/plain; charset=utf-8");
-    expect(potContent).toContain("x-generator: I18nEmitPlugin");
+    expect(potContent).toContain("x-generator: I18nextAutoKeyEmitPlugin");
 
     // Verify it contains our messages
     expect(potContent).toContain("Welcome to our app!");
@@ -181,7 +181,7 @@ describe("I18nEmitPlugin integration", () => {
         charset: "utf-8",
         headers: expect.objectContaining({
           "project-id-version": "test-app 1.0",
-          "x-generator": "I18nEmitPlugin"
+          "x-generator": "I18nextAutoKeyEmitPlugin"
         }),
         translations: expect.objectContaining({
           "": expect.any(Object)
@@ -214,7 +214,7 @@ describe("I18nEmitPlugin integration", () => {
       },
     ];
 
-    const plugin = new I18nEmitPlugin({
+        const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/messages.json"
     });
 
@@ -285,7 +285,7 @@ describe("I18nEmitPlugin integration", () => {
       },
     ];
 
-    const plugin = new I18nEmitPlugin({
+        const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/messages.json"
     });
 
@@ -333,7 +333,7 @@ describe("I18nEmitPlugin integration", () => {
       },
     ];
 
-    const plugin = new I18nEmitPlugin({
+        const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/nested.json",
       topLevelKey: "translations"
     });

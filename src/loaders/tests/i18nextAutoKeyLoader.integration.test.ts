@@ -1,6 +1,6 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
-describe("i18next-auto-keys integration", () => {
+describe("i18next-auto-keys loader integration", () => {
   test("transforms .messages.js files correctly", async () => {
     const rules = [
       {

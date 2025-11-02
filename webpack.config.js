@@ -8,7 +8,7 @@ module.exports = {
           exclude: /node_modules/,
           use: [
             {
-              loader: require.resolve("i18next-auto-keys/dist/loader.js"),
+              loader: require.resolve("i18next-auto-keys"),
               options: { include: /\.[jt]sx?$/, sourcemap: true },
             },
           ],

@@ -1,6 +1,6 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
-describe("i18next-auto-keys pipeline", () => {
+describe("i18next-auto-keys loader pipeline", () => {
   test("transforms .messages.ts files then compiles with esbuild-loader", async () => {
     const rules = [
       {

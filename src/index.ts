@@ -1,10 +1,10 @@
-import { i18nextTranslationLoader } from "./loaders/i18nextTranslationLoader";
-import { I18nEmitPlugin } from "./plugins/i18nEmitPlugin";
+import { i18nextAutoKeyLoader } from "./loaders/i18nextAutoKeyLoader";
+import { I18nextAutoKeyEmitPlugin } from "./plugins/i18nextAutoKeyEmitPlugin";
 
 // Webpack loader compatibility: Export loader as default, plugin as property
-module.exports = i18nextTranslationLoader;
-module.exports.I18nEmitPlugin = I18nEmitPlugin;
-module.exports.i18nextTranslationLoader = i18nextTranslationLoader;
+module.exports = i18nextAutoKeyLoader;
+module.exports.I18nextAutoKeyEmitPlugin = I18nextAutoKeyEmitPlugin;
+module.exports.i18nextAutoKeyLoader = i18nextAutoKeyLoader;
 
 // Also provide TypeScript-friendly named exports for better DX
-export { i18nextTranslationLoader, I18nEmitPlugin };
+export { i18nextAutoKeyLoader, I18nextAutoKeyEmitPlugin };
