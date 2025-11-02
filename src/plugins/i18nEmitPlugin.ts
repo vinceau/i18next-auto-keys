@@ -1,7 +1,8 @@
 // plugins/I18nEmitPlugin.ts
-import type { Compiler} from "webpack";
+import type { Compiler } from "webpack";
 import { i18nStore } from "../common/i18nStore";
 import type { GetTextTranslationRecord } from "gettext-parser";
+import { emitIfChanged } from "./emitIfChanged";
 
 // Optional dependency: only needed if you set `potOutputPath`
 // Support both CommonJS (v7.x) and ESM (v8.x+) versions
@@ -95,7 +96,7 @@ export class I18nEmitPlugin {
             : dict;
 
           const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, 2), "utf8");
-          compilation.emitAsset(this.normalize(this.jsonOutputPath), new sources.RawSource(jsonBuf));
+          emitIfChanged(compilation, sources, this.normalize(this.jsonOutputPath), jsonBuf);
 
           // --- POT (optional) ---
           if (this.potOutputPath) {
@@ -127,7 +128,7 @@ export class I18nEmitPlugin {
             }
 
             const potBuf = parser.po.compile(catalog);
-            compilation.emitAsset(this.normalize(this.potOutputPath), new sources.RawSource(potBuf));
+            emitIfChanged(compilation, sources, this.normalize(this.potOutputPath), potBuf);
             }
           }
         }
