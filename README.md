@@ -15,8 +15,6 @@
 - 🔧 **TypeScript support** - Full TypeScript AST transformation
 - 📄 **Multiple output formats** - JSON for runtime, POT files for translators
 - 🎨 **Flexible parameter handling** - Array or named parameter modes
-- 🚀 **Production ready** - Comprehensive test coverage and battle-tested
-- 🎪 **Smart filtering** - Include/exclude files with regex patterns
 
 ## 📋 Requirements
 
@@ -133,6 +131,32 @@ And generates translation files:
 | `projectIdVersion` | `string` | `'app 1.0'` | Project version for POT header |
 | `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
 
+## ⚠️ Important: Parameter Handling
+
+**Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
+
+```typescript
+// ❌ WRONG - Don't do this
+export const Messages = {
+  greeting: (name: string): string => `Hello ${name}!`,           // String changes = unstable hash
+  status: (count: number): string => `You have ${count} items`,   // i18next can't interpolate
+};
+
+// ✅ CORRECT - Do this instead  
+export const Messages = {
+  greeting: (name: string): string => `Hello {{name}}!`,          // Stable string for hashing
+  status: (count: number): string => `You have {{count}} items`,  // i18next handles interpolation
+};
+```
+
+**Why this matters:**
+
+1. **Stable Hashing**: The loader generates hash keys from the literal string content. If you use `${variable}`, the string content changes based on runtime values, making hash generation impossible.
+
+2. **i18next Interpolation**: The `{{variable}}` syntax is i18next's standard interpolation format, allowing translators to reorder parameters and apply formatting in different languages.
+
+3. **Translation Flexibility**: Translators can modify parameter placement: `"Hello {{name}}!"` → `"{{name}} さん、こんにちは！"` (Japanese)
+
 ## 🎯 Usage Patterns
 
 ### Message Files Organization
@@ -184,7 +208,7 @@ greeting: (name: string, time: string): string => i18next.t("abc123def4", { name
 greeting: (name: string, time: string): string => i18next.t("abc123def4", [name, time])
 ```
 
-### Excluding Files from Translation
+### Excluding Messages from Translation
 
 Use JSDoc comments to exclude specific functions:
 
