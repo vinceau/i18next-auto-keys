@@ -215,6 +215,9 @@ export function createI18nextTranslationTransformerFactory(
           let id = globalStore.reverse.get(internedOriginal);
           if (!id) {
             id = stableHash(internedOriginal, hashLength);
+            // This collision handling is not deterministic and can result in a different id
+            // for the same string, based on the order that the strings are encountered.
+            // In practice, this should not matter.
             while (globalStore.seen.has(id) && globalStore.seen.get(id) !== internedOriginal) {
               id = stableHash(internedOriginal + ":" + id, Math.min(40, hashLength + 2));
             }
