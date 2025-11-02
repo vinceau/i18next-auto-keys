@@ -22,7 +22,7 @@ describe("i18next-auto-keys loader integration", () => {
     // Verify transformation happened (webpack mangles import names)
     expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should contain .t() calls with hash
     expect(bundle).not.toContain("Hello, World!"); // Original string should be replaced
-    expect(bundle).toContain('i18next'); // Should reference i18next (webpack externals)
+    expect(bundle).toContain("i18next"); // Should reference i18next (webpack externals)
   });
 
   test("transforms .messages.ts files correctly", async () => {
@@ -43,8 +43,8 @@ describe("i18next-auto-keys loader integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-              argMode: "array"
-            }
+              argMode: "array",
+            },
           },
         ],
       },
@@ -66,7 +66,7 @@ describe("i18next-auto-keys loader integration", () => {
     expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should contain .t() calls with hash
     expect(bundle).not.toContain("Welcome to our app!"); // Original strings should be replaced
     expect(bundle).not.toContain("Goodbye!");
-    expect(bundle).toContain('i18next'); // Should reference i18next
+    expect(bundle).toContain("i18next"); // Should reference i18next
   });
 
   test("transforms messages with parameters correctly", async () => {
@@ -87,8 +87,8 @@ describe("i18next-auto-keys loader integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-              argMode: "named"
-            }
+              argMode: "named",
+            },
           },
         ],
       },
@@ -110,7 +110,7 @@ describe("i18next-auto-keys loader integration", () => {
     expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']/); // Should contain .t() calls with hash
     expect(bundle).not.toContain('"Hello"'); // String literals should be replaced
     expect(bundle).not.toContain('"You have items"');
-    expect(bundle).toContain('i18next'); // Should reference i18next
+    expect(bundle).toContain("i18next"); // Should reference i18next
   });
 
   test("only transforms files matching include pattern", async () => {
@@ -130,8 +130,8 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10
-            }
+              hashLength: 10,
+            },
           },
         ],
       },
@@ -171,8 +171,8 @@ describe("i18next-auto-keys loader integration", () => {
             options: {
               include: /\.messages\.ts$/,
               sourcemap: true,
-              hashLength: 10
-            }
+              hashLength: 10,
+            },
           },
         ],
       },
@@ -181,7 +181,7 @@ describe("i18next-auto-keys loader integration", () => {
     const { map } = await compileWithMemoryFS(
       {
         "src/entry.ts": `import { Messages } from './test.messages'; console.log(Messages.test());`,
-        "src/test.messages.ts": `export const Messages = { test: (): string => "Test message" };`
+        "src/test.messages.ts": `export const Messages = { test: (): string => "Test message" };`,
       },
       rules,
       { entry: "/src/entry.ts" }

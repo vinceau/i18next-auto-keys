@@ -31,11 +31,16 @@ function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
   if (typeof anyTs.getJSDocTags === "function") {
     try {
       const tags: readonly ts.JSDocTag[] = anyTs.getJSDocTags(node);
-      if (tags?.some((t: any) => {
-        const name = (t.tagName?.escapedText ?? t.tagName?.getText?.(sf)) as string | undefined;
-        return name === TAG;
-      })) return true;
-    } catch { /* ignore */ }
+      if (
+        tags?.some((t: any) => {
+          const name = (t.tagName?.escapedText ?? t.tagName?.getText?.(sf)) as string | undefined;
+          return name === TAG;
+        })
+      )
+        return true;
+    } catch {
+      /* ignore */
+    }
   }
 
   // 2) Legacy: node.jsDoc
@@ -75,7 +80,14 @@ function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
     if (raw.startsWith("//")) {
       out.push(raw.replace(/^\/\/\s?/, "").trim());
     } else if (raw.startsWith("/*")) {
-      out.push(raw.replace(/^\/\*+|\*+\/$/g, "").split("\n").map(s => s.trim()).join(" ").trim());
+      out.push(
+        raw
+          .replace(/^\/\*+|\*+\/$/g, "")
+          .split("\n")
+          .map((s) => s.trim())
+          .join(" ")
+          .trim()
+      );
     }
   }
   return out.filter(Boolean);
@@ -114,11 +126,7 @@ function evaluateStringConcat(expr: ts.Expression): string | null {
 
 function extractReturnStringLiteral(fn: ts.ArrowFunction | ts.FunctionExpression): string | null {
   const body = fn.body;
-  if (
-    ts.isStringLiteral(body) ||
-    ts.isNoSubstitutionTemplateLiteral(body) ||
-    ts.isBinaryExpression(body)
-  ) {
+  if (ts.isStringLiteral(body) || ts.isNoSubstitutionTemplateLiteral(body) || ts.isBinaryExpression(body)) {
     return evaluateStringConcat(body);
   }
   if (ts.isBlock(body)) {
@@ -157,9 +165,7 @@ export function createI18nextAutoKeyTransformerFactory(
       return call;
     };
 
-    const buildArgsExpr = (
-      params: readonly ts.ParameterDeclaration[]
-    ): ts.Expression | undefined => {
+    const buildArgsExpr = (params: readonly ts.ParameterDeclaration[]): ts.Expression | undefined => {
       if (params.length === 0) return undefined;
 
       if (argMode === "array") {
@@ -284,7 +290,7 @@ export function createI18nextAutoKeyTransformerFactory(
           ts.setTextRange(updated, node);
 
           // (Optional) still writing JSON here; consider moving this to a Webpack plugin to write once per build.
-        //   writeDefaultJson(options.jsonOutputPath, globalStore.seen);
+          //   writeDefaultJson(options.jsonOutputPath, globalStore.seen);
           return updated;
         }
       }

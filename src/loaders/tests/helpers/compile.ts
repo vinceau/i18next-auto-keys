@@ -5,7 +5,7 @@ import { ufs } from "unionfs";
 import realfs from "fs";
 
 // Absolute path to the built loader for testing
-const LOADER_PATH = path.resolve(__dirname, '../../../../dist/index.js');
+const LOADER_PATH = path.resolve(__dirname, "../../../../dist/index.js");
 
 export async function compileWithMemoryFS(
   entryFiles: Record<string, string>,
@@ -15,9 +15,11 @@ export async function compileWithMemoryFS(
   // Auto-detect entry point from the files provided, prefer explicit entry config
   const explicitEntry = extra?.entry;
   const entryFile = explicitEntry
-    ? (typeof explicitEntry === 'string' ? explicitEntry.replace(/^\//, '') : Object.keys(entryFiles)[0])
-    : (Object.keys(entryFiles).find(f => f.startsWith('src/entry')) || Object.keys(entryFiles)[0]);
-  const entryPath = explicitEntry || ("/" + entryFile.replace(/^\//, "").replace(/\.[^/.]+$/, ""));
+    ? typeof explicitEntry === "string"
+      ? explicitEntry.replace(/^\//, "")
+      : Object.keys(entryFiles)[0]
+    : Object.keys(entryFiles).find((f) => f.startsWith("src/entry")) || Object.keys(entryFiles)[0];
+  const entryPath = explicitEntry || "/" + entryFile.replace(/^\//, "").replace(/\.[^/.]+$/, "");
   const vol = new Volume();
 
   // ✅ Memfs MUST take precedence over the real FS
@@ -38,16 +40,16 @@ export async function compileWithMemoryFS(
     entry: entryPath,
     output: { path: "/dist", filename: "bundle.js" },
     resolve: {
-      extensions: [".ts", ".tsx", ".js", ".jsx"]
+      extensions: [".ts", ".tsx", ".js", ".jsx"],
     },
     resolveLoader: {
       alias: {
-        "i18next-auto-keys": LOADER_PATH
-      }
+        "i18next-auto-keys": LOADER_PATH,
+      },
     },
     externals: {
       // Treat i18next as external to avoid resolution errors
-      "i18next": "i18next"
+      i18next: "i18next",
     },
     module: { rules },
     devtool: "source-map",
@@ -73,12 +75,7 @@ export async function compileWithMemoryFS(
       const info = s.toJson({ all: false, errors: true });
       if (s.hasErrors()) {
         return reject(
-          new Error(
-            "Webpack errors:\n" +
-              (info.errors ?? [])
-                .map((e: any) => e?.message ?? String(e))
-                .join("\n")
-          )
+          new Error("Webpack errors:\n" + (info.errors ?? []).map((e: any) => e?.message ?? String(e)).join("\n"))
         );
       }
       resolve(s);

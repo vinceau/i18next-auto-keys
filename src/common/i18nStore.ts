@@ -3,16 +3,16 @@ import path from "path";
 import { stringPool } from "./stringPool";
 
 export type PoRef = {
-  file: string;        // e.g. "src/views/MainView.messages.ts"
-  line: number;        // 1-based
-  column: number;      // 1-based
+  file: string; // e.g. "src/views/MainView.messages.ts"
+  line: number; // 1-based
+  column: number; // 1-based
 };
 
 export type Entry = {
-  id: string;                      // hash key (msgctxt)
-  source: string;                  // English ICU text (msgid)
-  refs: Set<string>;               // "file:line:column" strings (deduped)
-  extractedComments: Set<string>;  // "#. comment" lines
+  id: string; // hash key (msgctxt)
+  source: string; // English ICU text (msgid)
+  refs: Set<string>; // "file:line:column" strings (deduped)
+  extractedComments: Set<string>; // "#. comment" lines
 };
 
 class I18nStore {
@@ -27,12 +27,7 @@ class I18nStore {
   }
 
   /** Adds/merges an entry with reference and comments */
-  add(params: {
-    id: string;
-    source: string;
-    ref: PoRef;
-    comments?: string[];
-  }) {
+  add(params: { id: string; source: string; ref: PoRef; comments?: string[] }) {
     const key = params.id;
     // Intern the source string to avoid duplication
     const internedSource = stringPool.intern(params.source);

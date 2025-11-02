@@ -5,40 +5,42 @@ import ts from "typescript";
 import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
 
 export type I18nextAutoKeyLoaderOptions = {
-    sourcemap?: boolean;
-    include: RegExp | RegExp[];
-    hashLength?: number;
-    argMode?: "array" | "named";
-}
+  sourcemap?: boolean;
+  include: RegExp | RegExp[];
+  hashLength?: number;
+  argMode?: "array" | "named";
+};
 
 const schema = {
-    type: 'object',
-    properties: {
-      sourcemap: { type: 'boolean' },
-      include: {
-        anyOf: [
-          { instanceof: 'RegExp' },
-          { type: 'array', items: { instanceof: 'RegExp' } }
-        ]
-      },
-      hashLength: { type: 'number', minimum: 10 },
-      argMode: { type: 'string', enum: ['array', 'named'] }
+  type: "object",
+  properties: {
+    sourcemap: { type: "boolean" },
+    include: {
+      anyOf: [{ instanceof: "RegExp" }, { type: "array", items: { instanceof: "RegExp" } }],
     },
-    additionalProperties: false
-  };
+    hashLength: { type: "number", minimum: 10 },
+    argMode: { type: "string", enum: ["array", "named"] },
+  },
+  additionalProperties: false,
+};
 
 function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
-    if (!include) return true; // no include => process everything
-    const arr = Array.isArray(include) ? include : [include];
-    return arr.some((re) => re.test(resourcePath));
+  if (!include) return true; // no include => process everything
+  const arr = Array.isArray(include) ? include : [include];
+  return arr.some((re) => re.test(resourcePath));
 }
 
-export function i18nextAutoKeyLoader(this: LoaderContext<I18nextAutoKeyLoaderOptions>, source: string, inputMap?: RawSourceMap, meta?: any) {
+export function i18nextAutoKeyLoader(
+  this: LoaderContext<I18nextAutoKeyLoaderOptions>,
+  source: string,
+  inputMap?: RawSourceMap,
+  meta?: any
+) {
   // Use webpack 5's getOptions method (this loader targets webpack 5+)
   const options: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
 
   // validate in a version-agnostic way
-  validate(schema as any, options, { name: 'i18next-auto-keys' });
+  validate(schema as any, options, { name: "i18next-auto-keys" });
 
   this.cacheable && this.cacheable(true);
 
@@ -54,7 +56,7 @@ export function i18nextAutoKeyLoader(this: LoaderContext<I18nextAutoKeyLoaderOpt
     this.resourcePath,
     source,
     ts.ScriptTarget.Latest,
-    true  // ⚠️ setParentNodes REQUIRED for transformations
+    true // ⚠️ setParentNodes REQUIRED for transformations
   );
 
   const transformer = createI18nextAutoKeyTransformerFactory({
@@ -66,11 +68,10 @@ export function i18nextAutoKeyLoader(this: LoaderContext<I18nextAutoKeyLoaderOpt
   const transformedSourceFile = transformationResult.transformed[0] as ts.SourceFile;
 
   const printer = ts.createPrinter();
-  const result = printer.printFile(transformedSourceFile);  // Use printFile for SourceFile
+  const result = printer.printFile(transformedSourceFile); // Use printFile for SourceFile
 
-  transformationResult.dispose();  // Clean up
+  transformationResult.dispose(); // Clean up
 
   // ✅ Proper webpack loader protocol
   this.callback(null, result, inputMap, meta);
-
 }

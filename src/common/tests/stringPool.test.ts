@@ -49,7 +49,7 @@ describe("StringPool", () => {
     ];
 
     // Intern all strings (simulating what our stores would do)
-    const internedMessages = messages.map(msg => stringPool.intern(msg));
+    const internedMessages = messages.map((msg) => stringPool.intern(msg));
 
     const stats = stringPool.getStats();
 

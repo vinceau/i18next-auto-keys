@@ -5,37 +5,37 @@ import type { Compiler, Compilation } from "webpack";
 // Mock gettext-parser
 const mockGettextParser = {
   po: {
-    compile: jest.fn()
-  }
+    compile: jest.fn(),
+  },
 };
 
 // Mock webpack structures
 const mockSources = {
-  RawSource: jest.fn().mockImplementation((buffer) => ({ buffer }))
+  RawSource: jest.fn().mockImplementation((buffer) => ({ buffer })),
 };
 
 const mockCompilation = {
   hooks: {
     processAssets: {
       tap: jest.fn(),
-      tapPromise: jest.fn()
-    }
+      tapPromise: jest.fn(),
+    },
   },
-  emitAsset: jest.fn()
+  emitAsset: jest.fn(),
 } as unknown as Compilation;
 
 const mockCompiler = {
   webpack: {
     Compilation: {
-      PROCESS_ASSETS_STAGE_ADDITIONAL: "additional"
+      PROCESS_ASSETS_STAGE_ADDITIONAL: "additional",
     },
-    sources: mockSources
+    sources: mockSources,
   },
   hooks: {
     thisCompilation: {
-      tap: jest.fn()
-    }
-  }
+      tap: jest.fn(),
+    },
+  },
 } as unknown as Compiler;
 
 describe("I18nextAutoKeyEmitPlugin", () => {
@@ -53,7 +53,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
   describe("Constructor", () => {
     it("should initialize with required options", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/en.json"
+        jsonOutputPath: "i18n/en.json",
       });
 
       expect(plugin).toBeInstanceOf(I18nextAutoKeyEmitPlugin);
@@ -63,7 +63,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
   describe("apply method", () => {
     it("should register thisCompilation hook", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/en.json"
+        jsonOutputPath: "i18n/en.json",
       });
 
       plugin.apply(mockCompiler);
@@ -76,14 +76,14 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should clear i18nStore on new compilation", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/en.json"
+        jsonOutputPath: "i18n/en.json",
       });
 
       // Add some data to store
       i18nStore.add({
         id: "test",
         source: "Test message",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
       expect(i18nStore.all().size).toBe(1);
 
@@ -98,7 +98,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should register processAssets hook with correct stage", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/en.json"
+        jsonOutputPath: "i18n/en.json",
       });
 
       plugin.apply(mockCompiler);
@@ -108,7 +108,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       expect(mockCompilation.hooks.processAssets.tapPromise).toHaveBeenCalledWith(
         {
           name: "I18nextAutoKeyEmitPlugin",
-          stage: "additional"
+          stage: "additional",
         },
         expect.any(Function)
       );
@@ -118,7 +118,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
   describe("JSON output generation", () => {
     it("should emit JSON file with entries from i18nStore", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/en.json"
+        jsonOutputPath: "i18n/en.json",
       });
 
       plugin.apply(mockCompiler);
@@ -129,22 +129,19 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "msg1",
         source: "Hello World",
-        ref: { file: "test1.ts", line: 10, column: 5 }
+        ref: { file: "test1.ts", line: 10, column: 5 },
       });
       i18nStore.add({
         id: "msg2",
         source: "Goodbye World",
-        ref: { file: "test2.ts", line: 20, column: 10 }
+        ref: { file: "test2.ts", line: 20, column: 10 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
       await processAssetsCallback();
 
       // Verify JSON content
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
-        "i18n/en.json",
-        expect.any(Object)
-      );
+      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("i18n/en.json", expect.any(Object));
 
       // Get the emitted buffer and verify content
       const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
@@ -152,14 +149,14 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const jsonContent = JSON.parse(rawSource.buffer.toString());
 
       expect(jsonContent).toEqual({
-        "msg1": "Hello World",
-        "msg2": "Goodbye World"
+        msg1: "Hello World",
+        msg2: "Goodbye World",
       });
     });
 
     it("should sort entries by id for consistent output", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "output.json"
+        jsonOutputPath: "output.json",
       });
 
       plugin.apply(mockCompiler);
@@ -170,17 +167,17 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "zebra",
         source: "Z message",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
       i18nStore.add({
         id: "alpha",
         source: "A message",
-        ref: { file: "test.ts", line: 2, column: 1 }
+        ref: { file: "test.ts", line: 2, column: 1 },
       });
       i18nStore.add({
         id: "beta",
         source: "B message",
-        ref: { file: "test.ts", line: 3, column: 1 }
+        ref: { file: "test.ts", line: 3, column: 1 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -195,7 +192,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle empty store gracefully", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "empty.json"
+        jsonOutputPath: "empty.json",
       });
 
       plugin.apply(mockCompiler);
@@ -213,7 +210,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle special characters in strings", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "special.json"
+        jsonOutputPath: "special.json",
       });
 
       plugin.apply(mockCompiler);
@@ -224,7 +221,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "special",
         source: "Hello \"World\" with 'quotes' and \n newlines \t tabs",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -249,7 +246,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should not emit POT file when potOutputPath is not provided", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -260,7 +257,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "test",
         source: "Test message",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -268,10 +265,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
       // Should only emit JSON file
       expect(mockCompilation.emitAsset).toHaveBeenCalledTimes(1);
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
-        "test.json",
-        expect.any(Object)
-      );
+      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("test.json", expect.any(Object));
     });
 
     it("should emit POT file when potOutputPath is provided and gettext-parser is available", async () => {
@@ -280,7 +274,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json",
         potOutputPath: "messages.pot",
-        projectIdVersion: "test-app 1.0"
+        projectIdVersion: "test-app 1.0",
       });
 
       plugin.apply(mockCompiler);
@@ -292,24 +286,21 @@ describe("I18nextAutoKeyEmitPlugin", () => {
         id: "msg1",
         source: "Hello World",
         ref: { file: "src/test.ts", line: 10, column: 5 },
-        comments: ["Test comment", "Another comment"]
+        comments: ["Test comment", "Another comment"],
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
       await processAssetsCallback();
 
       // Should emit at least JSON file (POT depends on gettext-parser availability)
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
-        "test.json",
-        expect.any(Object)
-      );
+      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("test.json", expect.any(Object));
     });
 
     it("should include references and comments in POT file", async () => {
       // This test verifies the structure of the catalog object passed to gettext-parser
       const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "test.json",
-        potOutputPath: "messages.pot"
+        potOutputPath: "messages.pot",
       });
 
       plugin.apply(mockCompiler);
@@ -321,14 +312,14 @@ describe("I18nextAutoKeyEmitPlugin", () => {
         id: "test_msg",
         source: "Test message",
         ref: { file: "src/component.tsx", line: 25, column: 10 },
-        comments: ["Component error message"]
+        comments: ["Component error message"],
       });
 
       i18nStore.add({
         id: "test_msg",
         source: "Test message", // Same message, different location
         ref: { file: "src/service.ts", line: 45, column: 15 },
-        comments: ["Service error message"]
+        comments: ["Service error message"],
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -346,13 +337,13 @@ describe("I18nextAutoKeyEmitPlugin", () => {
   describe("Path normalization", () => {
     it("should normalize backslashes to forward slashes", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n\\en.json" // Windows-style path
+        jsonOutputPath: "i18n\\en.json", // Windows-style path
       });
 
       i18nStore.add({
         id: "test",
         source: "Test",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       plugin.apply(mockCompiler);
@@ -370,13 +361,13 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle already normalized paths", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "i18n/subdirectory/messages.json"
+        jsonOutputPath: "i18n/subdirectory/messages.json",
       });
 
       i18nStore.add({
         id: "test",
         source: "Test",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       plugin.apply(mockCompiler);
@@ -386,17 +377,14 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
       await processAssetsCallback();
 
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith(
-        "i18n/subdirectory/messages.json",
-        expect.any(Object)
-      );
+      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("i18n/subdirectory/messages.json", expect.any(Object));
     });
   });
 
   describe("Edge cases", () => {
     it("should handle entries with no references", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -408,7 +396,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
         id: "orphan",
         source: "Orphaned message",
         refs: new Set<string>(),
-        extractedComments: new Set<string>()
+        extractedComments: new Set<string>(),
       };
 
       // Add to store manually to simulate edge case
@@ -421,13 +409,13 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const jsonContent = JSON.parse(emitCall[1].buffer.toString());
 
       expect(jsonContent).toEqual({
-        "orphan": "Orphaned message"
+        orphan: "Orphaned message",
       });
     });
 
     it("should handle entries with no comments", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -438,7 +426,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "no_comments",
         source: "Message without comments",
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
         // No comments provided
       });
 
@@ -450,7 +438,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle very long messages", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -462,7 +450,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "long_msg",
         source: longMessage,
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -476,7 +464,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle unicode characters", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -488,7 +476,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "unicode",
         source: unicodeMessage,
-        ref: { file: "test.ts", line: 1, column: 1 }
+        ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -502,7 +490,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     it("should handle multiple compilations", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json"
+        jsonOutputPath: "test.json",
       });
 
       plugin.apply(mockCompiler);
@@ -515,7 +503,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "msg1",
         source: "First compilation",
-        ref: { file: "test1.ts", line: 1, column: 1 }
+        ref: { file: "test1.ts", line: 1, column: 1 },
       });
 
       let processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
@@ -531,7 +519,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       i18nStore.add({
         id: "msg2",
         source: "Second compilation",
-        ref: { file: "test2.ts", line: 1, column: 1 }
+        ref: { file: "test2.ts", line: 1, column: 1 },
       });
 
       processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[1][1];
@@ -547,7 +535,7 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "dist/locales/en.json",
         potOutputPath: "src/locales/messages.pot",
-        projectIdVersion: "my-app 2.1.0"
+        projectIdVersion: "my-app 2.1.0",
       });
 
       plugin.apply(mockCompiler);
@@ -561,9 +549,9 @@ describe("I18nextAutoKeyEmitPlugin", () => {
           source: "Invalid email or password. Please try again.",
           refs: [
             { file: "src/components/LoginForm.tsx", line: 45, column: 12 },
-            { file: "src/services/authService.ts", line: 123, column: 25 }
+            { file: "src/services/authService.ts", line: 123, column: 25 },
           ],
-          comments: ["Login form validation error", "Authentication service error"]
+          comments: ["Login form validation error", "Authentication service error"],
         },
         {
           id: "common.buttons.save",
@@ -571,19 +559,19 @@ describe("I18nextAutoKeyEmitPlugin", () => {
           refs: [
             { file: "src/components/UserProfile.tsx", line: 78, column: 15 },
             { file: "src/components/Settings.tsx", line: 92, column: 8 },
-            { file: "src/components/EditModal.tsx", line: 156, column: 20 }
+            { file: "src/components/EditModal.tsx", line: 156, column: 20 },
           ],
-          comments: ["Profile save button", "Settings save button", "Modal save action"]
-        }
+          comments: ["Profile save button", "Settings save button", "Modal save action"],
+        },
       ];
 
-      testData.forEach(data => {
+      testData.forEach((data) => {
         data.refs.forEach((ref, i) => {
           i18nStore.add({
             id: data.id,
             source: data.source,
             ref: ref,
-            comments: i === 0 ? data.comments : [] // Add comments only once
+            comments: i === 0 ? data.comments : [], // Add comments only once
           });
         });
       });
@@ -598,13 +586,13 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       const jsonContent = JSON.parse(jsonEmitCall[1].buffer.toString());
       expect(jsonContent).toEqual({
         "auth.login.error.invalid_credentials": "Invalid email or password. Please try again.",
-        "common.buttons.save": "Save Changes"
+        "common.buttons.save": "Save Changes",
       });
 
       // Verify entries have correct references
       const entries = Array.from(i18nStore.all().values());
-      const authEntry = entries.find(e => e.id === "auth.login.error.invalid_credentials");
-      const saveEntry = entries.find(e => e.id === "common.buttons.save");
+      const authEntry = entries.find((e) => e.id === "auth.login.error.invalid_credentials");
+      const saveEntry = entries.find((e) => e.id === "common.buttons.save");
 
       expect(authEntry?.refs.size).toBe(2);
       expect(saveEntry?.refs.size).toBe(3);

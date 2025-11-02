@@ -15,7 +15,7 @@ import { stableHash } from "../../common/hash";
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 function transformTypeScript(sourceCode: string, transformerOptions: any): string {
-  const fileName = 'test.messages.ts';
+  const fileName = "test.messages.ts";
 
   // Create in-memory source file
   const sourceFile = ts.createSourceFile(
@@ -27,33 +27,37 @@ function transformTypeScript(sourceCode: string, transformerOptions: any): strin
 
   // Create in-memory compiler host
   const compilerHost: ts.CompilerHost = {
-    getSourceFile: (name) => name === fileName ? sourceFile : undefined,
+    getSourceFile: (name) => (name === fileName ? sourceFile : undefined),
     writeFile: () => {}, // No-op for in-memory
-    getCurrentDirectory: () => '',
+    getCurrentDirectory: () => "",
     getDirectories: () => [],
     fileExists: (name) => name === fileName,
-    readFile: (name) => name === fileName ? sourceCode : undefined,
+    readFile: (name) => (name === fileName ? sourceCode : undefined),
     getCanonicalFileName: (name) => name,
     useCaseSensitiveFileNames: () => true,
-    getNewLine: () => '\n',
-    getDefaultLibFileName: () => 'lib.d.ts',
+    getNewLine: () => "\n",
+    getDefaultLibFileName: () => "lib.d.ts",
     resolveModuleNames: () => [],
   };
 
   // Create TypeScript program with in-memory host
-  const program = ts.createProgram([fileName], {
-    target: ts.ScriptTarget.ES2020,
-    module: ts.ModuleKind.ES2020,
-    esModuleInterop: true,
-    allowSyntheticDefaultImports: true,
-    noLib: true, // Skip loading standard library for testing
-  }, compilerHost);
+  const program = ts.createProgram(
+    [fileName],
+    {
+      target: ts.ScriptTarget.ES2020,
+      module: ts.ModuleKind.ES2020,
+      esModuleInterop: true,
+      allowSyntheticDefaultImports: true,
+      noLib: true, // Skip loading standard library for testing
+    },
+    compilerHost
+  );
 
   // Apply transformer with mock output paths (won't be used in memory)
   const transformer = createI18nextAutoKeyTransformerFactory({
     ...transformerOptions,
-    jsonOutputPath: '/mock/output.json',
-    xliffOutputPath: '/mock/output.xliff',
+    jsonOutputPath: "/mock/output.json",
+    xliffOutputPath: "/mock/output.xliff",
   });
 
   // Transform the source file
@@ -85,8 +89,8 @@ it("transforms TS message functions", () => {
   });
 
   // Check that the functions were transformed to use i18next.t (with type annotations preserved)
-  expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash('foo', 10)}")`);
-  expect(transformedCode).toContain(`bar: (): string => i18next.t("${stableHash('bar', 10)}")`);
+  expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash("foo", 10)}")`);
+  expect(transformedCode).toContain(`bar: (): string => i18next.t("${stableHash("bar", 10)}")`);
 
   // Check that i18next import was added
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -105,11 +109,11 @@ it("preserves functions that don't return string literals", () => {
   });
 
   // Only foo should be transformed (with type annotations preserved)
-  expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash('foo', 10)}")`);
+  expect(transformedCode).toContain(`foo: (): string => i18next.t("${stableHash("foo", 10)}")`);
 
   // Dynamic and computed should remain unchanged
-  expect(transformedCode).toContain('dynamic: (name: string): string => `Hello ${name}`');
-  expect(transformedCode).toContain('computed: (): string => Math.random().toString()');
+  expect(transformedCode).toContain("dynamic: (name: string): string => `Hello ${name}`");
+  expect(transformedCode).toContain("computed: (): string => Math.random().toString()");
 });
 
 it("respects @noTranslate JSDoc tag", () => {
@@ -137,7 +141,7 @@ it("respects @noTranslate JSDoc tag", () => {
   expect(transformedCode).toContain('alsoSkip: (): string => "also skip"');
 
   // Functions without @noTranslate should be transformed
-  expect(transformedCode).toContain(`translate: (): string => i18next.t("${stableHash('translate me', 10)}")`);
+  expect(transformedCode).toContain(`translate: (): string => i18next.t("${stableHash("translate me", 10)}")`);
 
   // Should have i18next import since at least one function was transformed
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -166,8 +170,8 @@ it("handles mixed @noTranslate scenarios", () => {
   });
 
   // Normal functions should be transformed
-  expect(transformedCode).toContain(`normal: (): string => i18next.t("${stableHash('normal message', 10)}")`);
-  expect(transformedCode).toContain(`user: (): string => i18next.t("${stableHash('user message', 10)}")`);
+  expect(transformedCode).toContain(`normal: (): string => i18next.t("${stableHash("normal message", 10)}")`);
+  expect(transformedCode).toContain(`user: (): string => i18next.t("${stableHash("user message", 10)}")`);
 
   // Functions with @noTranslate should remain unchanged
   expect(transformedCode).toContain('debug: (): string => "Debug: internal message"');
@@ -209,7 +213,7 @@ it("handles different JSDoc comment styles for @noTranslate", () => {
   expect(transformedCode).toContain('withDescription: (): string => "with description"');
 
   // Regular function should be transformed
-  expect(transformedCode).toContain(`regular: (): string => i18next.t("${stableHash('regular message', 10)}")`);
+  expect(transformedCode).toContain(`regular: (): string => i18next.t("${stableHash("regular message", 10)}")`);
 
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -262,9 +266,9 @@ it("handles @noTranslate with function expressions", () => {
 
   // Functions without @noTranslate should be transformed
   // Function expressions get formatted with proper indentation by TypeScript printer
-  expect(transformedCode).toContain(`return i18next.t("${stableHash('transform this', 10)}");`);
+  expect(transformedCode).toContain(`return i18next.t("${stableHash("transform this", 10)}");`);
   expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
-  expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash('transform arrow', 10)}")`);
+  expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash("transform arrow", 10)}")`);
 
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -283,8 +287,8 @@ describe("argument parsing modes", () => {
     });
 
     // No parameters means no second argument to i18next.t
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash('Hello', 10)}")`);
-    expect(transformedCode).not.toContain('i18next.t("' + stableHash('Hello', 10) + '", ');
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello", 10)}")`);
+    expect(transformedCode).not.toContain('i18next.t("' + stableHash("Hello", 10) + '", ');
   });
 
   it("handles named mode with no parameters", () => {
@@ -299,8 +303,8 @@ describe("argument parsing modes", () => {
     });
 
     // No parameters means no second argument to i18next.t
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash('Hello', 10)}")`);
-    expect(transformedCode).not.toContain('i18next.t("' + stableHash('Hello', 10) + '", ');
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello", 10)}")`);
+    expect(transformedCode).not.toContain('i18next.t("' + stableHash("Hello", 10) + '", ');
   });
 
   it("handles array mode with single parameter", () => {
@@ -315,7 +319,9 @@ describe("argument parsing modes", () => {
     });
 
     // Single parameter should be passed as array
-    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", [name])`);
+    expect(transformedCode).toContain(
+      `greeting: (name: string): string => i18next.t("${stableHash("Hello", 10)}", [name])`
+    );
   });
 
   it("handles named mode with single parameter", () => {
@@ -330,8 +336,8 @@ describe("argument parsing modes", () => {
     });
 
     // Single parameter should be passed as object (TypeScript printer formats with newlines)
-    expect(transformedCode).toContain(`i18next.t("${stableHash('Hello', 10)}", {`);
-    expect(transformedCode).toContain('name');
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Hello", 10)}", {`);
+    expect(transformedCode).toContain("name");
   });
 
   it("handles array mode with multiple parameters", () => {
@@ -346,7 +352,9 @@ describe("argument parsing modes", () => {
     });
 
     // Multiple parameters should be passed as array
-    expect(transformedCode).toContain(`greeting: (name: string, age: number): string => i18next.t("${stableHash('Hello', 10)}", [name, age])`);
+    expect(transformedCode).toContain(
+      `greeting: (name: string, age: number): string => i18next.t("${stableHash("Hello", 10)}", [name, age])`
+    );
   });
 
   it("handles named mode with multiple parameters", () => {
@@ -361,7 +369,7 @@ describe("argument parsing modes", () => {
     });
 
     // Multiple parameters should be passed as object with shorthand properties (flexible formatting)
-    expect(transformedCode).toContain(`i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Hello", 10)}", {`);
     expect(transformedCode).toMatch(/greeting:.*name.*age.*\}/s);
   });
 
@@ -379,13 +387,17 @@ describe("argument parsing modes", () => {
     });
 
     // No params - no second argument
-    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
+    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash("No params", 10)}")`);
 
     // One param - array with single element
-    expect(transformedCode).toContain(`oneParam: (name: string): string => i18next.t("${stableHash('One param', 10)}", [name])`);
+    expect(transformedCode).toContain(
+      `oneParam: (name: string): string => i18next.t("${stableHash("One param", 10)}", [name])`
+    );
 
     // Two params - array with two elements
-    expect(transformedCode).toContain(`twoParams: (name: string, count: number): string => i18next.t("${stableHash('Two params', 10)}", [name, count])`);
+    expect(transformedCode).toContain(
+      `twoParams: (name: string, count: number): string => i18next.t("${stableHash("Two params", 10)}", [name, count])`
+    );
   });
 
   it("handles mixed parameter scenarios in named mode", () => {
@@ -402,14 +414,14 @@ describe("argument parsing modes", () => {
     });
 
     // No params - no second argument
-    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash('No params', 10)}")`);
+    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash("No params", 10)}")`);
 
     // One param - object with single property (TypeScript printer formats with newlines)
-    expect(transformedCode).toContain(`i18next.t("${stableHash('One param', 10)}", {`);
+    expect(transformedCode).toContain(`i18next.t("${stableHash("One param", 10)}", {`);
     expect(transformedCode).toMatch(/oneParam:.*name.*\}/s);
 
     // Two params - object with two properties (flexible formatting)
-    expect(transformedCode).toContain(`i18next.t("${stableHash('Two params', 10)}", {`);
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Two params", 10)}", {`);
     expect(transformedCode).toMatch(/twoParams:.*name.*count.*\}/s);
   });
 
@@ -425,7 +437,7 @@ describe("argument parsing modes", () => {
     });
 
     // Function expression with parameters should use array mode
-    expect(transformedCode).toContain(`return i18next.t("${stableHash('Hello', 10)}", [name, age]);`);
+    expect(transformedCode).toContain(`return i18next.t("${stableHash("Hello", 10)}", [name, age]);`);
   });
 
   it("handles function expressions with parameters in named mode", () => {
@@ -440,7 +452,7 @@ describe("argument parsing modes", () => {
     });
 
     // Function expression with parameters should use named mode (flexible formatting)
-    expect(transformedCode).toContain(`return i18next.t("${stableHash('Hello', 10)}", {`);
+    expect(transformedCode).toContain(`return i18next.t("${stableHash("Hello", 10)}", {`);
     expect(transformedCode).toMatch(/name.*age.*\}/s);
   });
 
@@ -456,7 +468,7 @@ describe("argument parsing modes", () => {
     });
 
     // Should use named mode by default
-    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash('Hello', 10)}", {`);
-    expect(transformedCode).toContain('name');
+    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash("Hello", 10)}", {`);
+    expect(transformedCode).toContain("name");
   });
 });

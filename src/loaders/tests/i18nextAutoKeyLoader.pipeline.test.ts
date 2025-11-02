@@ -21,8 +21,8 @@ describe("i18next-auto-keys loader pipeline", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-              argMode: "array"
-            }
+              argMode: "array",
+            },
           },
         ],
       },
@@ -33,7 +33,7 @@ describe("i18next-auto-keys loader pipeline", () => {
         "src/app.messages.ts": `export const Messages = {
           hello: (): string => "Hello",
           welcome: (name: string): string => \`Welcome, \${name}!\`
-        };`
+        };`,
       },
       rules,
       { entry: "/src/app.messages.ts" }
@@ -42,6 +42,6 @@ describe("i18next-auto-keys loader pipeline", () => {
     // Verify the pipeline worked: transformation -> compilation (webpack mangles imports)
     expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']\)/); // Should transform to .t() calls with hash
     expect(bundle).not.toContain("Hello"); // Original strings should be replaced
-    expect(bundle).toContain('i18next'); // Should reference i18next
+    expect(bundle).toContain("i18next"); // Should reference i18next
   });
 });

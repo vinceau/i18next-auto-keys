@@ -23,7 +23,7 @@ async function loadGettextParser(): Promise<typeof import("gettext-parser") | un
     return gettextParser;
   } catch (error: any) {
     // If it's an ESM error, try dynamic import (gettext-parser v8.x+)
-    if (error?.code === 'ERR_REQUIRE_ESM') {
+    if (error?.code === "ERR_REQUIRE_ESM") {
       try {
         gettextParserLoadPromise = import("gettext-parser");
         gettextParser = await gettextParserLoadPromise;
@@ -47,7 +47,7 @@ export type I18nextAutoKeyEmitPluginOptions = {
   projectIdVersion?: string; // e.g., "slippi-stats 1.0"
   /** Optional top level key to wrap translations under. If undefined, translations are placed at root level. */
   topLevelKey?: string;
-}
+};
 
 /**
  * Emits i18n assets once per compilation using entries collected in i18nStore:
@@ -82,18 +82,14 @@ export class I18nextAutoKeyEmitPlugin {
         },
         async (assets) => {
           // Build a stable snapshot of entries
-          const entries = Array.from(i18nStore.all().values()).sort((a, b) =>
-            a.id.localeCompare(b.id)
-          );
+          const entries = Array.from(i18nStore.all().values()).sort((a, b) => a.id.localeCompare(b.id));
 
           // --- JSON (id -> source) ---
           const dict: Record<string, string> = {};
           for (const e of entries) dict[e.id] = e.source;
 
           // Optionally wrap under topLevelKey
-          const finalOutput = this.topLevelKey
-            ? { [this.topLevelKey]: dict }
-            : dict;
+          const finalOutput = this.topLevelKey ? { [this.topLevelKey]: dict } : dict;
 
           const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, 2), "utf8");
           emitIfChanged(compilation, sources, this.normalize(this.jsonOutputPath), jsonBuf);
@@ -102,33 +98,33 @@ export class I18nextAutoKeyEmitPlugin {
           if (this.potOutputPath) {
             const parser = await loadGettextParser();
             if (parser) {
-            const catalog = {
-              charset: "utf-8",
-              headers: {
-                "project-id-version": this.projectIdVersion,
-                "mime-version": "1.0",
-                "content-type": "text/plain; charset=UTF-8",
-                "content-transfer-encoding": "8bit",
-                "x-generator": pluginName,
-                language: "", // empty in POT templates
-              },
-              translations: { "": {} } as GetTextTranslationRecord,
-            };
-
-            for (const e of entries) {
-              catalog.translations[""][e.source] = {
-                msgid: e.source,
-                msgctxt: e.id,
-                msgstr: [""],
-                comments: {
-                  reference: Array.from(e.refs).sort().join("\n") || undefined,       // "#: file:line:column"
-                  extracted: Array.from(e.extractedComments).sort().join("\n") || undefined, // "#. comment"
+              const catalog = {
+                charset: "utf-8",
+                headers: {
+                  "project-id-version": this.projectIdVersion,
+                  "mime-version": "1.0",
+                  "content-type": "text/plain; charset=UTF-8",
+                  "content-transfer-encoding": "8bit",
+                  "x-generator": pluginName,
+                  language: "", // empty in POT templates
                 },
+                translations: { "": {} } as GetTextTranslationRecord,
               };
-            }
 
-            const potBuf = parser.po.compile(catalog);
-            emitIfChanged(compilation, sources, this.normalize(this.potOutputPath), potBuf);
+              for (const e of entries) {
+                catalog.translations[""][e.source] = {
+                  msgid: e.source,
+                  msgctxt: e.id,
+                  msgstr: [""],
+                  comments: {
+                    reference: Array.from(e.refs).sort().join("\n") || undefined, // "#: file:line:column"
+                    extracted: Array.from(e.extractedComments).sort().join("\n") || undefined, // "#. comment"
+                  },
+                };
+              }
+
+              const potBuf = parser.po.compile(catalog);
+              emitIfChanged(compilation, sources, this.normalize(this.potOutputPath), potBuf);
             }
           }
         }

@@ -26,31 +26,34 @@ msgid "Ready"
 msgstr ""
 `;
 
-jest.mock("gettext-parser", () => ({
-  po: {
-    compile: jest.fn().mockImplementation((catalog) => {
-      // Verify the catalog structure is correct
-      expect(catalog.charset).toBe("utf-8");
-      expect(catalog.headers).toMatchObject({
-        "project-id-version": "test-app 1.0",
-        "mime-version": "1.0",
-        "content-type": "text/plain; charset=UTF-8",
-        "content-transfer-encoding": "8bit",
-        "x-generator": "I18nextAutoKeyEmitPlugin",
-        language: ""
-      });
+jest.mock(
+  "gettext-parser",
+  () => ({
+    po: {
+      compile: jest.fn().mockImplementation((catalog) => {
+        // Verify the catalog structure is correct
+        expect(catalog.charset).toBe("utf-8");
+        expect(catalog.headers).toMatchObject({
+          "project-id-version": "test-app 1.0",
+          "mime-version": "1.0",
+          "content-type": "text/plain; charset=UTF-8",
+          "content-transfer-encoding": "8bit",
+          "x-generator": "I18nextAutoKeyEmitPlugin",
+          language: "",
+        });
 
-      // Verify translations structure
-      expect(catalog.translations[""]).toBeDefined();
+        // Verify translations structure
+        expect(catalog.translations[""]).toBeDefined();
 
-      // Return mock POT content as Buffer
-      return Buffer.from(mockPotContent);
-    })
-  }
-}), { virtual: true });
+        // Return mock POT content as Buffer
+        return Buffer.from(mockPotContent);
+      }),
+    },
+  }),
+  { virtual: true }
+);
 
 describe("I18nextAutoKeyEmitPlugin integration", () => {
-
   test("emits JSON file with extracted messages from loader", async () => {
     const rules = [
       {
@@ -69,14 +72,14 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-            }
+            },
           },
         ],
       },
     ];
 
-        const plugin = new I18nextAutoKeyEmitPlugin({
-      jsonOutputPath: "i18n/messages.json"
+    const plugin = new I18nextAutoKeyEmitPlugin({
+      jsonOutputPath: "i18n/messages.json",
     });
 
     const { fs } = await compileWithMemoryFS(
@@ -90,7 +93,7 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       rules,
       {
         entry: "/src/entry.ts",
-        plugins: [plugin]
+        plugins: [plugin],
       }
     );
 
@@ -128,16 +131,16 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-            }
+            },
           },
         ],
       },
     ];
 
-        const plugin = new I18nextAutoKeyEmitPlugin({
+    const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/messages.json",
       potOutputPath: "i18n/messages.pot",
-      projectIdVersion: "test-app 1.0"
+      projectIdVersion: "test-app 1.0",
     });
 
     const { fs } = await compileWithMemoryFS(
@@ -151,7 +154,7 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       rules,
       {
         entry: "/src/entry.ts",
-        plugins: [plugin]
+        plugins: [plugin],
       }
     );
 
@@ -181,11 +184,11 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
         charset: "utf-8",
         headers: expect.objectContaining({
           "project-id-version": "test-app 1.0",
-          "x-generator": "I18nextAutoKeyEmitPlugin"
+          "x-generator": "I18nextAutoKeyEmitPlugin",
         }),
         translations: expect.objectContaining({
-          "": expect.any(Object)
-        })
+          "": expect.any(Object),
+        }),
       })
     );
   });
@@ -208,14 +211,14 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-            }
+            },
           },
         ],
       },
     ];
 
-        const plugin = new I18nextAutoKeyEmitPlugin({
-      jsonOutputPath: "i18n/messages.json"
+    const plugin = new I18nextAutoKeyEmitPlugin({
+      jsonOutputPath: "i18n/messages.json",
     });
 
     const { fs } = await compileWithMemoryFS(
@@ -237,7 +240,7 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       rules,
       {
         entry: "/src/entry.ts",
-        plugins: [plugin]
+        plugins: [plugin],
       }
     );
 
@@ -247,16 +250,11 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
 
     expect(Object.keys(messagesDict)).toHaveLength(4);
     expect(Object.values(messagesDict)).toEqual(
-      expect.arrayContaining([
-        "Welcome!",
-        "Loading...",
-        "Not found",
-        "Server error"
-      ])
+      expect.arrayContaining(["Welcome!", "Loading...", "Not found", "Server error"])
     );
 
     // Verify each message has a proper hash
-    Object.keys(messagesDict).forEach(hash => {
+    Object.keys(messagesDict).forEach((hash) => {
       expect(hash).toMatch(/^[a-f0-9]{10}$/);
     });
   });
@@ -279,14 +277,14 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-            }
+            },
           },
         ],
       },
     ];
 
-        const plugin = new I18nextAutoKeyEmitPlugin({
-      jsonOutputPath: "i18n/messages.json"
+    const plugin = new I18nextAutoKeyEmitPlugin({
+      jsonOutputPath: "i18n/messages.json",
     });
 
     const { fs } = await compileWithMemoryFS(
@@ -297,7 +295,7 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       rules,
       {
         entry: "/src/entry.ts",
-        plugins: [plugin]
+        plugins: [plugin],
       }
     );
 
@@ -327,15 +325,15 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-            }
+            },
           },
         ],
       },
     ];
 
-        const plugin = new I18nextAutoKeyEmitPlugin({
+    const plugin = new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: "i18n/nested.json",
-      topLevelKey: "translations"
+      topLevelKey: "translations",
     });
 
     const { fs } = await compileWithMemoryFS(
@@ -352,7 +350,7 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       rules,
       {
         entry: "/src/entry.ts",
-        plugins: [plugin]
+        plugins: [plugin],
       }
     );
 
