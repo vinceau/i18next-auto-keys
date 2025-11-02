@@ -1,12 +1,12 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
-describe("i18next-icu-loader integration", () => {
+describe("i18next-auto-keys integration", () => {
   test("transforms .messages.js files correctly", async () => {
     const rules = [
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        use: [{ loader: "i18next-icu-loader", options: { include: /\.messages\.js$/, hashLength: 10 } }],
+        use: [{ loader: "i18next-auto-keys", options: { include: /\.messages\.js$/, hashLength: 10 } }],
       },
     ];
 
@@ -39,7 +39,7 @@ describe("i18next-icu-loader integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -83,7 +83,7 @@ describe("i18next-icu-loader integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -127,7 +127,7 @@ describe("i18next-icu-loader integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10
@@ -167,7 +167,7 @@ describe("i18next-icu-loader integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               sourcemap: true,

@@ -42,7 +42,7 @@ export async function compileWithMemoryFS(
     },
     resolveLoader: {
       alias: {
-        "i18next-icu-loader": LOADER_PATH
+        "i18next-auto-keys": LOADER_PATH
       }
     },
     externals: {

@@ -65,7 +65,7 @@ describe("I18nEmitPlugin integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -124,7 +124,7 @@ describe("I18nEmitPlugin integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -204,7 +204,7 @@ describe("I18nEmitPlugin integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -275,7 +275,7 @@ describe("I18nEmitPlugin integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
@@ -323,7 +323,7 @@ describe("I18nEmitPlugin integration", () => {
             },
           },
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,

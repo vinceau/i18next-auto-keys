@@ -1,6 +1,6 @@
 import { compileWithMemoryFS } from "./helpers/compile";
 
-describe("i18next-icu-loader pipeline", () => {
+describe("i18next-auto-keys pipeline", () => {
   test("transforms .messages.ts files then compiles with esbuild-loader", async () => {
     const rules = [
       {
@@ -17,7 +17,7 @@ describe("i18next-icu-loader pipeline", () => {
           },
           // our loader transforms message functions to i18next.t() calls (first step)
           {
-            loader: "i18next-icu-loader",
+            loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,

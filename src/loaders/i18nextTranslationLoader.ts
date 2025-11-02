@@ -38,7 +38,7 @@ export function i18nextTranslationLoader(this: LoaderContext<I18nextTranslationL
   const options: I18nextTranslationLoaderOptions = this.getOptions() || {};
 
   // validate in a version-agnostic way
-  validate(schema as any, options, { name: 'i18next-icu-loader' });
+  validate(schema as any, options, { name: 'i18next-auto-keys' });
 
   this.cacheable && this.cacheable(true);
 
