@@ -2,6 +2,7 @@
 import { Command } from "commander";
 import fs from "fs";
 import path from "path";
+// @ts-ignore - glob types are wack and don't work properly
 import { sync as globSync } from "glob";
 import ts from "typescript";
 import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../index";
