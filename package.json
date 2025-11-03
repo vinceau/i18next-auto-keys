@@ -1,6 +1,6 @@
 {
   "name": "i18next-auto-keys",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
@@ -9,7 +9,15 @@
     "dist/index.d.ts"
   ],
   "description": "Automatic translation key generation for i18next",
-  "keywords": ["i18next", "translation", "keys", "generator", "webpack", "loader", "transformer"],
+  "keywords": [
+    "i18next",
+    "translation",
+    "keys",
+    "generator",
+    "webpack",
+    "loader",
+    "transformer"
+  ],
   "author": "Vincent Au",
   "license": "MIT",
   "scripts": {
