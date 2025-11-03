@@ -19,12 +19,12 @@ jest.mock("glob", () => mockGlob);
 // Mock gettext-parser
 const mockGettextParser = {
   po: {
-    compile: jest.fn(() => Buffer.from("# POT file content", "utf8"))
-  }
+    compile: jest.fn(() => Buffer.from("# POT file content", "utf8")),
+  },
 };
 
 jest.mock("../../plugins/loadGettextParser", () => ({
-  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser))
+  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
 describe("generatePotFile", () => {
@@ -34,7 +34,7 @@ describe("generatePotFile", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     i18nStore.clear();
-    
+
     // Mock file system defaults
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.readFileSync.mockReturnValue(`
@@ -45,12 +45,9 @@ describe("generatePotFile", () => {
     `);
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
-    
+
     // Mock glob to return test files
-    mockGlob.sync.mockReturnValue([
-      "/test/src/messages.ts",
-      "/test/src/components/Button.tsx"
-    ]);
+    mockGlob.sync.mockReturnValue(["/test/src/messages.ts", "/test/src/components/Button.tsx"]);
   });
 
   it("should generate POT file successfully", async () => {
@@ -58,13 +55,10 @@ describe("generatePotFile", () => {
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.ts", "**/*.tsx"],
-      projectId: "test-app 1.0"
+      projectId: "test-app 1.0",
     });
 
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      testOutputPath,
-      expect.any(Buffer)
-    );
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
   });
 
   it("should create output directory if it doesn't exist", async () => {
@@ -76,7 +70,7 @@ describe("generatePotFile", () => {
     await generatePotFile({
       source: testSourceDir,
       output: testOutputPath,
-      include: ["**/*.ts"]
+      include: ["**/*.ts"],
     });
 
     expect(mockedFs.mkdirSync).toHaveBeenCalledWith(outputDir, { recursive: true });
@@ -90,13 +84,13 @@ describe("generatePotFile", () => {
       source: testSourceDir,
       output: testOutputPath,
       include: customInclude,
-      exclude: customExclude
+      exclude: customExclude,
     });
 
     expect(mockGlob.sync).toHaveBeenCalledWith("**/*.custom.ts", {
       cwd: testSourceDir,
       absolute: true,
-      ignore: customExclude
+      ignore: customExclude,
     });
   });
 
@@ -108,7 +102,7 @@ describe("generatePotFile", () => {
     await generatePotFile({
       source: testSourceDir,
       output: testOutputPath,
-      include: ["**/*.ts"]
+      include: ["**/*.ts"],
     });
 
     // Should still process files even without tsconfig
@@ -122,7 +116,7 @@ describe("generatePotFile", () => {
     await generatePotFile({
       source: testSourceDir,
       output: testOutputPath,
-      include: ["**/*.ts"]
+      include: ["**/*.ts"],
     });
 
     expect(consoleSpy).toHaveBeenCalledWith("⚠️  No source files found matching the criteria");
@@ -140,11 +134,10 @@ describe("generatePotFile", () => {
     await generatePotFile({
       source: testSourceDir,
       output: testOutputPath,
-      include: ["**/*.ts"]
+      include: ["**/*.ts"],
     });
 
     expect(consoleSpy).toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
-
 });

@@ -5,8 +5,7 @@ import path from "path";
 // @ts-ignore - glob types are handled separately
 import glob from "glob";
 import ts from "typescript";
-import { i18nStore } from "../common/i18nStore";
-import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
+import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../index";
 import { loadGettextParser } from "./loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
@@ -24,17 +23,17 @@ interface GeneratePotOptions {
  * containing all translation keys found by the i18next-auto-keys transformer.
  */
 async function generatePotFile(options: GeneratePotOptions): Promise<void> {
-  const { 
-    source = process.cwd(), 
-    output, 
-    projectId = "app 1.0", 
-    include, 
-    exclude = ["node_modules/**", "dist/**", "build/**"] 
+  const {
+    source = process.cwd(),
+    output,
+    projectId = "app 1.0",
+    include,
+    exclude = ["node_modules/**", "dist/**", "build/**"],
   } = options;
 
   console.log(`🔍 Scanning for translation keys using patterns: ${include.join(", ")}`);
   console.log(`📁 Search root: ${source}`);
-  
+
   // Clear the store to start fresh
   i18nStore.clear();
 
@@ -54,7 +53,7 @@ async function generatePotFile(options: GeneratePotOptions): Promise<void> {
   // Process each source file with the transformer
   const transformer = createI18nextAutoKeyTransformerFactory({
     hashLength: 10,
-    argMode: "named"
+    argMode: "named",
   });
 
   for (const filePath of sourceFiles) {
@@ -62,7 +61,7 @@ async function generatePotFile(options: GeneratePotOptions): Promise<void> {
   }
 
   // Get collected translations
-  const entries = Array.from(i18nStore.all().values()).sort((a, b) => a.id.localeCompare(b.id));
+  const entries = Array.from(i18nStore.all().values()).sort((a: any, b: any) => a.id.localeCompare(b.id));
   console.log(`🔑 Collected ${entries.length} translation keys`);
 
   if (entries.length === 0) {
@@ -77,7 +76,7 @@ async function generatePotFile(options: GeneratePotOptions): Promise<void> {
 
 function findTsConfig(sourceDir: string): string | undefined {
   let currentDir = path.resolve(sourceDir);
-  
+
   while (currentDir !== path.dirname(currentDir)) {
     const tsconfigPath = path.join(currentDir, "tsconfig.json");
     if (fs.existsSync(tsconfigPath)) {
@@ -85,7 +84,7 @@ function findTsConfig(sourceDir: string): string | undefined {
     }
     currentDir = path.dirname(currentDir);
   }
-  
+
   return undefined;
 }
 
@@ -107,23 +106,19 @@ function loadTsConfig(tsconfigPath?: string): ts.CompilerOptions {
     return {};
   }
 
-  const parsedConfig = ts.parseJsonConfigFileContent(
-    configFile.config,
-    ts.sys,
-    path.dirname(tsconfigPath)
-  );
+  const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(tsconfigPath));
 
   return parsedConfig.options;
 }
 
 function findSourceFiles(sourceDir: string, include: string[], exclude: string[]): string[] {
   const files: string[] = [];
-  
+
   for (const pattern of include) {
     const matches = glob.sync(pattern, {
       cwd: sourceDir,
       absolute: true,
-      ignore: exclude
+      ignore: exclude,
     });
     files.push(...matches);
   }
@@ -139,7 +134,7 @@ async function processSourceFile(
 ): Promise<void> {
   try {
     const sourceCode = fs.readFileSync(filePath, "utf8");
-    
+
     const sourceFile = ts.createSourceFile(
       filePath,
       sourceCode,
