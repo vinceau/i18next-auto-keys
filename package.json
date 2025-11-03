@@ -8,6 +8,10 @@
     "dist/index.js.map",
     "dist/index.d.ts"
   ],
+  "description": "Automatic translation key generation for i18next",
+  "keywords": ["i18next", "translation", "keys", "generator", "webpack", "loader", "transformer"],
+  "author": "Vincent Au",
+  "license": "MIT",
   "scripts": {
     "build": "npm run build:js && npm run build:types && npm run build:clean",
     "build:js": "webpack --config webpack.build.config.js",
@@ -41,5 +45,8 @@
   },
   "dependencies": {
     "schema-utils": "^4.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
