@@ -1,6 +1,6 @@
 {
   "name": "i18next-auto-keys",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -8,7 +8,7 @@
   },
   "files": [
     "dist/index.js",
-    "dist/index.js.map", 
+    "dist/index.js.map",
     "dist/index.d.ts",
     "dist/cli/generatePot.js"
   ],
