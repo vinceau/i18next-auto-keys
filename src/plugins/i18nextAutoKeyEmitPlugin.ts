@@ -1,36 +1,25 @@
 // plugins/I18nextAutoKeyEmitPlugin.ts
 import type { Compiler } from "webpack";
 import { i18nStore } from "../common/i18nStore";
-import type { GetTextTranslationRecord } from "gettext-parser";
 import { emitIfChanged } from "./emitIfChanged";
-import { loadGettextParser } from "./loadGettextParser";
 
 export type I18nextAutoKeyEmitPluginOptions = {
   /** Path inside Webpack output where the runtime JSON should be emitted (e.g. "i18n/en.json"). */
   jsonOutputPath: string;
-  /** Optional path inside Webpack output where the POT template should be emitted (e.g. "i18n/messages.pot"). */
-  potOutputPath?: string;
-  /** Optional "Project-Id-Version" header value for POT. */
-  projectIdVersion?: string; // e.g., "slippi-stats 1.0"
   /** Optional top level key to wrap translations under. If undefined, translations are placed at root level. */
   topLevelKey?: string;
 };
 
 /**
- * Emits i18n assets once per compilation using entries collected in i18nStore:
- * - JSON: { [id]: sourceString }
- * - POT: msgctxt=id, msgid=source, with "#: file:line:column" and "#. comment" lines
+ * Emits i18n JSON assets once per compilation using entries collected in i18nStore.
+ * For POT file generation, use the CLI tool: npx i18next-auto-keys-pot
  */
 export class I18nextAutoKeyEmitPlugin {
   private readonly jsonOutputPath: string;
-  private readonly potOutputPath?: string;
-  private readonly projectIdVersion: string;
   private readonly topLevelKey?: string;
 
   constructor(opts: I18nextAutoKeyEmitPluginOptions) {
     this.jsonOutputPath = opts.jsonOutputPath;
-    this.potOutputPath = opts.potOutputPath;
-    this.projectIdVersion = opts.projectIdVersion ?? "app 1.0";
     this.topLevelKey = opts.topLevelKey;
   }
 
@@ -60,40 +49,6 @@ export class I18nextAutoKeyEmitPlugin {
 
           const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, 2), "utf8");
           emitIfChanged(compilation, sources, this.normalize(this.jsonOutputPath), jsonBuf);
-
-          // --- POT (optional) ---
-          if (this.potOutputPath) {
-            const parser = await loadGettextParser();
-            if (parser && parser.po && parser.po.compile) {
-              const catalog = {
-                charset: "utf-8",
-                headers: {
-                  "project-id-version": this.projectIdVersion,
-                  "mime-version": "1.0",
-                  "content-type": "text/plain; charset=UTF-8",
-                  "content-transfer-encoding": "8bit",
-                  "x-generator": pluginName,
-                  language: "", // empty in POT templates
-                },
-                translations: { "": {} } as GetTextTranslationRecord,
-              };
-
-              for (const e of entries) {
-                catalog.translations[""][e.source] = {
-                  msgid: e.source,
-                  msgctxt: e.id,
-                  msgstr: [""],
-                  comments: {
-                    reference: Array.from(e.refs).sort().join("\n") || undefined, // "#: file:line:column"
-                    extracted: Array.from(e.extractedComments).sort().join("\n") || undefined, // "#. comment"
-                  },
-                };
-              }
-
-              const potBuf = parser.po.compile(catalog);
-              emitIfChanged(compilation, sources, this.normalize(this.potOutputPath), potBuf);
-            }
-          }
         }
       );
     });

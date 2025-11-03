@@ -2,11 +2,14 @@ const path = require('path');
 
 module.exports = {
   mode: 'production',
-  entry: './src/index.ts',
+  entry: {
+    index: './src/index.ts',
+    'cli/generatePot': './src/cli/generatePot.ts'
+  },
   target: 'node',
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'index.js',
+    filename: '[name].js',
     library: {
       type: 'commonjs2',
     },
@@ -36,5 +39,7 @@ module.exports = {
     webpack: 'webpack',
     typescript: 'typescript',
     'gettext-parser': 'gettext-parser',
+    commander: 'commander',
+    glob: 'glob',
   },
 };

@@ -3,10 +3,14 @@
   "version": "1.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "i18next-auto-keys": "dist/cli/generatePot.js"
+  },
   "files": [
     "dist/index.js",
     "dist/index.js.map",
-    "dist/index.d.ts"
+    "dist/index.d.ts",
+    "dist/cli/generatePot.js"
   ],
   "description": "Automatic translation key generation for i18next",
   "keywords": [
@@ -33,6 +37,7 @@
   },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",
+    "@types/glob": "^8.1.0",
     "@types/jest": "^29",
     "@types/webpack": "^5",
     "dts-bundle-generator": "^9.5.1",
@@ -52,7 +57,9 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "schema-utils": "^4.3.3"
+    "schema-utils": "^4.3.3",
+    "commander": "^12.0.0",
+    "glob": "^11.0.0"
   },
   "engines": {
     "node": ">=16.0.0"
