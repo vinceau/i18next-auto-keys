@@ -1,31 +1,63 @@
 import { jest } from "@jest/globals";
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
 import { generatePotFile } from "../generatePot";
 import { i18nStore } from "../../common/i18nStore";
 
 // Mock file system
 jest.mock("fs");
-jest.mock("glob");
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
-// Mock glob to return test files
-const mockGlob = jest.createMockFromModule("glob") as any;
-mockGlob.sync = jest.fn();
+// Mock glob
+jest.mock("glob", () => ({
+  sync: jest.fn(() => [])
+}));
 
-jest.mock("glob", () => mockGlob);
+// Get the mocked module
+const glob = require("glob");
+const mockGlob = glob;
 
-// Mock gettext-parser
+// Mock gettext-parser with realistic POT content
 const mockGettextParser = {
   po: {
-    compile: jest.fn(() => Buffer.from("# POT file content", "utf8")),
+    compile: jest.fn((catalog: any) => {
+      // Generate realistic POT content based on the catalog
+      const projectId = catalog.headers["project-id-version"] || "app 1.0";
+      const generator = catalog.headers["x-generator"] || "i18next-auto-keys CLI";
+      
+      let potContent = `# POT file
+msgid ""
+msgstr ""
+"Project-Id-Version: ${projectId}\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"x-generator: ${generator}\\n"
+
+`;
+      
+      // Add entries from the catalog
+      if (catalog.translations && catalog.translations[""]) {
+        for (const [msgid, entry] of Object.entries(catalog.translations[""])) {
+          if (msgid !== "") { // Skip header entry
+            const entryData = entry as any;
+            potContent += `msgctxt "${entryData.msgctxt}"
+msgid "${msgid}"
+msgstr ""
+
+`;
+          }
+        }
+      }
+      
+      return Buffer.from(potContent, "utf8");
+    }),
   },
 };
 
-jest.mock("../../plugins/loadGettextParser", () => ({
+jest.mock("../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
+
+// No need to mock I18nStore - test the actual functionality
 
 describe("generatePotFile", () => {
   const testSourceDir = "/test/src";
@@ -37,28 +69,73 @@ describe("generatePotFile", () => {
 
     // Mock file system defaults
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.readFileSync.mockReturnValue(`
-      export const messages = {
-        greeting: () => "Hello, world!",
-        farewell: () => "Goodbye!"
-      };
-    `);
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
+    
+    // Mock tsconfig.json to avoid parsing errors
+    (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+      const pathStr = filePath.toString();
+      if (pathStr.includes('tsconfig.json')) {
+        return JSON.stringify({
+          compilerOptions: {
+            target: "ES2020",
+            module: "commonjs",
+            strict: true
+          }
+        });
+      }
+      return mockFileContent(pathStr);
+    });
+    
+    function mockFileContent(pathStr: string) {
+      if (pathStr.includes('ui.messages.ts')) {
+        return `export const Messages = {
+  greeting: (): string => "Hello, world!",
+  farewell: (): string => "Goodbye!"
+};`;
+      }
+      if (pathStr.includes('Button.messages.tsx')) {
+        return `export const ButtonMessages = {
+  clickMe: (): string => "Click me!",
+  loading: (): string => "Loading..."
+};`;
+      }
+      return 'export const NoMessages = {};';
+    }
+    
 
-    // Mock glob to return test files
-    mockGlob.sync.mockReturnValue(["/test/src/messages.ts", "/test/src/components/Button.tsx"]);
+    // Mock glob to return test files that match .messages pattern
+    mockGlob.sync.mockReturnValue(["/test/src/ui.messages.ts", "/test/src/components/Button.messages.tsx"]);
   });
 
   it("should generate POT file successfully", async () => {
+    // Use .messages.ts pattern to match what the transformer expects
     await generatePotFile({
       source: testSourceDir,
       output: testOutputPath,
-      include: ["**/*.ts", "**/*.tsx"],
+      include: ["**/*.messages.ts", "**/*.messages.tsx"],
       projectId: "test-app 1.0",
     });
 
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+    
+    // Verify POT content structure
+    const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+      call => call[0] === testOutputPath
+    )?.[1] as Buffer;
+    
+    expect(potBuffer).toBeInstanceOf(Buffer);
+    const potContent = potBuffer.toString();
+    
+    // Should contain project header
+    expect(potContent).toContain("Project-Id-Version: test-app 1.0");
+    expect(potContent).toContain("x-generator: i18next-auto-keys CLI");
+    
+    // Should contain the extracted messages
+    expect(potContent).toContain("Hello, world!");
+    expect(potContent).toContain("Goodbye!");
+    expect(potContent).toContain("Click me!");
+    expect(potContent).toContain("Loading...");
   });
 
   it("should create output directory if it doesn't exist", async () => {
@@ -74,6 +151,7 @@ describe("generatePotFile", () => {
     });
 
     expect(mockedFs.mkdirSync).toHaveBeenCalledWith(outputDir, { recursive: true });
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
   });
 
   it("should handle custom include/exclude patterns", async () => {
@@ -111,7 +189,7 @@ describe("generatePotFile", () => {
 
   it("should warn when no source files are found", async () => {
     mockGlob.sync.mockReturnValue([]);
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
     await generatePotFile({
       source: testSourceDir,
@@ -129,7 +207,7 @@ describe("generatePotFile", () => {
     mockedFs.readFileSync.mockImplementation(() => {
       throw new Error("File read error");
     });
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     await generatePotFile({
       source: testSourceDir,

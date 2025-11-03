@@ -34,7 +34,7 @@ async function generatePotFile(options: GeneratePotOptions): Promise<void> {
   console.log(`🔍 Scanning for translation keys using patterns: ${include.join(", ")}`);
   console.log(`📁 Search root: ${source}`);
 
-  // Clear the store to start fresh
+  // Clear the global store for each run (transformer uses the global store)
   i18nStore.clear();
 
   // Find TypeScript config

@@ -15,7 +15,7 @@ export type Entry = {
   extractedComments: Set<string>; // "#. comment" lines
 };
 
-class I18nStore {
+export class I18nStore {
   private map = new Map<string, Entry>();
 
   clear() {

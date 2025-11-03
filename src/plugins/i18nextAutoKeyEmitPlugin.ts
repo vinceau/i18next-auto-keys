@@ -12,7 +12,6 @@ export type I18nextAutoKeyEmitPluginOptions = {
 
 /**
  * Emits i18n JSON assets once per compilation using entries collected in i18nStore.
- * For POT file generation, use the CLI tool: npx i18next-auto-keys-pot
  */
 export class I18nextAutoKeyEmitPlugin {
   private readonly jsonOutputPath: string;

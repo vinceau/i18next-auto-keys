@@ -2,13 +2,6 @@ import { I18nextAutoKeyEmitPlugin } from "../i18nextAutoKeyEmitPlugin";
 import { i18nStore } from "../../common/i18nStore";
 import type { Compiler, Compilation } from "webpack";
 
-// Mock gettext-parser
-const mockGettextParser = {
-  po: {
-    compile: jest.fn(),
-  },
-};
-
 // Mock webpack structures
 const mockSources = {
   RawSource: jest.fn().mockImplementation((buffer) => ({ buffer })),
@@ -45,9 +38,6 @@ describe("I18nextAutoKeyEmitPlugin", () => {
 
     // Clear the i18n store
     i18nStore.clear();
-
-    // Reset gettext-parser mock
-    mockGettextParser.po.compile.mockReturnValue(Buffer.from("mock pot content"));
   });
 
   describe("Constructor", () => {
@@ -234,105 +224,6 @@ describe("I18nextAutoKeyEmitPlugin", () => {
     });
   });
 
-  describe("POT output generation", () => {
-    beforeEach(() => {
-      // Mock gettext-parser as available
-      jest.doMock("gettext-parser", () => mockGettextParser, { virtual: true });
-    });
-
-    afterEach(() => {
-      jest.dontMock("gettext-parser");
-    });
-
-    it("should not emit POT file when potOutputPath is not provided", async () => {
-      const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json",
-      });
-
-      plugin.apply(mockCompiler);
-      const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
-      compilationCallback(mockCompilation);
-
-      // Add test data AFTER compilation starts
-      i18nStore.add({
-        id: "test",
-        source: "Test message",
-        ref: { file: "test.ts", line: 1, column: 1 },
-      });
-
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
-      await processAssetsCallback();
-
-      // Should only emit JSON file
-      expect(mockCompilation.emitAsset).toHaveBeenCalledTimes(1);
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("test.json", expect.any(Object));
-    });
-
-    it("should emit POT file when potOutputPath is provided and gettext-parser is available", async () => {
-      // This test verifies the logic path for POT generation
-      // Note: Actual gettext-parser integration is difficult to test due to optional loading
-      const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json",
-        potOutputPath: "messages.pot",
-        projectIdVersion: "test-app 1.0",
-      });
-
-      plugin.apply(mockCompiler);
-      const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
-      compilationCallback(mockCompilation);
-
-      // Add test data AFTER compilation starts
-      i18nStore.add({
-        id: "msg1",
-        source: "Hello World",
-        ref: { file: "src/test.ts", line: 10, column: 5 },
-        comments: ["Test comment", "Another comment"],
-      });
-
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
-      await processAssetsCallback();
-
-      // Should emit at least JSON file (POT depends on gettext-parser availability)
-      expect(mockCompilation.emitAsset).toHaveBeenCalledWith("test.json", expect.any(Object));
-    });
-
-    it("should include references and comments in POT file", async () => {
-      // This test verifies the structure of the catalog object passed to gettext-parser
-      const plugin = new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: "test.json",
-        potOutputPath: "messages.pot",
-      });
-
-      plugin.apply(mockCompiler);
-      const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
-      compilationCallback(mockCompilation);
-
-      // Add test data AFTER compilation starts
-      i18nStore.add({
-        id: "test_msg",
-        source: "Test message",
-        ref: { file: "src/component.tsx", line: 25, column: 10 },
-        comments: ["Component error message"],
-      });
-
-      i18nStore.add({
-        id: "test_msg",
-        source: "Test message", // Same message, different location
-        ref: { file: "src/service.ts", line: 45, column: 15 },
-        comments: ["Service error message"],
-      });
-
-      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
-      await processAssetsCallback();
-
-      // The logic should create a catalog with proper structure
-      // We can verify this by checking the i18nStore contents
-      const entries = Array.from(i18nStore.all().values());
-      expect(entries).toHaveLength(1);
-      expect(entries[0].refs.size).toBe(2);
-      expect(entries[0].extractedComments.size).toBe(2);
-    });
-  });
 
   describe("Path normalization", () => {
     it("should normalize backslashes to forward slashes", async () => {
@@ -534,8 +425,6 @@ describe("I18nextAutoKeyEmitPlugin", () => {
     it("should work with complex real-world data", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "dist/locales/en.json",
-        potOutputPath: "src/locales/messages.pot",
-        projectIdVersion: "my-app 2.1.0",
       });
 
       plugin.apply(mockCompiler);
