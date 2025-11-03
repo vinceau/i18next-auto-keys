@@ -42,4 +42,4 @@ jobs:
       - name: Test
         if: matrix.os != 'windows-latest'
         run: |
-          npm run testt
+          npm run test
