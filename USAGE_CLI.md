@@ -48,7 +48,7 @@ npx i18next-auto-keys \
 ### Command Line Options
 
 - `--output, -o` (required): Output path for the POT file
-- `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")  
+- `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
 - `--exclude, -e`: File patterns to exclude (default: ["node_modules/**", "dist/**", "build/**"])
 - `--source, -s`: Source directory to scan for translation keys (default: current directory)
 - `--project-id, -p`: Project ID for POT header (default: "app 1.0")
@@ -90,44 +90,7 @@ Add to your `package.json`:
 ```json
 {
   "scripts": {
-    "i18n:extract": "i18next-auto-keys --include \"src/**/*.ts\" \"src/**/*.tsx\" --output ./i18n/messages.pot",
-    "i18n:extract:messages": "i18next-auto-keys --include \"**/*.messages.ts\" --output ./i18n/messages.pot", 
-    "i18n:extract:all": "i18next-auto-keys --include \"**/*.ts\" \"**/*.tsx\" \"**/*.js\" \"**/*.jsx\" --output ./i18n/messages.pot",
-    "i18n:extract:watch": "chokidar \"src/**/*.{ts,tsx,js,jsx}\" -c \"npm run i18n:extract\""
+    "i18n:extract": "i18next-auto-keys --include \"**/*.messages.ts\" --output ./i18n/messages.pot",
   }
 }
-```
-
-## Benefits over Webpack Plugin
-
-- **Performance**: No impact on webpack build times
-- **Flexibility**: Generate POT files independently of builds
-- **CI/CD Friendly**: Easy to integrate into automated workflows
-- **Development Workflow**: Translators can generate fresh templates without rebuilding
-- **Dependency Optimization**: `gettext-parser` only needed when generating POT files
-
-## Migration from Webpack Plugin
-
-If you were previously using the webpack plugin's `potOutputPath` option:
-
-### Before
-```javascript
-new I18nextAutoKeyEmitPlugin({
-  jsonOutputPath: "i18n/en.json",
-  potOutputPath: "i18n/messages.pot", // Remove this
-  projectIdVersion: "My App 1.0"
-})
-```
-
-### After
-```javascript
-// Webpack plugin (simplified)
-new I18nextAutoKeyEmitPlugin({
-  jsonOutputPath: "i18n/en.json"
-})
-```
-
-```bash
-# Use CLI for POT generation
-npx i18next-auto-keys --include "src/**/*.ts" "src/**/*.tsx" --output ./dist/i18n/messages.pot --project-id "My App 1.0"
 ```

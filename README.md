@@ -77,7 +77,6 @@ module.exports = {
   plugins: [
     new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: 'locales/en.json',
-      potOutputPath: 'locales/messages.pot', // Optional: for translators
       projectIdVersion: 'my-app 1.0.0'
     })
   ]
@@ -128,8 +127,6 @@ And generates translation files:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `jsonOutputPath` | `string` | **Required** | Path for JSON translation file |
-| `potOutputPath` | `string` | `undefined` | Path for POT template file |
-| `projectIdVersion` | `string` | `'app 1.0'` | Project version for POT header |
 | `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
 
 ## ⚠️ Important: Parameter Handling
