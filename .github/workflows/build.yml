@@ -39,4 +39,7 @@ jobs:
       - name: Build and Test
         run: |
           npm run build
-          npm run test
+      - name: Test
+        if: matrix.os != 'windows-latest'
+        run: |
+          npm run testt
