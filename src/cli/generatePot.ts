@@ -2,21 +2,20 @@
 import { Command } from "commander";
 import fs from "fs";
 import path from "path";
-// @ts-ignore - glob types are handled separately
-import glob from "glob";
+import { sync as globSync } from "glob";
 import ts from "typescript";
 import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../index";
 import { loadGettextParser } from "./loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
-interface GeneratePotOptions {
+type GeneratePotOptions = {
   source?: string;
   output: string;
   projectId?: string;
   include: string[];
   exclude?: string[];
   tsconfig?: string;
-}
+};
 
 /**
  * Scans TypeScript/JavaScript source files and generates a POT file
@@ -115,7 +114,7 @@ function findSourceFiles(sourceDir: string, include: string[], exclude: string[]
   const files: string[] = [];
 
   for (const pattern of include) {
-    const matches = glob.sync(pattern, {
+    const matches = globSync(pattern, {
       cwd: sourceDir,
       absolute: true,
       ignore: exclude,

@@ -4,6 +4,11 @@ export type PoApi = { po?: { compile?: (cat: any) => Buffer; parse?: (buf: Buffe
 let gettextParserModule: PoApi | undefined;
 let loadPromise: Promise<PoApi | undefined> | undefined;
 
+// Keep a single dynamic import function that TS won’t downlevel.
+const dynamicImport: (s: string) => Promise<any> =
+  // eslint-disable-next-line no-new-func
+  new Function("s", "return import(s)") as any;
+
 export async function loadGettextParser(): Promise<PoApi | undefined> {
   if (gettextParserModule) return gettextParserModule;
   if (loadPromise) return loadPromise;
@@ -19,7 +24,7 @@ export async function loadGettextParser(): Promise<PoApi | undefined> {
   }
 
   // Fallback: ESM dynamic import (v8+)
-  loadPromise = import("gettext-parser")
+  loadPromise = dynamicImport("gettext-parser")
     .then((m: any) => (m?.po ? m : m?.default) as PoApi | undefined)
     .catch(() => undefined);
 
