@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
-    "glob": "^10.3.0",
+    "glob": "^11.0.0",
     "schema-utils": "^4.3.3"
   },
   "engines": {
