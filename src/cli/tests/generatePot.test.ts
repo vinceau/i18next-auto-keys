@@ -24,7 +24,7 @@ const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // Mock glob
 jest.mock("glob", () => ({
-  sync: jest.fn(() => [])
+  sync: jest.fn(() => []),
 }));
 
 // Get the mocked module
@@ -51,7 +51,8 @@ msgstr ""
       // Add entries from the catalog
       if (catalog.translations && catalog.translations[""]) {
         for (const [msgid, entry] of Object.entries(catalog.translations[""])) {
-          if (msgid !== "") { // Skip header entry
+          if (msgid !== "") {
+            // Skip header entry
             const entryData = entry as any;
             potContent += `msgctxt "${entryData.msgctxt}"
 msgid "${msgid}"
@@ -92,34 +93,33 @@ describe("generatePotFile", () => {
     // Mock tsconfig.json to avoid parsing errors
     (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
       const pathStr = filePath.toString();
-      if (pathStr.includes('tsconfig.json')) {
+      if (pathStr.includes("tsconfig.json")) {
         return JSON.stringify({
           compilerOptions: {
             target: "ES2020",
             module: "commonjs",
-            strict: true
-          }
+            strict: true,
+          },
         });
       }
       return mockFileContent(pathStr);
     });
 
     function mockFileContent(pathStr: string) {
-      if (pathStr.includes('ui.messages.ts')) {
+      if (pathStr.includes("ui.messages.ts")) {
         return `export const Messages = {
   greeting: (): string => "Hello, world!",
   farewell: (): string => "Goodbye!"
 };`;
       }
-      if (pathStr.includes('Button.messages.tsx')) {
+      if (pathStr.includes("Button.messages.tsx")) {
         return `export const ButtonMessages = {
   clickMe: (): string => "Click me!",
   loading: (): string => "Loading..."
 };`;
       }
-      return 'export const NoMessages = {};';
+      return "export const NoMessages = {};";
     }
-
 
     // Mock glob to return test files that match .messages pattern
     mockGlob.sync.mockReturnValue(["/test/src/ui.messages.ts", "/test/src/components/Button.messages.tsx"]);
@@ -145,7 +145,7 @@ describe("generatePotFile", () => {
 
     // Verify POT content structure
     const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
-      call => call[0] === testOutputPath
+      (call) => call[0] === testOutputPath
     )?.[1] as Buffer;
 
     expect(potBuffer).toBeInstanceOf(Buffer);
@@ -235,9 +235,6 @@ describe("generatePotFile", () => {
       include: ["**/*.ts"],
     });
 
-    expect(mockConsole.error).toHaveBeenCalledWith(
-      expect.stringContaining("❌ Error processing"),
-      expect.any(Error)
-    );
+    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error processing"), expect.any(Error));
   });
 });

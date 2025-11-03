@@ -224,7 +224,6 @@ describe("I18nextAutoKeyEmitPlugin", () => {
     });
   });
 
-
   describe("Path normalization", () => {
     it("should normalize backslashes to forward slashes", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({

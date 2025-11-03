@@ -5,7 +5,6 @@ import { stableHash } from "../../common/hash";
 const LOADER_PATH = require.resolve("../../../dist/index.js");
 const { I18nextAutoKeyEmitPlugin } = require(LOADER_PATH);
 
-
 describe("I18nextAutoKeyEmitPlugin integration", () => {
   test("emits JSON file with extracted messages from loader", async () => {
     const rules = [
@@ -65,7 +64,6 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
       [goodbyeHash]: "Goodbye!",
     });
   });
-
 
   test("handles multiple message files and preserves file references", async () => {
     const rules = [
