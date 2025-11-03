@@ -3,6 +3,20 @@ import fs from "fs";
 import { generatePotFile } from "../generatePot";
 import { i18nStore } from "../../common/i18nStore";
 
+// Mock console to avoid spam during tests
+const mockConsole = {
+  log: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+};
+
+// Store original console methods
+const originalConsole = {
+  log: console.log,
+  warn: console.warn,
+  error: console.error,
+};
+
 // Mock file system
 jest.mock("fs");
 
@@ -24,7 +38,7 @@ const mockGettextParser = {
       // Generate realistic POT content based on the catalog
       const projectId = catalog.headers["project-id-version"] || "app 1.0";
       const generator = catalog.headers["x-generator"] || "i18next-auto-keys CLI";
-      
+
       let potContent = `# POT file
 msgid ""
 msgstr ""
@@ -33,7 +47,7 @@ msgstr ""
 "x-generator: ${generator}\\n"
 
 `;
-      
+
       // Add entries from the catalog
       if (catalog.translations && catalog.translations[""]) {
         for (const [msgid, entry] of Object.entries(catalog.translations[""])) {
@@ -47,7 +61,7 @@ msgstr ""
           }
         }
       }
-      
+
       return Buffer.from(potContent, "utf8");
     }),
   },
@@ -57,8 +71,6 @@ jest.mock("../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
-// No need to mock I18nStore - test the actual functionality
-
 describe("generatePotFile", () => {
   const testSourceDir = "/test/src";
   const testOutputPath = "/test/output/messages.pot";
@@ -67,11 +79,16 @@ describe("generatePotFile", () => {
     jest.clearAllMocks();
     i18nStore.clear();
 
+    // Mock console methods to reduce test output noise
+    console.log = mockConsole.log;
+    console.warn = mockConsole.warn;
+    console.error = mockConsole.error;
+
     // Mock file system defaults
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
-    
+
     // Mock tsconfig.json to avoid parsing errors
     (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
       const pathStr = filePath.toString();
@@ -86,7 +103,7 @@ describe("generatePotFile", () => {
       }
       return mockFileContent(pathStr);
     });
-    
+
     function mockFileContent(pathStr: string) {
       if (pathStr.includes('ui.messages.ts')) {
         return `export const Messages = {
@@ -102,10 +119,17 @@ describe("generatePotFile", () => {
       }
       return 'export const NoMessages = {};';
     }
-    
+
 
     // Mock glob to return test files that match .messages pattern
     mockGlob.sync.mockReturnValue(["/test/src/ui.messages.ts", "/test/src/components/Button.messages.tsx"]);
+  });
+
+  afterEach(() => {
+    // Restore original console methods
+    console.log = originalConsole.log;
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
   });
 
   it("should generate POT file successfully", async () => {
@@ -118,19 +142,19 @@ describe("generatePotFile", () => {
     });
 
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
-    
+
     // Verify POT content structure
     const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
       call => call[0] === testOutputPath
     )?.[1] as Buffer;
-    
+
     expect(potBuffer).toBeInstanceOf(Buffer);
     const potContent = potBuffer.toString();
-    
+
     // Should contain project header
     expect(potContent).toContain("Project-Id-Version: test-app 1.0");
     expect(potContent).toContain("x-generator: i18next-auto-keys CLI");
-    
+
     // Should contain the extracted messages
     expect(potContent).toContain("Hello, world!");
     expect(potContent).toContain("Goodbye!");
@@ -189,7 +213,6 @@ describe("generatePotFile", () => {
 
   it("should warn when no source files are found", async () => {
     mockGlob.sync.mockReturnValue([]);
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
 
     await generatePotFile({
       source: testSourceDir,
@@ -197,17 +220,14 @@ describe("generatePotFile", () => {
       include: ["**/*.ts"],
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith("⚠️  No source files found matching the criteria");
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  No source files found matching the criteria");
     expect(mockedFs.writeFileSync).not.toHaveBeenCalled();
-
-    consoleSpy.mockRestore();
   });
 
   it("should handle file processing errors gracefully", async () => {
-    mockedFs.readFileSync.mockImplementation(() => {
+    (mockedFs.readFileSync as jest.Mock).mockImplementation(() => {
       throw new Error("File read error");
     });
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 
     await generatePotFile({
       source: testSourceDir,
@@ -215,7 +235,9 @@ describe("generatePotFile", () => {
       include: ["**/*.ts"],
     });
 
-    expect(consoleSpy).toHaveBeenCalled();
-    consoleSpy.mockRestore();
+    expect(mockConsole.error).toHaveBeenCalledWith(
+      expect.stringContaining("❌ Error processing"),
+      expect.any(Error)
+    );
   });
 });
