@@ -1,6 +1,7 @@
 # i18next-auto-keys
 
 [![npm version](https://badge.fury.io/js/i18next-auto-keys.svg)](https://badge.fury.io/js/i18next-auto-keys)
+[![Build Status](https://github.com/vinceau/i18next-auto-keys/workflows/build/badge.svg)](https://github.com/vinceau/i18next-auto-keys/actions?workflow=build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Automatic translation key generation for i18next** - No more manual key management!
