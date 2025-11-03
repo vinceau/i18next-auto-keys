@@ -7,7 +7,7 @@ import glob from "glob";
 import ts from "typescript";
 import { i18nStore } from "../common/i18nStore";
 import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
-import { loadGettextParser } from "../plugins/loadGettextParser";
+import { loadGettextParser } from "./loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
 interface GeneratePotOptions {
