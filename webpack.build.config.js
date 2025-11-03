@@ -15,6 +15,39 @@ module.exports = {
     },
     clean: true,
   },
+  // Preserve shebang for CLI executables
+  plugins: [
+    {
+      apply(compiler) {
+        compiler.hooks.compilation.tap('BannerPlugin', (compilation) => {
+          compilation.hooks.processAssets.tap(
+            {
+              name: 'PreserveShebang',
+              stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
+            },
+            () => {
+              const asset = compilation.assets['cli/generatePot.js'];
+              if (asset) {
+                const source = asset.source();
+                const newSource = '#!/usr/bin/env node\n' + source;
+                compilation.updateAsset('cli/generatePot.js', new compiler.webpack.sources.RawSource(newSource));
+
+                // Set executable permissions in a cross-platform way
+                const fs = require('fs');
+                const path = require('path');
+                compiler.hooks.afterEmit.tap('SetExecutablePermissions', () => {
+                  const cliPath = path.resolve(__dirname, 'dist/cli/generatePot.js');
+                  if (fs.existsSync(cliPath)) {
+                    fs.chmodSync(cliPath, '755');
+                  }
+                });
+              }
+            }
+          );
+        });
+      }
+    }
+  ],
   resolve: {
     extensions: ['.ts', '.js'],
   },
