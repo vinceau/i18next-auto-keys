@@ -78,7 +78,6 @@ module.exports = {
   plugins: [
     new I18nextAutoKeyEmitPlugin({
       jsonOutputPath: 'locales/en.json',
-      projectIdVersion: 'my-app 1.0.0'
     })
   ]
 };
