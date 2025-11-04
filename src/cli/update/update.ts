@@ -101,7 +101,7 @@ async function msgmergeJs(oldPoPath: string, newPotPath: string, outPath: string
   merged.headers = { ...merged.headers, ...oldPo.headers };
   merged.headers["po-revision-date"] = new Date().toISOString();
 
-  const outBuf = gettextParser.po.compile!(merged);
+  const outBuf = gettextParser.po.compile(merged, { sort: true });
   fs.writeFileSync(outPath, outBuf);
   console.log(`🔄 Merged ${oldPoPath} + ${newPotPath} → ${outPath}`);
 }

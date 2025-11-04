@@ -189,6 +189,6 @@ async function generatePot(
     };
   }
 
-  const potBuffer = parser.po.compile(catalog);
+  const potBuffer = parser.po.compile(catalog, { sort: true });
   fs.writeFileSync(outputPath, potBuffer);
 }
