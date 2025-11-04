@@ -4,7 +4,7 @@ module.exports = {
   mode: 'production',
   entry: {
     index: './src/index.ts',
-    'cli/cli': './src/cli/cli.ts'
+    'cli': './src/cli/cli.ts'
   },
   target: 'node',
   output: {
@@ -27,18 +27,18 @@ module.exports = {
             },
             () => {
               // Handle cli.js
-              const cliAsset = compilation.assets['cli/cli.js'];
+              const cliAsset = compilation.assets['cli.js'];
               if (cliAsset) {
                 const source = cliAsset.source();
                 const newSource = '#!/usr/bin/env node\n' + source;
-                compilation.updateAsset('cli/cli.js', new compiler.webpack.sources.RawSource(newSource));
+                compilation.updateAsset('cli.js', new compiler.webpack.sources.RawSource(newSource));
               }
 
               // Set executable permissions in a cross-platform way
               const fs = require('fs');
               const path = require('path');
               compiler.hooks.afterEmit.tap('SetExecutablePermissions', () => {
-                const cliPath = path.resolve(__dirname, 'dist/cli/cli.js');
+                const cliPath = path.resolve(__dirname, 'dist/cli.js');
                 
                 if (fs.existsSync(cliPath)) {
                   fs.chmodSync(cliPath, '755');
