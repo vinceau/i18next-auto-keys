@@ -157,14 +157,24 @@ msgstr ""
           "project-id-version": "test-app 1.0",
           "content-type": "text/plain; charset=UTF-8",
         },
-        translations: {} as any,
+        translations: {
+          // Header entry (always present in gettext-parser output)
+          "": {
+            "": {
+              msgid: "",
+              msgstr: [
+                "Project-Id-Version: test-app 1.0\\nmime-version: 1.0\\nContent-Type: text/plain; charset=utf-8\\nContent-Transfer-Encoding: 8bit\\nx-generator: i18next-auto-keys CLI\\nLanguage: \\nPO-Revision-Date: 2025-11-04T14:07:58.618Z\\n",
+              ],
+            },
+          },
+        } as any,
       };
 
       // Add some test entries based on buffer content (using hex hash keys like the actual system)
-      // Structure: translations[msgid][context] = entryData
+      // Structure matches actual gettext-parser: translations[msgctxt][msgid] = entryData
       if (content.includes('msgctxt "a1b2c3d4e5"')) {
-        catalog.translations["Welcome Back!"] = {
-          "": {
+        catalog.translations["a1b2c3d4e5"] = {
+          "Welcome Back!": {
             msgid: "Welcome Back!",
             msgctxt: "a1b2c3d4e5",
             msgstr: ["¡Bienvenido de vuelta!"],
@@ -174,8 +184,8 @@ msgstr ""
       }
 
       if (content.includes('msgctxt "f6g7h8i9j0"')) {
-        catalog.translations["Sign In"] = {
-          "": {
+        catalog.translations["f6g7h8i9j0"] = {
+          "Sign In": {
             msgid: "Sign In",
             msgctxt: "f6g7h8i9j0",
             msgstr: ["Iniciar Sesión"],
@@ -185,8 +195,8 @@ msgstr ""
       }
 
       if (content.includes('msgctxt "k1l2m3n4o5"')) {
-        catalog.translations["Forgot Password?"] = {
-          "": {
+        catalog.translations["k1l2m3n4o5"] = {
+          "Forgot Password?": {
             msgid: "Forgot Password?",
             msgctxt: "k1l2m3n4o5",
             msgstr: ["¿Olvidaste tu contraseña?"],
@@ -196,8 +206,8 @@ msgstr ""
       }
 
       if (content.includes('msgctxt "p6q7r8s9t0"')) {
-        catalog.translations["Invalid email: {{email}}"] = {
-          "": {
+        catalog.translations["p6q7r8s9t0"] = {
+          "Invalid email: {{email}}": {
             msgid: "Invalid email: {{email}}",
             msgctxt: "p6q7r8s9t0",
             msgstr: ["Correo inválido: {{email}}"],
@@ -208,8 +218,8 @@ msgstr ""
 
       // Add an untranslated entry for testing
       if (content.includes('msgctxt "x9y8z7w6v5"')) {
-        catalog.translations["Untranslated Text"] = {
-          "": {
+        catalog.translations["x9y8z7w6v5"] = {
+          "Untranslated Text": {
             msgid: "Untranslated Text",
             msgctxt: "x9y8z7w6v5",
             msgstr: [""],

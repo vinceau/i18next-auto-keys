@@ -38,20 +38,21 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
   const catalog = parser.po.parse(poBuffer);
 
   // Extract translations
-  const translations: Record<string, any> = {};
+  const translations: Record<string, string> = {};
   let translationCount = 0;
 
-  // Process translations (skip the header entry which has empty msgid)
-  const translationEntries = catalog.translations;
-  for (const [msgid, entry] of Object.entries(translationEntries)) {
-    if (msgid === "" || !entry) continue; // Skip header entry
+  // Note: gettext-parser structure is translations[msgctxt][msgid] = entryData
+  const translationEntries = Object.values(catalog.translations);
+  for (const entry of translationEntries) {
+    const [msgid, entryData] = Object.entries(entry)[0];
+    if (msgid === "" || !entryData) continue; // Skip header entry
 
-    const entryData = Object.values(entry)[0] as any;
-    const msgstr = entryData.msgstr?.[0];
+    // We don't care about plural forms, so we take the first msgstr
+    const msgstr = entryData.msgstr[0] || "";
     const msgctxt = entryData.msgctxt;
 
     // Skip untranslated entries
-    if (!msgstr || msgstr === "") {
+    if (!msgstr) {
       console.warn(`⚠️  Skipping untranslated key: ${msgctxt || msgid}`);
       continue;
     }
@@ -73,7 +74,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
   console.log(`🔑 Processed ${translationCount} translations`);
 
   // Wrap under topLevelKey if specified (matches emit plugin behavior)
-  let output_data = translations;
+  let output_data: any = translations;
   if (topLevelKey) {
     output_data = { [topLevelKey]: translations };
   }
