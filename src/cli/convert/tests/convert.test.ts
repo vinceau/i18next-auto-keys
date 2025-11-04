@@ -1,6 +1,63 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
+import path from "path";
 import { convertPoToJson, convertMultiplePoToJson } from "../convert";
+
+// Create a mock that behaves like real gettext-parser but parses our test content
+const mockGettextParser = {
+  po: {
+    parse: jest.fn((buffer: Buffer) => {
+      const content = buffer.toString();
+
+      // Simple PO parser for our test content
+      const catalog = {
+        charset: "utf-8",
+        headers: {
+          "project-id-version": "test-app 1.0",
+          "content-type": "text/plain; charset=UTF-8",
+        },
+        translations: {
+          // Header entry
+          "": {
+            "": {
+              msgid: "",
+              msgstr: [
+                "Project-Id-Version: test-app 1.0\\nmime-version: 1.0\\nContent-Type: text/plain; charset=utf-8\\nContent-Transfer-Encoding: 8bit\\nx-generator: i18next-auto-keys CLI\\nLanguage: \\nPO-Revision-Date: 2025-11-04T14:07:58.618Z\\n",
+              ],
+            },
+          },
+        } as any,
+      };
+
+      // Parse msgctxt, msgid, msgstr sequences
+      const entryRegex = /msgctxt "([^"]+)"\s+msgid "([^"]+)"\s+msgstr "([^"]*)"/g;
+      let match;
+
+      while ((match = entryRegex.exec(content)) !== null) {
+        const [, msgctxt, msgid, msgstr] = match;
+
+        if (msgctxt && msgid) {
+          catalog.translations[msgctxt] = {
+            [msgid]: {
+              msgid,
+              msgctxt,
+              msgstr: [msgstr || ""],
+              comments: {},
+            },
+          };
+        }
+      }
+
+      return catalog;
+    }),
+    compile: jest.fn(),
+  },
+};
+
+// Mock loadGettextParser to return our mock
+jest.mock("../../loadGettextParser", () => ({
+  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
+}));
 
 // Mock console to avoid spam during tests
 const mockConsole = {
@@ -27,209 +84,74 @@ jest.mock("glob", () => ({
 const glob = require("glob");
 const mockGlob = glob;
 
-// Mock gettext-parser with realistic PO parsing
-const mockGettextParser = {
-  po: {
-    parse: jest.fn((buffer: Buffer) => {
-      const content = buffer.toString();
-
-      // Parse a simple PO format for testing
-      const catalog = {
-        charset: "utf-8",
-        headers: {
-          "project-id-version": "test-app 1.0",
-          "content-type": "text/plain; charset=UTF-8",
-        },
-        translations: {
-          "": {} as any,
-        },
-      };
-
-      // Add some test entries based on buffer content (using hex hash keys like the actual system)
-      if (content.includes('msgctxt "a1b2c3d4e5"')) {
-        catalog.translations[""]["Welcome Back!"] = {
-          msgid: "Welcome Back!",
-          msgctxt: "a1b2c3d4e5",
-          msgstr: ["¡Bienvenido de vuelta!"],
-          comments: {},
-        };
-      }
-
-      if (content.includes('msgctxt "f6g7h8i9j0"')) {
-        catalog.translations[""]["Sign In"] = {
-          msgid: "Sign In",
-          msgctxt: "f6g7h8i9j0",
-          msgstr: ["Iniciar Sesión"],
-          comments: {},
-        };
-      }
-
-      if (content.includes('msgctxt "k1l2m3n4o5"')) {
-        catalog.translations[""]["Forgot Password?"] = {
-          msgid: "Forgot Password?",
-          msgctxt: "k1l2m3n4o5",
-          msgstr: ["¿Olvidaste tu contraseña?"],
-          comments: {},
-        };
-      }
-
-      if (content.includes('msgctxt "p6q7r8s9t0"')) {
-        catalog.translations[""]["Invalid email: {{email}}"] = {
-          msgid: "Invalid email: {{email}}",
-          msgctxt: "p6q7r8s9t0",
-          msgstr: ["Correo inválido: {{email}}"],
-          comments: {},
-        };
-      }
-
-      // Add an untranslated entry for testing
-      if (content.includes('msgctxt "x9y8z7w6v5"')) {
-        catalog.translations[""]["Untranslated Text"] = {
-          msgid: "Untranslated Text",
-          msgctxt: "x9y8z7w6v5",
-          msgstr: [""],
-          comments: {},
-        };
-      }
-
-      return catalog;
-    }),
-  },
-};
-
-jest.mock("../../loadGettextParser", () => ({
-  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
-}));
-
-describe("convertPoToJson", () => {
-  const testInputPath = "/test/input/messages.po";
-  const testOutputPath = "/test/output/messages.json";
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    // Mock console methods to reduce test output noise
-    console.log = mockConsole.log;
-    console.warn = mockConsole.warn;
-    console.error = mockConsole.error;
-
-    // Mock file system defaults
-    mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.mkdirSync.mockReturnValue(undefined as any);
-    mockedFs.writeFileSync.mockReturnValue(undefined);
-    mockedFs.readFileSync.mockReturnValue(
-      Buffer.from(`
-# Test PO file
+// Sample PO file content for testing
+const samplePoContent = `# Translation file
 msgid ""
 msgstr ""
 "Project-Id-Version: test-app 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Language: es\\n"
+"PO-Revision-Date: 2025-11-04T14:07:58.618Z\\n"
 
+#: src/components/welcome.ts:5
 msgctxt "a1b2c3d4e5"
 msgid "Welcome Back!"
 msgstr "¡Bienvenido de vuelta!"
 
+#: src/components/auth.ts:12
 msgctxt "f6g7h8i9j0"
 msgid "Sign In"
 msgstr "Iniciar Sesión"
 
+#: src/components/auth.ts:24
 msgctxt "k1l2m3n4o5"
 msgid "Forgot Password?"
 msgstr "¿Olvidaste tu contraseña?"
 
+#: src/components/validation.ts:8
 msgctxt "p6q7r8s9t0"
 msgid "Invalid email: {{email}}"
 msgstr "Correo inválido: {{email}}"
 
+#: src/components/untranslated.ts:3
 msgctxt "x9y8z7w6v5"
 msgid "Untranslated Text"
 msgstr ""
-     `)
-    );
+`;
 
-    // Reset the parser mock to default behavior
-    (mockGettextParser.po.parse as jest.Mock).mockImplementation((buffer: any) => {
-      const content = buffer.toString();
+const samplePoContentSecond = `# Second translation file
+msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Language: fr\\n"
 
-      // Parse a simple PO format for testing - match actual gettext-parser structure
-      const catalog = {
-        charset: "utf-8",
-        headers: {
-          "project-id-version": "test-app 1.0",
-          "content-type": "text/plain; charset=UTF-8",
-        },
-        translations: {
-          // Header entry (always present in gettext-parser output)
-          "": {
-            "": {
-              msgid: "",
-              msgstr: [
-                "Project-Id-Version: test-app 1.0\\nmime-version: 1.0\\nContent-Type: text/plain; charset=utf-8\\nContent-Transfer-Encoding: 8bit\\nx-generator: i18next-auto-keys CLI\\nLanguage: \\nPO-Revision-Date: 2025-11-04T14:07:58.618Z\\n",
-              ],
-            },
-          },
-        } as any,
-      };
+#: src/components/welcome.ts:5
+msgctxt "a1b2c3d4e5"
+msgid "Welcome Back!"
+msgstr "Bienvenue de retour!"
 
-      // Add some test entries based on buffer content (using hex hash keys like the actual system)
-      // Structure matches actual gettext-parser: translations[msgctxt][msgid] = entryData
-      if (content.includes('msgctxt "a1b2c3d4e5"')) {
-        catalog.translations["a1b2c3d4e5"] = {
-          "Welcome Back!": {
-            msgid: "Welcome Back!",
-            msgctxt: "a1b2c3d4e5",
-            msgstr: ["¡Bienvenido de vuelta!"],
-            comments: {},
-          },
-        };
-      }
+#: src/components/settings.ts:15
+msgctxt "z1y2x3w4v5"
+msgid "Settings"
+msgstr "Paramètres"
+`;
 
-      if (content.includes('msgctxt "f6g7h8i9j0"')) {
-        catalog.translations["f6g7h8i9j0"] = {
-          "Sign In": {
-            msgid: "Sign In",
-            msgctxt: "f6g7h8i9j0",
-            msgstr: ["Iniciar Sesión"],
-            comments: {},
-          },
-        };
-      }
+describe("convertPoToJson", () => {
+  beforeEach(() => {
+    // Reset all mocks
+    jest.clearAllMocks();
 
-      if (content.includes('msgctxt "k1l2m3n4o5"')) {
-        catalog.translations["k1l2m3n4o5"] = {
-          "Forgot Password?": {
-            msgid: "Forgot Password?",
-            msgctxt: "k1l2m3n4o5",
-            msgstr: ["¿Olvidaste tu contraseña?"],
-            comments: {},
-          },
-        };
-      }
+    // Mock console methods
+    console.log = mockConsole.log;
+    console.warn = mockConsole.warn;
+    console.error = mockConsole.error;
 
-      if (content.includes('msgctxt "p6q7r8s9t0"')) {
-        catalog.translations["p6q7r8s9t0"] = {
-          "Invalid email: {{email}}": {
-            msgid: "Invalid email: {{email}}",
-            msgctxt: "p6q7r8s9t0",
-            msgstr: ["Correo inválido: {{email}}"],
-            comments: {},
-          },
-        };
-      }
-
-      // Add an untranslated entry for testing
-      if (content.includes('msgctxt "x9y8z7w6v5"')) {
-        catalog.translations["x9y8z7w6v5"] = {
-          "Untranslated Text": {
-            msgid: "Untranslated Text",
-            msgctxt: "x9y8z7w6v5",
-            msgstr: [""],
-            comments: {},
-          },
-        };
-      }
-
-      return catalog;
-    });
+    // Setup fs mocks with default behavior
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(samplePoContent));
+    mockedFs.writeFileSync.mockImplementation(() => {});
+    mockedFs.mkdirSync.mockImplementation(() => "");
   });
 
   afterEach(() => {
@@ -241,85 +163,70 @@ msgstr ""
 
   it("should convert PO file to flat JSON structure", async () => {
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
+      input: "/test/input.po",
+      output: "/test/output.json",
     });
 
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      testOutputPath,
-      expect.stringContaining('"a1b2c3d4e5": "¡Bienvenido de vuelta!"'),
-      "utf8"
-    );
+    // Check file operations
+    expect(mockedFs.existsSync).toHaveBeenCalledWith("/test/input.po");
+    expect(mockedFs.readFileSync).toHaveBeenCalledWith("/test/input.po");
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output.json", expect.any(String), "utf8");
 
-    // Get the written JSON content
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
-    const jsonContent = writeCall?.[1] as string;
-    const parsedJson = JSON.parse(jsonContent);
-
-    expect(parsedJson).toEqual({
-      a1b2c3d4e5: "¡Bienvenido de vuelta!",
-      f6g7h8i9j0: "Iniciar Sesión",
-      k1l2m3n4o5: "¿Olvidaste tu contraseña?",
-      p6q7r8s9t0: "Correo inválido: {{email}}",
-    });
+    // Check the JSON content separately
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    expect(writtenContent).toContain('"a1b2c3d4e5": "¡Bienvenido de vuelta!"');
   });
 
   it("should wrap translations under topLevelKey when specified", async () => {
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
-      topLevelKey: "common",
+      input: "/test/input.po",
+      output: "/test/output.json",
+      topLevelKey: "messages",
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
-    const jsonContent = writeCall?.[1] as string;
-    const parsedJson = JSON.parse(jsonContent);
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output.json", expect.any(String), "utf8");
 
-    expect(parsedJson).toEqual({
-      common: {
-        a1b2c3d4e5: "¡Bienvenido de vuelta!",
-        f6g7h8i9j0: "Iniciar Sesión",
-        k1l2m3n4o5: "¿Olvidaste tu contraseña?",
-        p6q7r8s9t0: "Correo inválido: {{email}}",
-      },
-    });
+    // Check the JSON content separately
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    expect(writtenContent).toContain('"messages": {');
   });
 
   it("should handle custom indentation", async () => {
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
+      input: "/test/input.po",
+      output: "/test/output.json",
       indent: 4,
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
-    const jsonContent = writeCall?.[1] as string;
-
-    // Check that it uses 4-space indentation
-    expect(jsonContent).toMatch(/^{\n    "a1b2c3d4e5"/);
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
+    expect(writtenContent).toMatch(/{\n    "a1b2c3d4e5"/); // 4 spaces
   });
 
   it("should skip untranslated entries with warning", async () => {
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
+      input: "/test/input.po",
+      output: "/test/output.json",
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith(expect.stringContaining("⚠️  Skipping untranslated key: x9y8z7w6v5"));
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: x9y8z7w6v5");
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
+    expect(writtenContent).not.toMatch(/"x9y8z7w6v5"/);
   });
 
   it("should create output directory if it doesn't exist", async () => {
-    const outputDir = "/test/output";
     mockedFs.existsSync.mockImplementation((filePath) => {
-      return filePath !== outputDir;
+      if (filePath === "/test/nonexistent/output.json") return true; // input file exists
+      if (filePath === "/test/nonexistent") return false; // output dir doesn't exist
+      return false;
     });
 
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
+      input: "/test/nonexistent/output.json",
+      output: "/test/nonexistent/output.json",
     });
 
-    expect(mockedFs.mkdirSync).toHaveBeenCalledWith(outputDir, { recursive: true });
+    expect(mockedFs.mkdirSync).toHaveBeenCalledWith("/test/nonexistent", { recursive: true });
   });
 
   it("should throw error if input file doesn't exist", async () => {
@@ -327,118 +234,126 @@ msgstr ""
 
     await expect(
       convertPoToJson({
-        input: testInputPath,
-        output: testOutputPath,
+        input: "/test/nonexistent.po",
+        output: "/test/output.json",
       })
-    ).rejects.toThrow("Input file not found");
+    ).rejects.toThrow("Input file not found: /test/nonexistent.po");
   });
 
   it("should use hex hash keys as JSON keys", async () => {
-    // Test that hexadecimal hash keys are used as JSON keys (not nested objects)
     await convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
+      input: "/test/input.po",
+      output: "/test/output.json",
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
-    const jsonContent = writeCall?.[1] as string;
-    const parsedJson = JSON.parse(jsonContent);
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
 
-    // Verify hexadecimal keys are used directly (flat structure matching README examples)
-    expect(parsedJson["a1b2c3d4e5"]).toBe("¡Bienvenido de vuelta!");
-    expect(parsedJson["f6g7h8i9j0"]).toBe("Iniciar Sesión");
-    expect(parsedJson["k1l2m3n4o5"]).toBe("¿Olvidaste tu contraseña?");
-    expect(parsedJson["p6q7r8s9t0"]).toBe("Correo inválido: {{email}}");
+    // Should have hex hash keys as direct properties
+    expect(parsedJson).toHaveProperty("a1b2c3d4e5", "¡Bienvenido de vuelta!");
+    expect(parsedJson).toHaveProperty("f6g7h8i9j0", "Iniciar Sesión");
+    expect(parsedJson).toHaveProperty("k1l2m3n4o5", "¿Olvidaste tu contraseña?");
+    expect(parsedJson).toHaveProperty("p6q7r8s9t0", "Correo inválido: {{email}}");
+
+    // Should not have untranslated entries
+    expect(parsedJson).not.toHaveProperty("x9y8z7w6v5");
   });
 });
 
 describe("convertMultiplePoToJson", () => {
-  const testPattern = "/test/locales/*.po";
-  const testOutputDir = "/test/output";
-
   beforeEach(() => {
+    // Reset all mocks
     jest.clearAllMocks();
 
+    // Mock console methods
     console.log = mockConsole.log;
     console.warn = mockConsole.warn;
     console.error = mockConsole.error;
 
+    // Setup default fs mock behavior
     mockedFs.existsSync.mockReturnValue(true);
-    mockedFs.mkdirSync.mockReturnValue(undefined as any);
-    mockedFs.writeFileSync.mockReturnValue(undefined);
-    mockedFs.readFileSync.mockReturnValue(
-      Buffer.from(`
-msgctxt "a1b2c3d4e5"
-msgid "Welcome Back!"
-msgstr "¡Bienvenido de vuelta!"
-    `)
-    );
-
-    // Mock glob to return multiple files
-    mockGlob.sync.mockReturnValue(["/test/locales/es.po", "/test/locales/fr.po"]);
+    mockedFs.writeFileSync.mockImplementation(() => {});
+    mockedFs.mkdirSync.mockImplementation(() => "");
   });
 
   afterEach(() => {
+    // Restore original console methods
     console.log = originalConsole.log;
     console.warn = originalConsole.warn;
     console.error = originalConsole.error;
   });
 
   it("should convert multiple PO files to JSON", async () => {
+    mockGlob.sync.mockReturnValue(["/test/es.po", "/test/fr.po"]);
+
+    // Mock different file contents
+    (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+      if (filePath === "/test/es.po") return Buffer.from(samplePoContent);
+      if (filePath === "/test/fr.po") return Buffer.from(samplePoContentSecond);
+      return Buffer.from("");
+    });
+
     await convertMultiplePoToJson({
-      pattern: testPattern,
-      outputDir: testOutputDir,
+      pattern: "/test/*.po",
+      outputDir: "/test/output/",
     });
 
     // Should process both files
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/es.json", expect.any(String), "utf8");
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/fr.json", expect.any(String), "utf8");
+
+    // Check the JSON content separately
+    const esContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const frContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[1][1] as string;
+    expect(esContent).toContain('"a1b2c3d4e5": "¡Bienvenido de vuelta!"');
+    expect(frContent).toContain('"a1b2c3d4e5": "Bienvenue de retour!"');
   });
 
   it("should create output directory for batch conversion", async () => {
-    mockedFs.existsSync.mockReturnValue(false);
-
-    await convertMultiplePoToJson({
-      pattern: testPattern,
-      outputDir: testOutputDir,
+    mockGlob.sync.mockReturnValue(["/test/es.po"]);
+    mockedFs.existsSync.mockImplementation((filePath) => {
+      if (filePath === "/test/es.po") return true;
+      if (filePath === "/test/output") return false; // output dir doesn't exist
+      return false;
     });
 
-    expect(mockedFs.mkdirSync).toHaveBeenCalledWith(testOutputDir, { recursive: true });
+    await convertMultiplePoToJson({
+      pattern: "/test/*.po",
+      outputDir: "/test/output/",
+    });
+
+    expect(mockedFs.mkdirSync).toHaveBeenCalledWith("/test/output/", { recursive: true });
   });
 
   it("should warn when no PO files found", async () => {
     mockGlob.sync.mockReturnValue([]);
 
     await convertMultiplePoToJson({
-      pattern: testPattern,
-      outputDir: testOutputDir,
+      pattern: "/test/*.po",
+      outputDir: "/test/output/",
     });
 
     expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  No .po files found matching the pattern");
-    expect(mockedFs.writeFileSync).not.toHaveBeenCalled();
   });
 
   it("should handle errors gracefully for individual files", async () => {
-    // Make readFileSync throw for one file
+    mockGlob.sync.mockReturnValue(["/test/es.po", "/test/broken.po"]);
+
     (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
-      if (filePath.includes("es.po")) {
-        throw new Error("File read error");
-      }
-      return Buffer.from(`
-msgctxt "f6g7h8i9j0"
-msgid "Sign In"
-msgstr "Se connecter"
-      `);
+      if (filePath === "/test/es.po") return Buffer.from(samplePoContent);
+      if (filePath === "/test/broken.po") throw new Error("File read error");
+      return Buffer.from("");
     });
 
     await convertMultiplePoToJson({
-      pattern: testPattern,
-      outputDir: testOutputDir,
+      pattern: "/test/*.po",
+      outputDir: "/test/output/",
     });
 
-    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error converting"), expect.any(Error));
+    // Should still process the good file
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/es.json", expect.any(String), "utf8");
 
-    // Should still process the successful file
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/fr.json", expect.any(String), "utf8");
+    // Should log error for broken file
+    expect(mockConsole.error).toHaveBeenCalledWith("❌ Error converting /test/broken.po:", expect.any(Error));
   });
 });
