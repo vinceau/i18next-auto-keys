@@ -300,6 +300,9 @@ Convert translated .po files to i18next JSON format:
 # Convert single file
 npx i18next-auto-keys po-to-json --input ./i18n/es.po --output ./public/locales/es.json
 
+# Convert with top-level key (matches emit plugin behavior)
+npx i18next-auto-keys po-to-json --input ./i18n/fr.po --output ./public/locales/fr.json --top-level-key common
+
 # Batch convert multiple files
 npx i18next-auto-keys po-to-json --input "./i18n/*.po" --output ./public/locales --batch
 ```

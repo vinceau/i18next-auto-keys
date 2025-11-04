@@ -8,7 +8,7 @@ import { loadGettextParser } from "./loadGettextParser";
 type ConvertPoOptions = {
   input: string;
   output: string;
-  namespace?: string;
+  topLevelKey?: string;
   indent?: number;
 };
 
@@ -19,7 +19,7 @@ type ConvertPoOptions = {
  * where msgctxt contains the i18next key path and msgid contains the source text.
  */
 async function convertPoToJson(options: ConvertPoOptions): Promise<void> {
-  const { input, output, namespace, indent = 2 } = options;
+  const { input, output, topLevelKey, indent = 2 } = options;
 
   console.log(`📖 Converting .po file to i18next JSON: ${input}`);
   console.log(`📁 Output: ${output}`);
@@ -74,10 +74,10 @@ async function convertPoToJson(options: ConvertPoOptions): Promise<void> {
 
   console.log(`🔑 Processed ${translationCount} translations`);
 
-  // Wrap in namespace if specified
+  // Wrap under topLevelKey if specified (matches emit plugin behavior)
   let output_data = translations;
-  if (namespace) {
-    output_data = { [namespace]: translations };
+  if (topLevelKey) {
+    output_data = { [topLevelKey]: translations };
   }
 
   // Ensure output directory exists
@@ -100,10 +100,10 @@ async function convertPoToJson(options: ConvertPoOptions): Promise<void> {
 async function convertMultiplePoToJson(options: {
   pattern: string;
   outputDir: string;
-  namespace?: string;
+  topLevelKey?: string;
   indent?: number;
 }): Promise<void> {
-  const { pattern, outputDir, namespace, indent = 2 } = options;
+  const { pattern, outputDir, topLevelKey, indent = 2 } = options;
 
   console.log(`🔍 Scanning for .po files using pattern: ${pattern}`);
 
@@ -130,7 +130,7 @@ async function convertMultiplePoToJson(options: {
       await convertPoToJson({
         input: poFile,
         output: jsonFile,
-        namespace,
+        topLevelKey,
         indent,
       });
     } catch (error) {

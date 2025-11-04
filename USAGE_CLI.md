@@ -56,8 +56,8 @@ Convert translated .po files to i18next compatible JSON format:
 # Convert a single .po file to JSON
 npx i18next-auto-keys po-to-json --input ./i18n/es.po --output ./public/locales/es.json
 
-# Convert with namespace wrapping
-npx i18next-auto-keys convert --input ./i18n/fr.po --output ./src/locales/fr.json --namespace common
+# Convert with top-level key wrapping (matches emit plugin)
+npx i18next-auto-keys convert --input ./i18n/fr.po --output ./src/locales/fr.json --top-level-key common
 
 # Batch convert multiple .po files
 npx i18next-auto-keys po-to-json --input "./i18n/*.po" --output ./public/locales --batch
@@ -66,7 +66,7 @@ npx i18next-auto-keys po-to-json --input "./i18n/*.po" --output ./public/locales
 npx i18next-auto-keys convert \
   --input ./i18n/de.po \
   --output ./locales/de.json \
-  --namespace translations \
+  --top-level-key translations \
   --indent 4
 ```
 
@@ -85,7 +85,7 @@ npx i18next-auto-keys convert \
 
 - `--input, -i` (required): Input .po file path or glob pattern for multiple files
 - `--output, -o` (required): Output JSON file path (for single file) or output directory (for multiple files)
-- `--namespace, -n`: Wrap translations in a namespace
+- `--top-level-key, -t`: Wrap translations under a top-level key (matches emit plugin)
 - `--indent`: JSON indentation spaces (default: 2)
 - `--batch`: Batch mode: treat input as glob pattern and output as directory
 

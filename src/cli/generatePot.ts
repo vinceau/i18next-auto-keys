@@ -229,10 +229,10 @@ program
   .description("Convert .po files to i18next compatible JSON format")
   .requiredOption("-i, --input <path>", "Input .po file path or glob pattern for multiple files")
   .requiredOption("-o, --output <path>", "Output JSON file path (for single file) or output directory (for multiple files)")
-  .option("-n, --namespace <name>", "Wrap translations in a namespace")
+  .option("-t, --top-level-key <key>", "Wrap translations under a top-level key (matches emit plugin)")
   .option("--indent <number>", "JSON indentation spaces", "2")
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
-  .action(async (options: ConvertPoOptions & { batch?: boolean }) => {
+  .action(async (options: ConvertPoOptions & { batch?: boolean; topLevelKey?: string }) => {
     try {
       const indent = parseInt(options.indent?.toString() || "2", 10);
       
@@ -240,14 +240,14 @@ program
         await convertMultiplePoToJson({
           pattern: options.input,
           outputDir: options.output,
-          namespace: options.namespace,
+          topLevelKey: options.topLevelKey,
           indent,
         });
       } else {
         await convertPoToJson({
           input: options.input,
           output: options.output,
-          namespace: options.namespace,
+          topLevelKey: options.topLevelKey,
           indent,
         });
       }

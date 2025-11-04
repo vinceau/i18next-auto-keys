@@ -179,11 +179,11 @@ msgstr ""
     });
   });
 
-  it("should wrap translations in namespace when specified", async () => {
+  it("should wrap translations under topLevelKey when specified", async () => {
     await convertPoToJson({
       input: testInputPath,
       output: testOutputPath,
-      namespace: "common",
+      topLevelKey: "common",
     });
 
     const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
