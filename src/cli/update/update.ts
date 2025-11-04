@@ -86,12 +86,8 @@ async function msgmergeJs(oldPoPath: string, newPotPath: string, outPath: string
           newEntry.comments = { ...oldEntryTyped.comments, ...newEntry.comments };
         }
       } else {
-        // msgid removed from template — keep as obsolete
-        mergedCtx[msgid] = {
-          ...oldEntryTyped,
-          obsolete: true,
-          comments: { ...(oldEntryTyped.comments || {}), obsolete: "Removed from source" },
-        };
+        // msgid removed from template — skip obsolete entries (don't add to merged file)
+        console.log(`🗑️  Removing obsolete translation: ${oldEntryTyped.msgctxt || msgid}`);
       }
     }
     merged.translations[ctx] = mergedCtx;

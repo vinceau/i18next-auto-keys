@@ -216,4 +216,88 @@ describe("updatePoFiles", () => {
     // Should only update each file once despite duplicates
     expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(2);
   });
+
+  it("should remove obsolete translations not in the new template", async () => {
+    // Store the original mock implementation
+    const originalParseImpl = mockGettextParser.po.parse;
+    const originalReadFileImpl = mockedFs.readFileSync;
+
+    try {
+      // Mock readFileSync to return different content for template vs existing po
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+        if (filePath.includes("messages.pot")) {
+          return Buffer.from("template content");
+        } else {
+          return Buffer.from("existing po content");
+        }
+      });
+
+      // Update the parser mock to handle this specific scenario
+      (mockGettextParser.po.parse as jest.Mock).mockImplementation((buffer: any) => {
+        const content = buffer.toString();
+
+        if (content.includes("template")) {
+          // Template only has "Welcome Back!" - no "Old String"
+          return {
+            charset: "utf-8",
+            headers: {
+              "project-id-version": "test-app 1.0",
+            },
+            translations: {
+              "": {
+                "Welcome Back!": {
+                  msgid: "Welcome Back!",
+                  msgctxt: "a1b2c3d4e5",
+                  msgstr: [""],
+                  comments: {},
+                },
+              },
+            },
+          };
+        } else {
+          // Existing .po file has both entries
+          return {
+            charset: "utf-8",
+            headers: {
+              "project-id-version": "test-app 1.0",
+              language: "es",
+            },
+            translations: {
+              "": {
+                "Welcome Back!": {
+                  msgid: "Welcome Back!",
+                  msgctxt: "a1b2c3d4e5",
+                  msgstr: ["¡Bienvenido de vuelta!"],
+                  comments: {},
+                },
+                "Old String": {
+                  msgid: "Old String",
+                  msgctxt: "old123",
+                  msgstr: ["Cadena Antigua"],
+                  comments: {},
+                },
+              },
+            },
+          };
+        }
+      });
+
+      await updatePoFiles({
+        template: testTemplate,
+        poFiles: testPoFiles,
+      });
+
+      // Should log removal of obsolete entry
+      expect(mockConsole.log).toHaveBeenCalledWith(
+        expect.stringContaining("🗑️  Removing obsolete translation: old123")
+      );
+
+      // Should still write the updated file (but without obsolete entries)
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/locales/es.po", expect.any(Buffer));
+    } finally {
+      // Restore original implementations
+      mockGettextParser.po.parse = originalParseImpl;
+      mockedFs.readFileSync = originalReadFileImpl;
+    }
+  });
 });
