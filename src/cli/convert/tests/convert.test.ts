@@ -143,8 +143,83 @@ msgstr "Correo inválido: {{email}}"
 msgctxt "x9y8z7w6v5"
 msgid "Untranslated Text"
 msgstr ""
-    `)
+     `)
     );
+
+    // Reset the parser mock to default behavior
+    (mockGettextParser.po.parse as jest.Mock).mockImplementation((buffer: any) => {
+      const content = buffer.toString();
+
+      // Parse a simple PO format for testing - match actual gettext-parser structure
+      const catalog = {
+        charset: "utf-8",
+        headers: {
+          "project-id-version": "test-app 1.0",
+          "content-type": "text/plain; charset=UTF-8",
+        },
+        translations: {} as any,
+      };
+
+      // Add some test entries based on buffer content (using hex hash keys like the actual system)
+      // Structure: translations[msgid][context] = entryData
+      if (content.includes('msgctxt "a1b2c3d4e5"')) {
+        catalog.translations["Welcome Back!"] = {
+          "": {
+            msgid: "Welcome Back!",
+            msgctxt: "a1b2c3d4e5",
+            msgstr: ["¡Bienvenido de vuelta!"],
+            comments: {},
+          },
+        };
+      }
+
+      if (content.includes('msgctxt "f6g7h8i9j0"')) {
+        catalog.translations["Sign In"] = {
+          "": {
+            msgid: "Sign In",
+            msgctxt: "f6g7h8i9j0",
+            msgstr: ["Iniciar Sesión"],
+            comments: {},
+          },
+        };
+      }
+
+      if (content.includes('msgctxt "k1l2m3n4o5"')) {
+        catalog.translations["Forgot Password?"] = {
+          "": {
+            msgid: "Forgot Password?",
+            msgctxt: "k1l2m3n4o5",
+            msgstr: ["¿Olvidaste tu contraseña?"],
+            comments: {},
+          },
+        };
+      }
+
+      if (content.includes('msgctxt "p6q7r8s9t0"')) {
+        catalog.translations["Invalid email: {{email}}"] = {
+          "": {
+            msgid: "Invalid email: {{email}}",
+            msgctxt: "p6q7r8s9t0",
+            msgstr: ["Correo inválido: {{email}}"],
+            comments: {},
+          },
+        };
+      }
+
+      // Add an untranslated entry for testing
+      if (content.includes('msgctxt "x9y8z7w6v5"')) {
+        catalog.translations["Untranslated Text"] = {
+          "": {
+            msgid: "Untranslated Text",
+            msgctxt: "x9y8z7w6v5",
+            msgstr: [""],
+            comments: {},
+          },
+        };
+      }
+
+      return catalog;
+    });
   });
 
   afterEach(() => {
