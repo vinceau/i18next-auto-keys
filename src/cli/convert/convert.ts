@@ -42,11 +42,11 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
   let translationCount = 0;
 
   // Process translations (skip the header entry which has empty msgid)
-  const translationEntries = catalog.translations?.[""] || {};
+  const translationEntries = catalog.translations;
   for (const [msgid, entry] of Object.entries(translationEntries)) {
     if (msgid === "" || !entry) continue; // Skip header entry
 
-    const entryData = entry as any;
+    const entryData = Object.values(entry)[0] as any;
     const msgstr = entryData.msgstr?.[0];
     const msgctxt = entryData.msgctxt;
 
