@@ -1,5 +1,6 @@
 // Support CJS (v7-) and ESM default export (v8+)
-export type PoApi = { po?: { compile?: (cat: any) => Buffer; parse?: (buf: Buffer) => any } };
+import type { PoParser } from "gettext-parser";
+export type PoApi = { po?: PoParser };
 
 let gettextParserModule: PoApi | undefined;
 let loadPromise: Promise<PoApi | undefined> | undefined;
