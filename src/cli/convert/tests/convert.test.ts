@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { convertPoToJson, convertMultiplePoToJson } from "../convertPoToJson";
+import { convertPoToJson, convertMultiplePoToJson } from "../index";
 
 // Mock console to avoid spam during tests
 const mockConsole = {
@@ -97,7 +97,7 @@ const mockGettextParser = {
   },
 };
 
-jest.mock("../loadGettextParser", () => ({
+jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 

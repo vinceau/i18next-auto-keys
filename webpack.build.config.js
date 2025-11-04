@@ -4,8 +4,7 @@ module.exports = {
   mode: 'production',
   entry: {
     index: './src/index.ts',
-    'cli/generatePot': './src/cli/generatePot.ts',
-    'cli/convertPoToJson': './src/cli/convertPoToJson.ts'
+    'cli/cli': './src/cli/cli.ts'
   },
   target: 'node',
   output: {
@@ -27,34 +26,22 @@ module.exports = {
               stage: compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS,
             },
             () => {
-              // Handle generatePot.js
-              const potAsset = compilation.assets['cli/generatePot.js'];
-              if (potAsset) {
-                const source = potAsset.source();
+              // Handle cli.js
+              const cliAsset = compilation.assets['cli/cli.js'];
+              if (cliAsset) {
+                const source = cliAsset.source();
                 const newSource = '#!/usr/bin/env node\n' + source;
-                compilation.updateAsset('cli/generatePot.js', new compiler.webpack.sources.RawSource(newSource));
-              }
-
-              // Handle convertPoToJson.js
-              const convertAsset = compilation.assets['cli/convertPoToJson.js'];
-              if (convertAsset) {
-                const source = convertAsset.source();
-                const newSource = '#!/usr/bin/env node\n' + source;
-                compilation.updateAsset('cli/convertPoToJson.js', new compiler.webpack.sources.RawSource(newSource));
+                compilation.updateAsset('cli/cli.js', new compiler.webpack.sources.RawSource(newSource));
               }
 
               // Set executable permissions in a cross-platform way
               const fs = require('fs');
               const path = require('path');
               compiler.hooks.afterEmit.tap('SetExecutablePermissions', () => {
-                const potPath = path.resolve(__dirname, 'dist/cli/generatePot.js');
-                const convertPath = path.resolve(__dirname, 'dist/cli/convertPoToJson.js');
+                const cliPath = path.resolve(__dirname, 'dist/cli/cli.js');
                 
-                if (fs.existsSync(potPath)) {
-                  fs.chmodSync(potPath, '755');
-                }
-                if (fs.existsSync(convertPath)) {
-                  fs.chmodSync(convertPath, '755');
+                if (fs.existsSync(cliPath)) {
+                  fs.chmodSync(cliPath, '755');
                 }
               });
             }

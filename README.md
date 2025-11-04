@@ -289,7 +289,15 @@ Extract translation keys from your source code for translators:
 
 ```bash
 # Generate POT template file
-npx i18next-auto-keys generate-pot --include "**/*.messages.ts" --output ./i18n/messages.pot
+npx i18next-auto-keys generate --include "**/*.messages.ts" --output ./i18n/messages.pot
+```
+
+### Update PO Files
+Update existing .po files with new strings from POT template:
+
+```bash
+# Update all .po files with new strings  
+npx i18next-auto-keys update --template ./i18n/messages.pot --po-files "./i18n/*.po" --backup
 ```
 
 ### Convert PO to JSON
@@ -297,13 +305,13 @@ Convert translated .po files to i18next JSON format:
 
 ```bash
 # Convert single file
-npx i18next-auto-keys po-to-json --input ./i18n/es.po --output ./public/locales/es.json
+npx i18next-auto-keys convert --input ./i18n/es.po --output ./public/locales/es.json
 
 # Convert with top-level key (matches emit plugin behavior)
-npx i18next-auto-keys po-to-json --input ./i18n/fr.po --output ./public/locales/fr.json --top-level-key common
+npx i18next-auto-keys convert --input ./i18n/fr.po --output ./public/locales/fr.json --top-level-key common
 
 # Batch convert multiple files
-npx i18next-auto-keys po-to-json --input "./i18n/*.po" --output ./public/locales --batch
+npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch
 ```
 
 For detailed CLI usage and options, see [CLI Documentation](USAGE_CLI.md).
