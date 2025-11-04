@@ -1,14 +1,12 @@
-#!/usr/bin/env node
-import { Command } from "commander";
 import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
-import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../index";
-import { loadGettextParser } from "./loadGettextParser";
+import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
+import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
-type GeneratePotOptions = {
+export type GeneratePotOptions = {
   source?: string;
   output: string;
   projectId?: string;
@@ -21,7 +19,7 @@ type GeneratePotOptions = {
  * Scans TypeScript/JavaScript source files and generates a POT file
  * containing all translation keys found by the i18next-auto-keys transformer.
  */
-async function generatePotFile(options: GeneratePotOptions): Promise<void> {
+export async function generatePotFile(options: GeneratePotOptions): Promise<void> {
   const {
     source = process.cwd(),
     output,
@@ -172,6 +170,7 @@ async function generatePot(
       "mime-version": "1.0",
       "content-type": "text/plain; charset=UTF-8",
       "content-transfer-encoding": "8bit",
+      "plural-forms": "nplurals=1; plural=0", // we don't want to use POT format for plural forms
       "x-generator": "i18next-auto-keys CLI",
       language: "", // empty in POT templates
     },
@@ -190,33 +189,6 @@ async function generatePot(
     };
   }
 
-  const potBuffer = parser.po.compile(catalog);
+  const potBuffer = parser.po.compile(catalog, { sort: true });
   fs.writeFileSync(outputPath, potBuffer);
 }
-
-// CLI interface
-const program = new Command();
-program
-  .name("i18next-auto-keys")
-  .description("Generate POT files from i18next-auto-keys sources")
-  .version("1.0.0")
-  .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
-  .requiredOption("-o, --output <path>", "Output path for the POT file")
-  .option("-p, --project-id <id>", "Project ID for POT header", "app 1.0")
-  .requiredOption("-i, --include <patterns...>", "File patterns to include")
-  .option("-e, --exclude <patterns...>", "File patterns to exclude", ["node_modules/**", "dist/**", "build/**"])
-  .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
-  .action(async (options: GeneratePotOptions) => {
-    try {
-      await generatePotFile(options);
-    } catch (error) {
-      console.error("❌ Error generating POT file:", error);
-      process.exit(1);
-    }
-  });
-
-if (require.main === module) {
-  program.parse(process.argv);
-}
-
-export { generatePotFile, GeneratePotOptions };

@@ -1,7 +1,7 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { generatePotFile } from "../generatePot";
-import { i18nStore } from "../../common/i18nStore";
+import { generatePotFile } from "../generate";
+import { i18nStore } from "../../../common/i18nStore";
 
 // Mock console to avoid spam during tests
 const mockConsole = {
@@ -68,7 +68,7 @@ msgstr ""
   },
 };
 
-jest.mock("../loadGettextParser", () => ({
+jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
