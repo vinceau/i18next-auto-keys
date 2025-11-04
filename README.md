@@ -16,6 +16,7 @@
 - 🔧 **TypeScript support** - Full TypeScript AST transformation
 - 📄 **Multiple output formats** - JSON for runtime, POT files for translators
 - 🎨 **Flexible parameter handling** - Array or named parameter modes
+- 🛠️ **CLI tools** - Generate POT files and convert PO to JSON independently
 
 ## 📋 Requirements
 
@@ -30,7 +31,7 @@ npm install --save-dev i18next-auto-keys
 npm install --save i18next
 ```
 
-Optional (for POT file generation):
+Optional (for CLI POT/PO conversion):
 ```bash
 npm install --save-dev gettext-parser
 ```
@@ -279,6 +280,31 @@ i18next
     }
   });
 ```
+
+## 🛠️ CLI Tools
+
+The package includes CLI tools for translation workflow management:
+
+### Generate POT Files
+Extract translation keys from your source code for translators:
+
+```bash
+# Generate POT template file
+npx i18next-auto-keys generate-pot --include "**/*.messages.ts" --output ./i18n/messages.pot
+```
+
+### Convert PO to JSON
+Convert translated .po files to i18next JSON format:
+
+```bash
+# Convert single file
+npx i18next-auto-keys po-to-json --input ./i18n/es.po --output ./public/locales/es.json
+
+# Batch convert multiple files
+npx i18next-auto-keys po-to-json --input "./i18n/*.po" --output ./public/locales --batch
+```
+
+For detailed CLI usage and options, see [CLI Documentation](USAGE_CLI.md).
 
 ## 🧪 Development
 

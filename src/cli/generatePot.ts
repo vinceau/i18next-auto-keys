@@ -6,6 +6,7 @@ import { sync as globSync } from "glob";
 import ts from "typescript";
 import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../index";
 import { loadGettextParser } from "./loadGettextParser";
+import { convertPoToJson, convertMultiplePoToJson, ConvertPoOptions } from "./convertPoToJson";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
 type GeneratePotOptions = {
@@ -198,8 +199,14 @@ async function generatePot(
 const program = new Command();
 program
   .name("i18next-auto-keys")
+  .description("CLI tools for i18next-auto-keys")
+  .version("1.0.0");
+
+// Generate POT command
+program
+  .command("generate-pot")
+  .alias("pot")
   .description("Generate POT files from i18next-auto-keys sources")
-  .version("1.0.0")
   .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
   .requiredOption("-o, --output <path>", "Output path for the POT file")
   .option("-p, --project-id <id>", "Project ID for POT header", "app 1.0")
@@ -211,6 +218,41 @@ program
       await generatePotFile(options);
     } catch (error) {
       console.error("❌ Error generating POT file:", error);
+      process.exit(1);
+    }
+  });
+
+// Convert PO to JSON command
+program
+  .command("po-to-json")
+  .alias("convert")
+  .description("Convert .po files to i18next compatible JSON format")
+  .requiredOption("-i, --input <path>", "Input .po file path or glob pattern for multiple files")
+  .requiredOption("-o, --output <path>", "Output JSON file path (for single file) or output directory (for multiple files)")
+  .option("-n, --namespace <name>", "Wrap translations in a namespace")
+  .option("--indent <number>", "JSON indentation spaces", "2")
+  .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
+  .action(async (options: ConvertPoOptions & { batch?: boolean }) => {
+    try {
+      const indent = parseInt(options.indent?.toString() || "2", 10);
+      
+      if (options.batch) {
+        await convertMultiplePoToJson({
+          pattern: options.input,
+          outputDir: options.output,
+          namespace: options.namespace,
+          indent,
+        });
+      } else {
+        await convertPoToJson({
+          input: options.input,
+          output: options.output,
+          namespace: options.namespace,
+          indent,
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error converting .po to JSON:", error);
       process.exit(1);
     }
   });

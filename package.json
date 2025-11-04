@@ -10,7 +10,8 @@
     "dist/index.js",
     "dist/index.js.map",
     "dist/index.d.ts",
-    "dist/cli/generatePot.js"
+    "dist/cli/generatePot.js",
+    "dist/cli/convertPoToJson.js"
   ],
   "description": "Automatic translation key generation for i18next",
   "keywords": [
