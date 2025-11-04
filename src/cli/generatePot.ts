@@ -173,6 +173,7 @@ async function generatePot(
       "mime-version": "1.0",
       "content-type": "text/plain; charset=UTF-8",
       "content-transfer-encoding": "8bit",
+      "plural-forms": "nplurals=1; plural=0", // we don't want to use POT format for plural forms
       "x-generator": "i18next-auto-keys CLI",
       language: "", // empty in POT templates
     },
