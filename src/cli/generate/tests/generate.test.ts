@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { generatePotFile } from "../index";
+import { generatePotFile } from "../generate";
 import { i18nStore } from "../../../common/i18nStore";
 
 // Mock console to avoid spam during tests

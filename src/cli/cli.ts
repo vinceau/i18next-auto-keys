@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { generatePotFile } from "./generate";
-import { updatePoFiles } from "./update";
-import { convertPoToJson, convertMultiplePoToJson } from "./convert";
+import { generatePotFile } from "./generate/generate";
+import { updatePoFiles } from "./update/update";
+import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
 
 const program = new Command();
 program

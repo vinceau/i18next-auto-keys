@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { updatePoFiles } from "../index";
+import { updatePoFiles } from "../update";
 
 // Mock console to avoid spam during tests
 const mockConsole = {

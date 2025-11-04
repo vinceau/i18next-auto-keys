@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { convertPoToJson, convertMultiplePoToJson } from "../index";
+import { convertPoToJson, convertMultiplePoToJson } from "../convert";
 
 // Mock console to avoid spam during tests
 const mockConsole = {
