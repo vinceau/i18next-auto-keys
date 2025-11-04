@@ -32,9 +32,9 @@ const mockGettextParser = {
   po: {
     parse: jest.fn((buffer: Buffer) => {
       const content = buffer.toString();
-      
+
       // Mock POT template
-      if (content.includes("msgid \"Welcome Back!\"")) {
+      if (content.includes('msgid "Welcome Back!"')) {
         return {
           charset: "utf-8",
           headers: {
@@ -66,7 +66,7 @@ const mockGettextParser = {
         headers: {
           "project-id-version": "test-app 1.0",
           "content-type": "text/plain; charset=UTF-8",
-          "language": "es",
+          language: "es",
           "po-revision-date": "2023-01-01T00:00:00.000Z",
         },
         translations: {
@@ -114,10 +114,7 @@ describe("updatePoFiles", () => {
     mockedFs.readFileSync.mockReturnValue(Buffer.from("mock file content"));
 
     // Mock glob to return test files
-    mockGlob.sync.mockReturnValue([
-      "/test/locales/es.po",
-      "/test/locales/fr.po",
-    ]);
+    mockGlob.sync.mockReturnValue(["/test/locales/es.po", "/test/locales/fr.po"]);
   });
 
   afterEach(() => {
@@ -152,10 +149,12 @@ describe("updatePoFiles", () => {
   it("should throw error if template doesn't exist", async () => {
     mockedFs.existsSync.mockReturnValue(false);
 
-    await expect(updatePoFiles({
-      template: testTemplate,
-      poFiles: testPoFiles,
-    })).rejects.toThrow("Template file not found");
+    await expect(
+      updatePoFiles({
+        template: testTemplate,
+        poFiles: testPoFiles,
+      })
+    ).rejects.toThrow("Template file not found");
   });
 
   it("should warn when no .po files found", async () => {
@@ -166,9 +165,7 @@ describe("updatePoFiles", () => {
       poFiles: testPoFiles,
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith(
-      "⚠️  No .po files found matching the patterns"
-    );
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  No .po files found matching the patterns");
     expect(mockedFs.writeFileSync).not.toHaveBeenCalled();
   });
 
@@ -186,10 +183,7 @@ describe("updatePoFiles", () => {
       poFiles: testPoFiles,
     });
 
-    expect(mockConsole.error).toHaveBeenCalledWith(
-      expect.stringContaining("❌ Error updating"),
-      expect.any(Error)
-    );
+    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error updating"), expect.any(Error));
   });
 
   it("should preserve existing translations and add new ones", async () => {
@@ -200,16 +194,10 @@ describe("updatePoFiles", () => {
 
     // Verify that po.compile was called (indicating merge completed)
     expect(mockGettextParser.po.compile).toHaveBeenCalled();
-    
+
     // Verify that writeFileSync was called for each .po file
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      "/test/locales/es.po",
-      expect.any(Buffer)
-    );
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      "/test/locales/fr.po", 
-      expect.any(Buffer)
-    );
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/locales/es.po", expect.any(Buffer));
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/locales/fr.po", expect.any(Buffer));
   });
 
   it("should remove duplicate po files", async () => {

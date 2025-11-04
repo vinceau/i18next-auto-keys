@@ -32,7 +32,7 @@ const mockGettextParser = {
   po: {
     parse: jest.fn((buffer: Buffer) => {
       const content = buffer.toString();
-      
+
       // Parse a simple PO format for testing
       const catalog = {
         charset: "utf-8",
@@ -54,7 +54,7 @@ const mockGettextParser = {
           comments: {},
         };
       }
-      
+
       if (content.includes('msgctxt "f6g7h8i9j0"')) {
         catalog.translations[""]["Sign In"] = {
           msgid: "Sign In",
@@ -117,7 +117,8 @@ describe("convertPoToJson", () => {
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
-    mockedFs.readFileSync.mockReturnValue(Buffer.from(`
+    mockedFs.readFileSync.mockReturnValue(
+      Buffer.from(`
 # Test PO file
 msgid ""
 msgstr ""
@@ -142,7 +143,8 @@ msgstr "Correo inválido: {{email}}"
 msgctxt "x9y8z7w6v5"
 msgid "Untranslated Text"
 msgstr ""
-    `));
+    `)
+    );
   });
 
   afterEach(() => {
@@ -161,21 +163,19 @@ msgstr ""
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
       testOutputPath,
       expect.stringContaining('"a1b2c3d4e5": "¡Bienvenido de vuelta!"'),
-      'utf8'
+      "utf8"
     );
 
     // Get the written JSON content
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
-      (call) => call[0] === testOutputPath
-    );
+    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
     const jsonContent = writeCall?.[1] as string;
     const parsedJson = JSON.parse(jsonContent);
 
     expect(parsedJson).toEqual({
-      "a1b2c3d4e5": "¡Bienvenido de vuelta!",
-      "f6g7h8i9j0": "Iniciar Sesión",
-      "k1l2m3n4o5": "¿Olvidaste tu contraseña?",
-      "p6q7r8s9t0": "Correo inválido: {{email}}"
+      a1b2c3d4e5: "¡Bienvenido de vuelta!",
+      f6g7h8i9j0: "Iniciar Sesión",
+      k1l2m3n4o5: "¿Olvidaste tu contraseña?",
+      p6q7r8s9t0: "Correo inválido: {{email}}",
     });
   });
 
@@ -186,19 +186,17 @@ msgstr ""
       topLevelKey: "common",
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
-      (call) => call[0] === testOutputPath
-    );
+    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
     const jsonContent = writeCall?.[1] as string;
     const parsedJson = JSON.parse(jsonContent);
 
     expect(parsedJson).toEqual({
       common: {
-        "a1b2c3d4e5": "¡Bienvenido de vuelta!",
-        "f6g7h8i9j0": "Iniciar Sesión",
-        "k1l2m3n4o5": "¿Olvidaste tu contraseña?",
-        "p6q7r8s9t0": "Correo inválido: {{email}}"
-      }
+        a1b2c3d4e5: "¡Bienvenido de vuelta!",
+        f6g7h8i9j0: "Iniciar Sesión",
+        k1l2m3n4o5: "¿Olvidaste tu contraseña?",
+        p6q7r8s9t0: "Correo inválido: {{email}}",
+      },
     });
   });
 
@@ -209,9 +207,7 @@ msgstr ""
       indent: 4,
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
-      (call) => call[0] === testOutputPath
-    );
+    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
     const jsonContent = writeCall?.[1] as string;
 
     // Check that it uses 4-space indentation
@@ -224,9 +220,7 @@ msgstr ""
       output: testOutputPath,
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith(
-      expect.stringContaining("⚠️  Skipping untranslated key: x9y8z7w6v5")
-    );
+    expect(mockConsole.warn).toHaveBeenCalledWith(expect.stringContaining("⚠️  Skipping untranslated key: x9y8z7w6v5"));
   });
 
   it("should create output directory if it doesn't exist", async () => {
@@ -246,10 +240,12 @@ msgstr ""
   it("should throw error if input file doesn't exist", async () => {
     mockedFs.existsSync.mockReturnValue(false);
 
-    await expect(convertPoToJson({
-      input: testInputPath,
-      output: testOutputPath,
-    })).rejects.toThrow("Input file not found");
+    await expect(
+      convertPoToJson({
+        input: testInputPath,
+        output: testOutputPath,
+      })
+    ).rejects.toThrow("Input file not found");
   });
 
   it("should use hex hash keys as JSON keys", async () => {
@@ -259,9 +255,7 @@ msgstr ""
       output: testOutputPath,
     });
 
-    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
-      (call) => call[0] === testOutputPath
-    );
+    const writeCall = (mockedFs.writeFileSync as jest.Mock).mock.calls.find((call) => call[0] === testOutputPath);
     const jsonContent = writeCall?.[1] as string;
     const parsedJson = JSON.parse(jsonContent);
 
@@ -287,17 +281,16 @@ describe("convertMultiplePoToJson", () => {
     mockedFs.existsSync.mockReturnValue(true);
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
-    mockedFs.readFileSync.mockReturnValue(Buffer.from(`
+    mockedFs.readFileSync.mockReturnValue(
+      Buffer.from(`
 msgctxt "a1b2c3d4e5"
 msgid "Welcome Back!"
 msgstr "¡Bienvenido de vuelta!"
-    `));
+    `)
+    );
 
     // Mock glob to return multiple files
-    mockGlob.sync.mockReturnValue([
-      "/test/locales/es.po",
-      "/test/locales/fr.po",
-    ]);
+    mockGlob.sync.mockReturnValue(["/test/locales/es.po", "/test/locales/fr.po"]);
   });
 
   afterEach(() => {
@@ -313,16 +306,8 @@ msgstr "¡Bienvenido de vuelta!"
     });
 
     // Should process both files
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      "/test/output/es.json",
-      expect.any(String),
-      'utf8'
-    );
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      "/test/output/fr.json",
-      expect.any(String),
-      'utf8'
-    );
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/es.json", expect.any(String), "utf8");
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/fr.json", expect.any(String), "utf8");
   });
 
   it("should create output directory for batch conversion", async () => {
@@ -344,9 +329,7 @@ msgstr "¡Bienvenido de vuelta!"
       outputDir: testOutputDir,
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith(
-      "⚠️  No .po files found matching the pattern"
-    );
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  No .po files found matching the pattern");
     expect(mockedFs.writeFileSync).not.toHaveBeenCalled();
   });
 
@@ -368,16 +351,9 @@ msgstr "Se connecter"
       outputDir: testOutputDir,
     });
 
-    expect(mockConsole.error).toHaveBeenCalledWith(
-      expect.stringContaining("❌ Error converting"),
-      expect.any(Error)
-    );
+    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error converting"), expect.any(Error));
 
     // Should still process the successful file
-    expect(mockedFs.writeFileSync).toHaveBeenCalledWith(
-      "/test/output/fr.json",
-      expect.any(String),
-      'utf8'
-    );
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output/fr.json", expect.any(String), "utf8");
   });
 });

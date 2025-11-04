@@ -5,10 +5,7 @@ import { updatePoFiles } from "./update/update";
 import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
 
 const program = new Command();
-program
-  .name("i18next-auto-keys")
-  .description("CLI tools for i18next-auto-keys translation workflow")
-  .version("1.0.0");
+program.name("i18next-auto-keys").description("CLI tools for i18next-auto-keys translation workflow").version("1.0.0");
 
 // Generate POT command
 program
@@ -61,14 +58,17 @@ program
   .command("convert")
   .description("Convert .po files to i18next compatible JSON format")
   .requiredOption("-i, --input <path>", "Input .po file path or glob pattern for multiple files")
-  .requiredOption("-o, --output <path>", "Output JSON file path (for single file) or output directory (for multiple files)")
+  .requiredOption(
+    "-o, --output <path>",
+    "Output JSON file path (for single file) or output directory (for multiple files)"
+  )
   .option("-t, --top-level-key <key>", "Wrap translations under a top-level key (matches emit plugin)")
   .option("--indent <number>", "JSON indentation spaces", "2")
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
   .action(async (options) => {
     try {
       const indent = parseInt(options.indent?.toString() || "2", 10);
-      
+
       if (options.batch) {
         await convertMultiplePoToJson({
           pattern: options.input,
