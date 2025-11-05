@@ -9,6 +9,7 @@ export type I18nextAutoKeyLoaderOptions = {
   include: RegExp | RegExp[];
   hashLength?: number;
   argMode?: "indexed" | "named";
+  setDefaultValue?: boolean;
 };
 
 const schema = {
@@ -20,6 +21,7 @@ const schema = {
     },
     hashLength: { type: "number", minimum: 10 },
     argMode: { type: "string", enum: ["indexed", "named"] },
+    setDefaultValue: { type: "boolean" },
   },
   additionalProperties: false,
 };
@@ -62,6 +64,7 @@ export function i18nextAutoKeyLoader(
   const transformer = createI18nextAutoKeyTransformerFactory({
     hashLength: options.hashLength,
     argMode: options.argMode,
+    setDefaultValue: options.setDefaultValue,
   });
 
   const transformationResult = ts.transform(sourceFile, [transformer]);

@@ -390,11 +390,11 @@ describe("argument parsing modes", () => {
 
     // One param - indexed object with single element
     expect(transformedCode).toContain(`i18next.t("${stableHash("One param", 10)}", {`);
-    expect(transformedCode).toMatch(new RegExp(`oneParam:.*"0":\\s*name`, 's'));
+    expect(transformedCode).toMatch(new RegExp(`oneParam:.*"0":\\s*name`, "s"));
 
     // Two params - indexed object with two elements
     expect(transformedCode).toContain(`i18next.t("${stableHash("Two params", 10)}", {`);
-    expect(transformedCode).toMatch(new RegExp(`twoParams:.*"0":\\s*name.*"1":\\s*count`, 's'));
+    expect(transformedCode).toMatch(new RegExp(`twoParams:.*"0":\\s*name.*"1":\\s*count`, "s"));
   });
 
   it("handles mixed parameter scenarios in named mode", () => {
@@ -435,7 +435,7 @@ describe("argument parsing modes", () => {
 
     // Function expression with parameters should use indexed mode
     expect(transformedCode).toContain(`return i18next.t("${stableHash("Hello", 10)}", {`);
-    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name.*"1":\\s*age`, 's'));
+    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name.*"1":\\s*age`, "s"));
   });
 
   it("handles function expressions with parameters in named mode", () => {
@@ -468,5 +468,71 @@ describe("argument parsing modes", () => {
     // Should use named mode by default
     expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash("Hello", 10)}", {`);
     expect(transformedCode).toContain("name");
+  });
+});
+
+describe("setDefaultValue option", () => {
+  it("includes defaultValue in i18next.t call when setDefaultValue is enabled", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello world",
+  withArgs: (name: string): string => "Hello {{ name }}",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      setDefaultValue: true,
+    });
+
+    // Check that defaultValue is included for simple message
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello world", 10)}"`);
+    expect(transformedCode).toContain(`defaultValue: "Hello world"`);
+
+    // Check that defaultValue is included with arguments
+    expect(transformedCode).toContain(
+      `withArgs: (name: string): string => i18next.t("${stableHash("Hello {{ name }}", 10)}"`
+    );
+    expect(transformedCode).toContain(`defaultValue: "Hello {{ name }}"`);
+    expect(transformedCode).toMatch(/name[^:]/); // name as shorthand property
+
+    // Check that i18next import was added
+    expect(transformedCode).toContain('import i18next from "i18next"');
+  });
+
+  it("does not include defaultValue when setDefaultValue is disabled", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello world",
+  withArgs: (name: string): string => "Hello {{ name }}",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      setDefaultValue: false,
+    });
+
+    // Check that defaultValue is not included
+    expect(transformedCode).not.toContain("defaultValue");
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello world", 10)}")`);
+    expect(transformedCode).toContain(
+      `withArgs: (name: string): string => i18next.t("${stableHash("Hello {{ name }}", 10)}"`
+    );
+    expect(transformedCode).toMatch(/name[^:]/); // name as shorthand property
+  });
+
+  it("works with setDefaultValue enabled and no arguments", () => {
+    const input = `export const Message = {
+  simple: (): string => "Simple message",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      setDefaultValue: true,
+    });
+
+    // Check that only defaultValue is in the options object
+    expect(transformedCode).toContain(`simple: (): string => i18next.t("${stableHash("Simple message", 10)}"`);
+    expect(transformedCode).toContain(`defaultValue: "Simple message"`);
   });
 });

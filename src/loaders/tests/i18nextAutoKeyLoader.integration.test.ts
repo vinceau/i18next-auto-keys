@@ -190,4 +190,44 @@ describe("i18next-auto-keys loader integration", () => {
     expect(map).toBeDefined();
     expect(map).toContain('"mappings"');
   });
+
+  test("transforms messages with setDefaultValue option enabled", async () => {
+    const rules = [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-auto-keys",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              setDefaultValue: true,
+            },
+          },
+        ],
+      },
+    ];
+
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `import { Messages } from './ui.messages'; console.log(Messages.greeting());`,
+        "src/ui.messages.ts": `export const Messages = { greeting: (): string => "Hello, Default!" };`,
+      },
+      rules,
+      { entry: "/src/entry.ts" }
+    );
+
+    // Verify transformation happened with defaultValue
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["'],\s*{\s*defaultValue:/); // Should contain .t() with defaultValue
+    expect(bundle).toContain("Hello, Default!"); // Original string should be in defaultValue
+    expect(bundle).toContain("i18next"); // Should reference i18next
+  });
 });

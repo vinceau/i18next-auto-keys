@@ -8,6 +8,8 @@ export type I18nextAutoKeyTransformerOptions = {
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
   argMode?: "indexed" | "named";
+  /** Whether to include the original string as defaultValue in i18next.t calls */
+  setDefaultValue?: boolean;
 };
 
 /** Global store for tracking seen strings and their hashes.
@@ -145,16 +147,54 @@ export function createI18nextAutoKeyTransformerFactory(
   const {
     hashLength = 10,
     argMode = "named", // Default to named to better support default i18next usage
+    setDefaultValue = false,
   } = options;
 
   return (context: ts.TransformationContext) => {
     const f = context.factory;
 
-    const makeI18nextCall = (hashId: string, argsExpr?: ts.Expression, originalNode?: ts.Node): ts.CallExpression => {
+    const makeI18nextCall = (
+      hashId: string,
+      argsExpr?: ts.Expression,
+      originalString?: string,
+      originalNode?: ts.Node
+    ): ts.CallExpression => {
       const i18nextIdent = f.createIdentifier("i18next");
       const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
       const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
-      if (argsExpr) callArgs.push(argsExpr);
+
+      // If we need to set defaultValue or have other arguments, create an options object
+      if ((setDefaultValue && originalString) || argsExpr) {
+        let optionsExpr: ts.Expression;
+
+        if (argsExpr && ts.isObjectLiteralExpression(argsExpr)) {
+          // If we already have an args object, add defaultValue to it
+          const properties = [...argsExpr.properties];
+          if (setDefaultValue && originalString) {
+            const defaultValueProp = f.createPropertyAssignment(
+              f.createIdentifier("defaultValue"),
+              f.createStringLiteral(originalString)
+            );
+            properties.unshift(defaultValueProp); // Add defaultValue first
+          }
+          optionsExpr = f.createObjectLiteralExpression(properties, true);
+        } else {
+          // Create new options object
+          const properties: ts.ObjectLiteralElementLike[] = [];
+          if (setDefaultValue && originalString) {
+            properties.push(
+              f.createPropertyAssignment(f.createIdentifier("defaultValue"), f.createStringLiteral(originalString))
+            );
+          }
+          optionsExpr = f.createObjectLiteralExpression(properties, true);
+        }
+
+        callArgs.push(optionsExpr);
+      } else if (argsExpr) {
+        // Just pass through the args expression without modification
+        callArgs.push(argsExpr);
+      }
+
       const call = f.createCallExpression(tAccess, undefined, callArgs);
 
       // Preserve source map information from the original node
@@ -261,7 +301,7 @@ export function createI18nextAutoKeyTransformerFactory(
           // ── END NEW
 
           const argsExpr = buildArgsExpr(fn.parameters);
-          const newBodyExpr = makeI18nextCall(id, argsExpr, fn.body);
+          const newBodyExpr = makeI18nextCall(id, argsExpr, internedOriginal, fn.body);
 
           let newFn: ts.ArrowFunction | ts.FunctionExpression;
           if (ts.isArrowFunction(fn)) {
