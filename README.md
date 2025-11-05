@@ -4,18 +4,30 @@
 [![Build Status](https://github.com/vinceau/i18next-auto-keys/workflows/build/badge.svg)](https://github.com/vinceau/i18next-auto-keys/actions?workflow=build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Automatic translation key generation for i18next** - No more manual key management!
+**Automatic translation key generation for i18next with ICU format** - No more manual key management!
 
-`i18next-auto-keys` is a webpack loader and plugin that automatically extracts string literals from your code and replaces them with `i18next.t()` calls using auto-generated hash keys. Perfect for developers who want to internationalize their applications without the overhead of manually managing translation keys.
+`i18next-auto-keys` is a webpack loader and plugin that automatically extracts string literals from your code and replaces them with `i18next.t()` calls using auto-generated hash keys. Since developers don't need to know the generated keys, this package works best with **ICU message format** and **i18next-icu** plugin for pluralization and advanced formatting, rather than the default i18next key-based pluralization system.
 
 ## ✨ Features
 
 - 🔄 **Automatic key generation** - Hash-based keys generated from source strings
+- 🌐 **ICU format support** - Works seamlessly with i18next-icu for pluralization and formatting
 - 📦 **Webpack integration** - Seamless webpack loader and plugin
 - 🔧 **TypeScript support** - Full TypeScript AST transformation
 - 📄 **Multiple output formats** - JSON for runtime, POT files for translators
-- 🎨 **Flexible parameter handling** - Indexed or named parameter modes
+- 🎨 **Named parameter mode** - Clean, readable parameter names in translations
 - 🛠️ **CLI tools** - Generate POT files and convert PO to JSON independently
+
+## 💡 Why ICU Format?
+
+Since this library generates translation keys automatically, developers don't know the keys beforehand. This makes the default i18next pluralization method (which relies on key suffixes like `_zero`, `_one`, `_other`) impractical. Instead, **ICU message format** with **i18next-icu** provides:
+
+- **Inline pluralization**: `{count, plural, one {# item} other {# items}}`
+- **Number formatting**: `{price, number, currency}`
+- **Date formatting**: `{date, date, short}`
+- **Conditional text**: `{status, select, online {Connected} offline {Disconnected}}`
+
+For more information, read the [i18next-icu docs](https://www.npmjs.com/package/i18next-icu) and the [ICU formatting docs](https://formatjs.github.io/docs/intl-messageformat/).
 
 ## 📋 Requirements
 
@@ -27,7 +39,7 @@
 
 ```bash
 npm install --save-dev i18next-auto-keys
-npm install --save i18next
+npm install --save i18next i18next-icu
 ```
 
 Optional (for CLI POT/PO conversion):
@@ -37,15 +49,21 @@ npm install --save-dev gettext-parser
 
 ## 🚀 Quick Start
 
-### 1. Write your code naturally
+### 1. Write your code with ICU format
 
 ```typescript
 // src/components/LoginForm.messages.ts
 export const LoginMessages = {
-  welcomeTitle: (): string => "Welcome Back!",
-  loginButton: (): string => "Sign In",
   forgotPassword: (): string => "Forgot Password?",
-  errorInvalid: (email: string): string => `Invalid email: {{email}}`,
+  errorInvalid: (email: string): string => "Invalid email: {email}",
+
+  // ICU pluralization examples
+  loginAttempts: (count: number): string =>
+    "{count, plural, one {# login attempt} other {# login attempts}} remaining",
+
+  // ICU number and date formatting
+  lastLogin: (date: string): string => "Last login: {date, date, medium}",
+  accountAge: (days: number): string => "Account active for {days, number} days",
 };
 ```
 
@@ -59,15 +77,12 @@ module.exports = {
   module: {
     rules: [
       {
-        test: /\.tsx?$/,
+        test: /\.messages\.(ts|tsx)$/, // Only process message files
         exclude: /node_modules/,
         use: [
-          'ts-loader', // or esbuild-loader
           {
             loader: 'i18next-auto-keys',
             options: {
-              include: /\.messages\.(ts|tsx)$/, // Only process message files
-              hashLength: 10,
               setDefaultValue: process.env.NODE_ENV === 'development', // For HMR support
             }
           }
@@ -92,22 +107,24 @@ The loader automatically transforms your code:
 import i18next from "i18next";
 
 export const LoginMessages = {
-  welcomeTitle: (): string => i18next.t("a1b2c3d4e5"),
-  loginButton: (): string => i18next.t("f6g7h8i9j0"),
   forgotPassword: (): string => i18next.t("k1l2m3n4o5"),
   errorInvalid: (email: string): string => i18next.t("p6q7r8s9t0", { email }),
+  loginAttempts: (count: number): string => i18next.t("u8v9w0x1y2", { count }),
+  lastLogin: (date: string): string => i18next.t("z3a4b5c6d7", { date }),
+  accountAge: (days: number): string => i18next.t("e8f9g0h1i2", { days }),
 };
 ```
 
-And generates translation files:
+And generates translation files with ICU format:
 
 ```json
 // dist/locales/en.json
 {
-  "a1b2c3d4e5": "Welcome Back!",
-  "f6g7h8i9j0": "Sign In",
   "k1l2m3n4o5": "Forgot Password?",
-  "p6q7r8s9t0": "Invalid email: {{email}}"
+  "p6q7r8s9t0": "Invalid email: {email}",
+  "u8v9w0x1y2": "{count, plural, one {# login attempt} other {# login attempts}} remaining",
+  "z3a4b5c6d7": "Last login: {date, date, medium}",
+  "e8f9g0h1i2": "Account active for {days, number} days"
 }
 ```
 
@@ -117,7 +134,7 @@ And generates translation files:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `include` | `RegExp \| RegExp[]` | **Required** | Pattern(s) to match files for processing |
+| `include` | `RegExp \| RegExp[]` | `*` | Pattern(s) to match files for processing |
 | `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
 | `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
 | `sourcemap` | `boolean` | `false` | Generate source maps |
@@ -132,36 +149,9 @@ And generates translation files:
 
 ## 🎯 Usage Patterns
 
-### Parameter Handling
-
-> [!WARNING]
-> **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
-
-```typescript
-// ❌ WRONG - Don't do this
-export const Messages = {
-  greeting: (name: string): string => `Hello ${name}!`,           // String changes = unstable hash
-  status: (count: number): string => `You have ${count} items`,   // i18next can't interpolate
-};
-
-// ✅ CORRECT - Do this instead
-export const Messages = {
-  greeting: (name: string): string => `Hello {{name}}!`,          // Stable string for hashing
-  status: (count: number): string => `You have {{count}} items`,  // i18next handles interpolation
-};
-```
-
-**Why this matters:**
-
-1. **Stable Hashing**: The loader generates hash keys from the literal string content. If you use `${variable}`, the string content changes based on runtime values, making hash generation impossible.
-
-2. **i18next Interpolation**: The `{{variable}}` syntax is i18next's standard interpolation format, allowing translators to reorder parameters and apply formatting in different languages.
-
-3. **Translation Flexibility**: Translators can modify parameter placement: `"Hello {{name}}!"` → `"{{name}} さん、こんにちは！"` (Japanese)
-
 ### Message Files Organization
 
-Create dedicated message files for better organization:
+Create dedicated message files with ICU format for better organization:
 
 ```typescript
 // src/pages/auth/auth.messages.ts
@@ -170,28 +160,51 @@ export const AuthMessages = {
   title: (): string => "Authentication",
   subtitle: (): string => "Please sign in to continue",
 
-  // Messages with parameters
-  welcome: (name: string): string => `Welcome back, {{name}}!`,
-  attemptsLeft: (count: number): string => `{{count}} attempts remaining`,
+  // Messages with ICU interpolation
+  welcome: (name: string): string => "Welcome back, {name}!",
 
-  // Complex messages
-  resetEmail: (email: string, minutes: number): string =>
-    `Password reset link sent to {{email}}. Expires in {{minutes}} minutes.`,
+  // ICU pluralization
+  attemptsLeft: (count: number): string =>
+    "{count, plural, one {# attempt} other {# attempts}} remaining",
+};
+```
+
+### ICU Format Parameter Handling
+
+> [!WARNING]
+> **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
+
+```typescript
+// ❌ WRONG - Don't do this
+export const Messages = {
+  greeting: (name: string): string => `Hello ${name}!`,           // String changes = unstable hash
+  status: (count: number): string => `You have ${count} items`,   // Can't use ICU pluralization
+};
+
+// ✅ CORRECT - Use ICU format instead
+export const Messages = {
+  greeting: (name: string): string => "Hello {name}!",          // Stable string + ICU format
+  status: (count: number): string => "You have {count, plural, one {# item} other {# items}}",  // ICU pluralization
 };
 ```
 
 ### Parameter Modes
 
-#### Named Mode (Default)
+#### Named Mode (Default - Recommended for ICU)
 ```typescript
-// Source
-greeting: (name: string, time: string): string => `Hello {{name}}, good {{time}}!`
+// Source with ICU format
+greeting: (name: string, time: string): string => "Hello {name}, good {time}!"
+pluralItems: (count: number): string => "{count, plural, one {# item} other {# items}}"
 
 // Transformed to
 greeting: (name: string, time: string): string => i18next.t("abc123def4", { name, time })
+pluralItems: (count: number): string => i18next.t("xyz789abc1", { count })
 
-// JSON output
-{ "abc123def4": "Hello {{name}}, good {{time}}!" }
+// JSON output (ICU format preserved)
+{
+  "abc123def4": "Hello {name}, good {time}!",
+  "xyz789abc1": "{count, plural, one {# item} other {# items}}"
+}
 ```
 
 #### Indexed Mode
@@ -204,8 +217,13 @@ greeting: (name: string, time: string): string => i18next.t("abc123def4", { name
   }
 }
 
+// Source with ICU format using indexed parameters
+greeting: (name: string, time: string): string => "Hello {0}, good {1}!"
+pluralItems: (count: number): string => "{0, plural, one {# item} other {# items}}"
+
 // Transformed to
 greeting: (name: string, time: string): string => i18next.t("abc123def4", { "0": name, "1": time })
+pluralItems: (count: number): string => i18next.t("xyz789abc1", { "0": count })
 ```
 
 ### Excluding Messages from Translation
@@ -281,15 +299,17 @@ new I18nextAutoKeyEmitPlugin({
 }
 ```
 
-### Integration with i18next
+### Integration with i18next and ICU
 
 ```typescript
 // src/i18n/config.ts
 import i18next from 'i18next';
 import Backend from 'i18next-http-backend';
+import ICU from 'i18next-icu';
 
 i18next
   .use(Backend)
+  .use(ICU) // Enable ICU message formatting
   .init({
     lng: 'en',
     fallbackLng: 'en',

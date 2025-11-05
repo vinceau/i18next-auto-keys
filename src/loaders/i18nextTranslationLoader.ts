@@ -6,7 +6,7 @@ import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextA
 
 export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
-  include: RegExp | RegExp[];
+  include?: RegExp | RegExp[];
   hashLength?: number;
   argMode?: "indexed" | "named";
 };
@@ -24,7 +24,7 @@ const schema = {
   additionalProperties: false,
 };
 
-function matchesInclude(include: RegExp | RegExp[], resourcePath: string) {
+function matchesInclude(resourcePath: string, include?: RegExp | RegExp[]) {
   if (!include) return true; // no include => process everything
   const arr = Array.isArray(include) ? include : [include];
   return arr.some((re) => re.test(resourcePath));
@@ -45,7 +45,7 @@ export function i18nextAutoKeyLoader(
   this.cacheable && this.cacheable(true);
 
   // Skip if not included
-  if (!matchesInclude(options.include, this.resourcePath)) {
+  if (!matchesInclude(this.resourcePath, options.include)) {
     // pass through unchanged (preserve prior sourcemap if present)
     this.callback(null, source, inputMap, meta);
     return;
