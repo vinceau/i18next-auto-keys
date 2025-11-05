@@ -11,7 +11,6 @@
 ## ✨ Features
 
 - 🔄 **Automatic key generation** - Hash-based keys generated from source strings
-- 🎯 **Zero manual key management** - Write strings naturally, get i18n automatically
 - 📦 **Webpack integration** - Seamless webpack loader and plugin
 - 🔧 **TypeScript support** - Full TypeScript AST transformation
 - 📄 **Multiple output formats** - JSON for runtime, POT files for translators
@@ -20,7 +19,7 @@
 
 ## 📋 Requirements
 
-- Node.js 16+ 
+- Node.js 16+
 - Webpack 5+
 - TypeScript 4+ (for TypeScript projects)
 
@@ -106,7 +105,7 @@ And generates translation files:
 // dist/locales/en.json
 {
   "a1b2c3d4e5": "Welcome Back!",
-  "f6g7h8i9j0": "Sign In", 
+  "f6g7h8i9j0": "Sign In",
   "k1l2m3n4o5": "Forgot Password?",
   "p6q7r8s9t0": "Invalid email: {{email}}"
 }
@@ -131,9 +130,12 @@ And generates translation files:
 | `jsonOutputPath` | `string` | **Required** | Path for JSON translation file |
 | `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
 
-## ⚠️ Important: Parameter Handling
+## 🎯 Usage Patterns
 
-**Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
+### Parameter Handling
+
+> [!WARNING]
+> **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
 
 ```typescript
 // ❌ WRONG - Don't do this
@@ -142,7 +144,7 @@ export const Messages = {
   status: (count: number): string => `You have ${count} items`,   // i18next can't interpolate
 };
 
-// ✅ CORRECT - Do this instead  
+// ✅ CORRECT - Do this instead
 export const Messages = {
   greeting: (name: string): string => `Hello {{name}}!`,          // Stable string for hashing
   status: (count: number): string => `You have {{count}} items`,  // i18next handles interpolation
@@ -157,8 +159,6 @@ export const Messages = {
 
 3. **Translation Flexibility**: Translators can modify parameter placement: `"Hello {{name}}!"` → `"{{name}} さん、こんにちは！"` (Japanese)
 
-## 🎯 Usage Patterns
-
 ### Message Files Organization
 
 Create dedicated message files for better organization:
@@ -169,13 +169,13 @@ export const AuthMessages = {
   // Simple messages
   title: (): string => "Authentication",
   subtitle: (): string => "Please sign in to continue",
-  
+
   // Messages with parameters
   welcome: (name: string): string => `Welcome back, {{name}}!`,
   attemptsLeft: (count: number): string => `{{count}} attempts remaining`,
-  
+
   // Complex messages
-  resetEmail: (email: string, minutes: number): string => 
+  resetEmail: (email: string, minutes: number): string =>
     `Password reset link sent to {{email}}. Expires in {{minutes}} minutes.`,
 };
 ```
@@ -216,10 +216,10 @@ Use JSDoc comments to exclude specific functions:
 export const Messages = {
   // This will be translated
   translate: (): string => "Translate me",
-  
+
   /** @noTranslate */
   doNotTranslate: (): string => "Keep as-is",
-  
+
   /**
    * @noTranslate
    * This is a debug message that shouldn't be translated
@@ -315,7 +315,7 @@ npx i18next-auto-keys generate --include "**/*.messages.ts" --output ./i18n/mess
 Update existing .po files with new strings from POT template:
 
 ```bash
-# Update all .po files with new strings  
+# Update all .po files with new strings
 npx i18next-auto-keys update --template ./i18n/messages.pot --po-files "./i18n/*.po" --backup
 ```
 
@@ -350,20 +350,6 @@ npm run build    # Build the package
 npm test         # Run tests
 npm run test:watch # Watch mode testing
 ```
-
-### Testing
-The project includes comprehensive test coverage:
-- Unit tests for transformer logic
-- Integration tests for webpack loader
-- End-to-end tests for plugin functionality
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
 
 ## 📄 License
 
