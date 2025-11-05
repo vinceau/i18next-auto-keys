@@ -186,21 +186,36 @@ async function generatePot(
 
   for (const entry of entries) {
     // Build extracted comments including parameter metadata
-    const extractedComments = Array.from(entry.extractedComments);
+    const extractedComments: string[] = [];
+
+    // Add main JSDoc description (cleaned up, excluding @param tags)
+    const originalComments = Array.from(entry.extractedComments);
+    for (const comment of originalComments) {
+      if (comment.includes("@param")) {
+        // Extract just the main description part before @param tags
+        const parts = comment.split("@param");
+        const mainDescription = parts[0].replace(/^\*\s*/, "").trim();
+        if (mainDescription) {
+          extractedComments.push(mainDescription);
+        }
+      } else {
+        extractedComments.push(comment);
+      }
+    }
 
     // Add parameter metadata for ICU indexed mode context
     if (entry.parameterMetadata && entry.parameterMetadata.parameterNames.length > 0) {
       const { parameterNames, parameterTypes, parameterJSDoc } = entry.parameterMetadata;
 
-      // Add parameter descriptions from JSDoc
+      // Add formatted parameter information
       parameterNames.forEach((paramName, index) => {
         const paramType = parameterTypes[index] || "unknown";
         const jsDocDescription = parameterJSDoc[paramName];
 
         if (jsDocDescription) {
-          extractedComments.push(`{${index}} (${paramName}: ${paramType}): ${jsDocDescription}`);
+          extractedComments.push(`{${index}} ${paramName}: ${paramType} - ${jsDocDescription}`);
         } else {
-          extractedComments.push(`{${index}} = ${paramName}: ${paramType}`);
+          extractedComments.push(`{${index}} ${paramName}: ${paramType}`);
         }
       });
     }
@@ -211,7 +226,7 @@ async function generatePot(
       msgstr: [""],
       comments: {
         reference: Array.from(entry.refs).sort().join("\n") || undefined, // "#: file:line:column"
-        extracted: extractedComments.sort().join("\n") || undefined, // "#. comment"
+        extracted: extractedComments.join("\n") || undefined, // "#. comment"
       },
     };
   }

@@ -107,9 +107,44 @@ function extractParameterMetadata(
   const parameterTypes: string[] = [];
   const parameterJSDoc: { [paramName: string]: string } = {};
 
-  // Get JSDoc comments from the function node
-  const jsDocComments = getJSDocComments(fn, sf);
-  const paramTags = extractParamTags(jsDocComments);
+  // Use the same method as getLeadingComments to get the JSDoc text
+  const text = sf.getFullText();
+
+  // First try to get JSDoc from the function itself
+  let ranges = ts.getLeadingCommentRanges?.(text, fn.getFullStart()) || [];
+
+  // If no JSDoc on function, try the parent (property assignment)
+  if (ranges.length === 0 && fn.parent && ts.isPropertyAssignment(fn.parent)) {
+    ranges = ts.getLeadingCommentRanges?.(text, fn.parent.getFullStart()) || [];
+  }
+
+  for (const r of ranges) {
+    const raw = text.slice(r.pos, r.end);
+    if (raw.startsWith("/**")) {
+      // Simple, direct approach: look for @param lines
+      const lines = raw.split("\n");
+      for (const line of lines) {
+        // Extremely simple regex - just find @param followed by word and description
+        if (line.includes("@param")) {
+          const match = line.match(/@param\s+(\w+)\s+(.+)/);
+          if (match) {
+            const paramName = match[1];
+            let paramDescription = match[2];
+
+            // Remove common endings
+            paramDescription = paramDescription
+              .replace(/\*\/\s*$/, "")
+              .replace(/\*\s*$/, "")
+              .trim();
+
+            if (paramName && paramDescription) {
+              parameterJSDoc[paramName] = paramDescription;
+            }
+          }
+        }
+      }
+    }
+  }
 
   for (const param of params) {
     if (ts.isIdentifier(param.name)) {
@@ -119,16 +154,43 @@ function extractParameterMetadata(
       // Extract type information
       const paramType = getTypeString(param, sf);
       parameterTypes.push(paramType);
-
-      // Look for JSDoc @param tag for this parameter
-      const paramDoc = paramTags[paramName];
-      if (paramDoc) {
-        parameterJSDoc[paramName] = paramDoc;
-      }
     }
   }
 
   return parameterNames.length > 0 ? { parameterNames, parameterTypes, parameterJSDoc } : undefined;
+}
+
+/** Extract @param tags directly from source text */
+function extractParamTagsDirectly(node: ts.Node, sf: ts.SourceFile): { [paramName: string]: string } {
+  const paramTags: { [paramName: string]: string } = {};
+
+  // Get the source text and look for JSDoc comments before this node
+  const sourceText = sf.getFullText();
+  const nodeStart = node.getFullStart();
+
+  // Look for JSDoc comment before the node
+  const ranges = ts.getLeadingCommentRanges(sourceText, nodeStart);
+  if (!ranges) return paramTags;
+
+  for (const range of ranges) {
+    const commentText = sourceText.slice(range.pos, range.end);
+    if (!commentText.startsWith("/**")) continue;
+
+    // Parse @param tags from the comment
+    const lines = commentText.split("\n");
+    for (const line of lines) {
+      const match = line.match(/\s*\*\s*@param\s+(?:\{[^}]*\}\s+)?(\w+)\s+(.*)/);
+      if (match) {
+        const paramName = match[1];
+        const paramDescription = match[2].trim();
+        if (paramName && paramDescription) {
+          paramTags[paramName] = paramDescription;
+        }
+      }
+    }
+  }
+
+  return paramTags;
 }
 
 /** Extract type information from a parameter declaration */
@@ -154,11 +216,12 @@ function getJSDocComments(node: ts.Node, sf: ts.SourceFile): string[] {
       // Get the full JSDoc comment text to preserve structure
       const jsDocText = jsDoc.getFullText?.(sf) || jsDoc.getText?.(sf);
       if (jsDocText) {
+        // Use the raw JSDoc text directly to preserve @param tags
         comments.push(jsDocText);
       } else if (jsDoc.comment) {
         const commentText =
           typeof jsDoc.comment === "string" ? jsDoc.comment : jsDoc.comment.map((c: any) => c.text || "").join("");
-        comments.push(`/**\n * ${commentText}\n */`); // Wrap in JSDoc format
+        comments.push(commentText);
       }
     }
     return comments; // Return early if we found JSDoc through this method
@@ -195,46 +258,66 @@ function getJSDocComments(node: ts.Node, sf: ts.SourceFile): string[] {
   return comments;
 }
 
+/** Clean and format JSDoc text for better readability in POT files */
+function cleanJSDocText(jsDocText: string): string {
+  const lines = jsDocText.split("\n");
+  const cleanedLines: string[] = [];
+
+  for (const line of lines) {
+    // Remove leading/trailing whitespace and comment markers
+    const cleaned = line
+      .replace(/^\s*\/?\*+\s?/, "")
+      .replace(/\*+\/\s*$/, "")
+      .trim();
+
+    // Skip empty lines and lines with just comment markers
+    if (cleaned && !cleaned.match(/^[\/*\s]*$/)) {
+      cleanedLines.push(cleaned);
+    }
+  }
+
+  return cleanedLines.join(" ").trim();
+}
+
 /** Extract @param tags from JSDoc comments */
 function extractParamTags(jsDocComments: string[]): { [paramName: string]: string } {
   const paramTags: { [paramName: string]: string } = {};
 
   for (const comment of jsDocComments) {
-    // Parse @param tags from the comment, handling multiline and various formats
+    // Parse @param tags line by line for better accuracy
     const lines = comment.split("\n");
-    let currentParam: string | null = null;
-    let currentDescription: string[] = [];
 
-    for (const line of lines) {
-      const cleanLine = line.replace(/^\s*\*?\s?/, "").trim(); // Remove leading * and whitespace
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
 
-      // Check if this line starts a new @param
-      const paramMatch = cleanLine.match(/@param\s+(?:\{[^}]*\}\s+)?(\w+)\s*(.*)/);
+      // Look for @param tag in this line
+      const paramMatch = line.match(/\*\s*@param\s+(?:\{[^}]*\}\s+)?(\w+)\s+(.*)/);
       if (paramMatch) {
-        // Save previous param if exists
-        if (currentParam && currentDescription.length > 0) {
-          paramTags[currentParam] = currentDescription.join(" ").trim();
+        const paramName = paramMatch[1];
+        let paramDescription = paramMatch[2].trim();
+
+        // Check next lines for continuation of the description
+        let j = i + 1;
+        while (j < lines.length) {
+          const nextLine = lines[j];
+          const cleanNextLine = nextLine.replace(/^\s*\*\s?/, "").trim();
+
+          // Stop if we hit another @tag or empty line
+          if (cleanNextLine.startsWith("@") || cleanNextLine === "" || nextLine.includes("*/")) {
+            break;
+          }
+
+          paramDescription += " " + cleanNextLine;
+          j++;
         }
 
-        // Start new param
-        currentParam = paramMatch[1];
-        currentDescription = paramMatch[2] ? [paramMatch[2]] : [];
-      } else if (currentParam && cleanLine && !cleanLine.startsWith("@")) {
-        // Continue description for current param
-        currentDescription.push(cleanLine);
-      } else if (cleanLine.startsWith("@") || cleanLine === "") {
-        // Save current param and reset
-        if (currentParam && currentDescription.length > 0) {
-          paramTags[currentParam] = currentDescription.join(" ").trim();
+        // Clean up the description
+        paramDescription = paramDescription.trim();
+
+        if (paramName && paramDescription) {
+          paramTags[paramName] = paramDescription;
         }
-        currentParam = null;
-        currentDescription = [];
       }
-    }
-
-    // Save last param if exists
-    if (currentParam && currentDescription.length > 0) {
-      paramTags[currentParam] = currentDescription.join(" ").trim();
     }
   }
 

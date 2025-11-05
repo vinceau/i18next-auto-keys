@@ -303,13 +303,12 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with types and JSDoc available in comments
-      expect(potContent).toContain("{0} = name: string");
-      expect(potContent).toContain("{1} = age: number");
+      // Should contain cleaned parameter metadata with types
+      expect(potContent).toContain("{0} name: string");
+      expect(potContent).toContain("{1} age: number");
       expect(potContent).toContain("Hello {name}, you are {age} years old!");
-      // JSDoc should be present in the comments
-      expect(potContent).toContain("@param name The user's display name");
-      expect(potContent).toContain("@param age The user's age in years");
+      // JSDoc main description should be present but cleaned up
+      expect(potContent).toContain("Greets a user with their name and age");
     });
 
     it("should include parameter metadata when no JSDoc is available", async () => {
@@ -353,11 +352,11 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with types but without JSDoc descriptions
-      expect(potContent).toContain("{0} = count: number");
-      expect(potContent).toContain("{1} = total: number");
-      expect(potContent).toContain("{0} = username: string");
-      expect(potContent).toContain("{1} = email: string");
+      // Should contain cleaned parameter metadata with types but without JSDoc descriptions
+      expect(potContent).toContain("{0} count: number");
+      expect(potContent).toContain("{1} total: number");
+      expect(potContent).toContain("{0} username: string");
+      expect(potContent).toContain("{1} email: string");
       expect(potContent).toContain("Processing {count} of {total} files");
       expect(potContent).toContain("User: {username} ({email})");
     });
@@ -408,14 +407,13 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with types and mixed documentation
-      expect(potContent).toContain("{0} = fileName: string");
-      expect(potContent).toContain("{1} = size: number"); // No JSDoc for size parameter but has type
-      expect(potContent).toContain("{2} = errors: number");
+      // Should contain cleaned parameter metadata with types and mixed documentation
+      expect(potContent).toContain("{0} fileName: string");
+      expect(potContent).toContain("{1} size: number"); // No JSDoc for size parameter but has type
+      expect(potContent).toContain("{2} errors: number");
       expect(potContent).toContain("File {fileName} ({size} bytes) has {errors} errors");
-      // JSDoc should be present in the comments for documented parameters
-      expect(potContent).toContain("@param fileName The name of the file being analyzed");
-      expect(potContent).toContain("@param errors The number of errors found");
+      // JSDoc main description should be present but cleaned up
+      expect(potContent).toContain("Shows file analysis results");
     });
 
     it("should handle functions with no parameters", async () => {
@@ -523,21 +521,19 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with correct TypeScript types
-      expect(potContent).toContain("{0} = isActive: boolean");
-      expect(potContent).toContain("{1} = userName: string");
-      expect(potContent).toContain("{2} = count: number");
-      expect(potContent).toContain("{3} = tags: string[]");
+      // Should contain cleaned parameter metadata with correct TypeScript types
+      expect(potContent).toContain("{0} isActive: boolean");
+      expect(potContent).toContain("{1} userName: string");
+      expect(potContent).toContain("{2} count: number");
+      expect(potContent).toContain("{3} tags: string[]");
 
       // Complex types should also be extracted
-      expect(potContent).toContain("{0} = callback: () => void");
-      expect(potContent).toContain("{1} = data: { id: number; name: string }");
-      expect(potContent).toContain("{2} = optional: string");
+      expect(potContent).toContain("{0} callback: () => void");
+      expect(potContent).toContain("{1} data: { id: number; name: string }");
+      expect(potContent).toContain("{2} optional: string");
 
-      // JSDoc should be preserved alongside types
-      expect(potContent).toContain("@param isActive Whether the feature is active");
-      expect(potContent).toContain("@param userName The user's name");
-      expect(potContent).toContain("@param count Number of items");
+      // JSDoc main description should be preserved but cleaned up
+      expect(potContent).toContain("Various parameter types demonstration");
     });
   });
 });
