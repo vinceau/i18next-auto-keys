@@ -17,6 +17,7 @@ interface WebpackConfigOptions {
   loaderOptions?: Record<string, any>;
   argMode?: "indexed" | "named";
   resolveAlias?: Record<string, string>;
+  entry?: string;
 }
 
 /**
@@ -38,12 +39,13 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     loaderOptions = {},
     argMode = "named",
     resolveAlias = {},
+    entry = "./src/index.ts",
   } = options;
 
   return {
     name: configName,
     mode,
-    entry: "./src/index.ts",
+    entry,
     output: {
       path: path.resolve(__dirname, outputPath),
       filename: `bundle-${configName}.js`,
@@ -86,7 +88,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     },
     plugins: [
       new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: `locales/en.json`, // Use consistent filename for e2e testing
+        jsonOutputPath: jsonOutputPath,
       }),
     ],
     devtool: sourcemap ? "source-map" : false,
