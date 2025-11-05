@@ -80,7 +80,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     },
     plugins: [
       new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: `locales/${configName}-en.json`,
+        jsonOutputPath: `locales/en.json`, // Use consistent filename for e2e testing
       }),
     ],
     devtool: sourcemap ? "source-map" : false,

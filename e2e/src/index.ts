@@ -1,6 +1,42 @@
 // Main entry point for e2e testing
+import i18next from "i18next";
+import * as fs from "fs";
+import * as path from "path";
 import { AuthMessages } from "./auth.messages";
 import { UIMessages } from "./ui.messages";
+
+// Flag to track if i18next has been initialized
+let isInitialized = false;
+
+/**
+ * Initialize i18next with the generated translations
+ * This must be called after webpack has generated the translation files
+ */
+export async function initializeI18next(translationsDir: string): Promise<void> {
+  if (isInitialized) return;
+
+  const translationsPath = path.join(translationsDir, "en.json");
+  let translations = {};
+
+  // Load translations if they exist
+  if (fs.existsSync(translationsPath)) {
+    const translationsContent = fs.readFileSync(translationsPath, "utf8");
+    translations = JSON.parse(translationsContent);
+  }
+
+  // Initialize i18next
+  await i18next.init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: {
+      en: {
+        translation: translations,
+      },
+    },
+  });
+
+  isInitialized = true;
+}
 
 // Export all message modules for testing
 export { AuthMessages, UIMessages };

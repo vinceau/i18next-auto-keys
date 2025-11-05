@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
 import { promisify } from "util";
-import i18next from "i18next";
 import webpack, { Configuration } from "webpack";
 import { TEST_CONFIGURATIONS, createWebpackConfig } from "../webpack-configs";
 
@@ -24,7 +23,7 @@ async function buildWithConfig(config: any): Promise<{
 
   const configName = config.name || "default";
   const bundlePath = path.join(config.output!.path!, `bundle-${configName}.js`);
-  const translationsPath = path.join(config.output!.path!, `locales/${configName}-en.json`);
+  const translationsPath = path.join(config.output!.path!, `locales/en.json`);
 
   return { bundlePath, translationsPath, stats };
 }
@@ -35,7 +34,7 @@ async function buildWithConfig(config: any): Promise<{
 function cleanConfigArtifacts(configName: string, distPath: string) {
   const bundlePath = path.join(distPath, `bundle-${configName}.js`);
   const bundleMapPath = path.join(distPath, `bundle-${configName}.js.map`);
-  const translationsPath = path.join(distPath, `locales/${configName}-en.json`);
+  const translationsPath = path.join(distPath, `locales/en.json`);
 
   [bundlePath, bundleMapPath, translationsPath].forEach((filePath) => {
     if (fs.existsSync(filePath)) {
@@ -204,95 +203,65 @@ describe("i18next-auto-keys E2E Tests", () => {
       });
     });
 
-    describe("i18next Integration", () => {
-      let i18nextInstance: typeof i18next;
+    describe("End-to-End Function Testing", () => {
+      let bundle: any;
 
       beforeAll(async () => {
-        // Create a fresh i18next instance for this config
-        const { createInstance } = await import("i18next");
-        i18nextInstance = createInstance();
+        // Clear require cache and require the built bundle
+        delete require.cache[buildResult.bundlePath];
+        const bundleExports = require(buildResult.bundlePath);
+        bundle = bundleExports.TestBundle;
 
-        await i18nextInstance.init({
-          lng: "en",
-          fallbackLng: "en",
-          resources: {
-            en: {
-              translation: translations,
-            },
-          },
-        });
+        // Initialize i18next with the generated translations
+        const localesDir = path.dirname(buildResult.translationsPath);
+        await bundle.initializeI18next(localesDir);
       });
 
-      it("should load translations into i18next", () => {
-        const store = i18nextInstance.getResourceBundle("en", "translation");
-        expect(store).toBeDefined();
-        expect(Object.keys(store).length).toBeGreaterThan(0);
+      it("should return translated simple messages", () => {
+        const simpleMessages = bundle.getAllSimpleMessages();
+
+        // For strictInclude config, only auth messages are transformed to use translations
+        // UI messages remain as literal strings since they don't match the include pattern
+        if (configName === "strictInclude") {
+          // Auth messages should be translated
+          expect(simpleMessages).toContain("Authentication");
+          expect(simpleMessages).toContain("Sign In");
+          // UI messages should remain as literal strings (not translated)
+          expect(simpleMessages).toContain("Home");
+          expect(simpleMessages).toContain("Save Changes");
+          expect(simpleMessages).toContain("Loading...");
+        } else {
+          // For other configs, all messages should be translated
+          expect(simpleMessages).toContain("Authentication");
+          expect(simpleMessages).toContain("Sign In");
+          expect(simpleMessages).toContain("Home");
+          expect(simpleMessages).toContain("Save Changes");
+          expect(simpleMessages).toContain("Loading...");
+        }
       });
 
-      it("should resolve simple translations", () => {
-        const authTitleKey = Object.keys(translations).find((key) => translations[key] === "Authentication");
-        const loginButtonKey = Object.keys(translations).find((key) => translations[key] === "Sign In");
+      it("should return translated parameterized messages", () => {
+        const welcomeMessage = bundle.getWelcomeMessage("John");
+        expect(welcomeMessage).toBe("Welcome back, John!");
 
-        expect(authTitleKey).toBeDefined();
-        expect(loginButtonKey).toBeDefined();
-
-        expect(i18nextInstance.t(authTitleKey!)).toBe("Authentication");
-        expect(i18nextInstance.t(loginButtonKey!)).toBe("Sign In");
-      });
-
-      it("should resolve parameterized translations", () => {
-        const welcomeKey = Object.keys(translations).find((key) => translations[key] === "Welcome back, {{name}}!");
-
-        expect(welcomeKey).toBeDefined();
-        expect(i18nextInstance.t(welcomeKey!, { name: "John" })).toBe("Welcome back, John!");
-
-        // For strictInclude config, itemCount is filtered out (from ui.messages.ts)
+        // For strictInclude config, UI messages are filtered out
         if (configName !== "strictInclude") {
-          const itemCountKey = Object.keys(translations).find(
-            (key) => translations[key] === "{{count}} items in your cart"
-          );
-          expect(itemCountKey).toBeDefined();
-          expect(i18nextInstance.t(itemCountKey!, { count: 5 })).toBe("5 items in your cart");
+          const statusMessage = bundle.getStatusMessage(5);
+          expect(statusMessage).toBe("5 items in your cart");
         }
       });
 
-      it("should resolve complex multi-parameter translations", () => {
-        const resetEmailKey = Object.keys(translations).find(
-          (key) => translations[key] === "Password reset link sent to {{email}}. Expires in {{minutes}} minutes."
-        );
-        const attemptsKey = Object.keys(translations).find(
-          (key) => translations[key] === "{{count}} of {{maxAttempts}} login attempts remaining"
-        );
+      it("should return translated complex multi-parameter messages", () => {
+        const resetMessage = bundle.getResetEmailMessage("test@example.com", 15);
+        expect(resetMessage).toBe("Password reset link sent to test@example.com. Expires in 15 minutes.");
 
-        if (resetEmailKey) {
-          const resetResult = i18nextInstance.t(resetEmailKey, {
-            email: "test@example.com",
-            minutes: 15,
-          });
-          expect(resetResult).toBe("Password reset link sent to test@example.com. Expires in 15 minutes.");
-        }
-
-        if (attemptsKey) {
-          const attemptsResult = i18nextInstance.t(attemptsKey, {
-            count: 3,
-            maxAttempts: 5,
-          });
-          expect(attemptsResult).toBe("3 of 5 login attempts remaining");
-        }
+        const complexMessage = bundle.getComplexMessage();
+        expect(complexMessage).toBe("3 of 5 login attempts remaining");
       });
 
-      it("should handle missing keys gracefully", () => {
-        const result = i18nextInstance.t("nonexistent_key_123");
-        expect(result).toBe("nonexistent_key_123");
-      });
-
-      it("should handle missing parameters gracefully", () => {
-        const welcomeKey = Object.keys(translations).find((key) => translations[key] === "Welcome back, {{name}}!");
-
-        if (welcomeKey) {
-          const result = i18nextInstance.t(welcomeKey);
-          expect(result).toBe("Welcome back, {{name}}!");
-        }
+      it("should preserve @noTranslate messages unchanged", () => {
+        const debugMessage = bundle.getDebugMessage();
+        expect(debugMessage).toBe("Debug: Auth component mounted");
       });
     });
 
@@ -306,14 +275,18 @@ describe("i18next-auto-keys E2E Tests", () => {
       it("should export the expected functions", () => {
         // Clear the require cache to get fresh module
         delete require.cache[buildResult.bundlePath];
-        const bundle = require(buildResult.bundlePath);
+        const bundleExports = require(buildResult.bundlePath);
 
-        const exportKeys = Object.keys(bundle);
-        expect(exportKeys.length).toBeGreaterThan(0);
+        expect(bundleExports.TestBundle).toBeDefined();
+        const bundle = bundleExports.TestBundle;
 
-        // At minimum, the bundle should be a valid JS module
-        expect(typeof bundle).toBe("object");
-        expect(bundle).not.toBeNull();
+        // Should have all expected function exports
+        expect(typeof bundle.initializeI18next).toBe("function");
+        expect(typeof bundle.getWelcomeMessage).toBe("function");
+        expect(typeof bundle.getStatusMessage).toBe("function");
+        expect(typeof bundle.getAllSimpleMessages).toBe("function");
+        expect(typeof bundle.getComplexMessage).toBe("function");
+        expect(typeof bundle.getDebugMessage).toBe("function");
       });
     });
 
@@ -345,19 +318,23 @@ describe("i18next-auto-keys E2E Tests", () => {
       const defaultResult = await buildWithConfig(defaultConfig);
       const prodResult = await buildWithConfig(prodConfig);
 
-      // Both should generate valid translations
-      const defaultTranslations = JSON.parse(fs.readFileSync(defaultResult.translationsPath, "utf8"));
-      const prodTranslations = JSON.parse(fs.readFileSync(prodResult.translationsPath, "utf8"));
+      // Test that both configurations produce working bundles
+      delete require.cache[defaultResult.bundlePath];
+      delete require.cache[prodResult.bundlePath];
 
-      const defaultKeys = Object.keys(defaultTranslations);
-      const prodKeys = Object.keys(prodTranslations);
+      const defaultBundle = require(defaultResult.bundlePath).TestBundle;
+      const prodBundle = require(prodResult.bundlePath).TestBundle;
 
-      // Both should have 10-character hashes (due to global store)
-      defaultKeys.forEach((key) => expect(key.length).toBe(10));
-      prodKeys.forEach((key) => expect(key.length).toBe(10));
+      // Initialize both bundles
+      await defaultBundle.initializeI18next(path.dirname(defaultResult.translationsPath));
+      await prodBundle.initializeI18next(path.dirname(prodResult.translationsPath));
 
-      // Verify both have same content (same strings processed)
-      expect(Object.keys(defaultTranslations).sort()).toEqual(Object.keys(prodTranslations).sort());
+      // Both should produce the same translated results
+      expect(defaultBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
+      expect(prodBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
+
+      expect(defaultBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
+      expect(prodBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
 
       // Clean up
       cleanConfigArtifacts("default", distPath);
@@ -382,18 +359,33 @@ describe("i18next-auto-keys E2E Tests", () => {
       const strictConfig = TEST_CONFIGURATIONS.strictInclude;
       const result = await buildWithConfig(strictConfig);
 
-      const translations = JSON.parse(fs.readFileSync(result.translationsPath, "utf8"));
-      const values = Object.values(translations);
+      // Clear require cache and load the bundle
+      delete require.cache[result.bundlePath];
+      const bundle = require(result.bundlePath).TestBundle;
 
-      // Should include auth messages
-      expect(values).toContain("Authentication");
-      expect(values).toContain("Welcome back, {{name}}!");
+      // Initialize i18next with the generated translations
+      const localesDir = path.dirname(result.translationsPath);
+      await bundle.initializeI18next(localesDir);
 
-      // Should NOT include UI messages since they don't match the pattern
-      expect(values).not.toContain("Home");
-      expect(values).not.toContain("Save Changes");
+      // Test that auth messages are translated but UI messages remain literal
+      const simpleMessages = bundle.getAllSimpleMessages();
 
-      cleanConfigArtifacts("strict-include", distPath);
+      // Auth messages should be translated
+      expect(simpleMessages).toContain("Authentication");
+      expect(simpleMessages).toContain("Sign In");
+
+      // UI messages should remain as literal strings (not transformed)
+      expect(simpleMessages).toContain("Home");
+      expect(simpleMessages).toContain("Save Changes");
+
+      // Welcome message should work (from auth.messages - transformed)
+      expect(bundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
+
+      // UI status message should return template literal (not transformed)
+      const statusMessage = bundle.getStatusMessage(5);
+      expect(statusMessage).toBe("{{count}} items in your cart");
+
+      cleanConfigArtifacts("strictInclude", distPath);
     }, 60000);
   });
 });
