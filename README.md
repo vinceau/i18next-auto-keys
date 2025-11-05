@@ -167,6 +167,68 @@ export const AuthMessages = {
 };
 ```
 
+### Function Expression Syntax Support
+
+`i18next-auto-keys` supports **three different function syntax styles**:
+
+```typescript
+export const Messages = {
+  // 1. Arrow functions (most common)
+  /**
+   * Shows user greeting
+   * @param name The user's display name
+   * @param role The user's role in the system
+   */
+  arrowStyle: (name: string, role: string): string => "Hello {name}, you are a {role}",
+
+  // 2. Function expressions
+  /**
+   * Displays item count
+   * @param count Number of items
+   * @param category Item category
+   */
+  functionStyle: function(count: number, category: string): string {
+    return "Found {count} {category} items";
+  },
+
+  // 3. Method shorthand (ES6+)
+  /**
+   * Shows status message
+   * @param status Current connection status
+   * @param timestamp When status was last updated
+   */
+  methodStyle(status: string, timestamp: Date): string {
+    return "Status: {status} (updated {timestamp, date, short})";
+  },
+};
+```
+
+### JSDoc Parameter Extraction for Translators
+
+When using the CLI to generate POT files, JSDoc comments are automatically extracted to provide **context for translators**, especially useful with **ICU indexed mode**:
+
+```typescript
+/**
+ * User account summary message
+ * @param userName The user's display name
+ * @param accountType Type of account (free, premium, enterprise)
+ * @param daysSince Days since account creation
+ */
+userSummary: (userName: string, accountType: string, daysSince: number): string =>
+  "User {userName} has {accountType} account (active for {daysSince, number} days)"
+```
+
+**Generated POT file with translator context:**
+```po
+#. User account summary message
+#. {0} userName: string - The user's display name
+#. {1} accountType: string - Type of account (free, premium, enterprise)  
+#. {2} daysSince: number - Days since account creation
+msgctxt "a1b2c3d4e5"
+msgid "User {userName} has {accountType} account (active for {daysSince, number} days)"
+msgstr ""
+```
+
 ### ICU Format Parameter Handling
 
 > [!WARNING]
