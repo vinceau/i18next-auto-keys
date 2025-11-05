@@ -190,7 +190,7 @@ export const Messages = {
 
 ### Parameter Modes
 
-#### Named Mode (Default - Recommended for ICU)
+#### Named Mode (Default)
 ```typescript
 // Source with ICU format
 greeting: (name: string, time: string): string => "Hello {name}, good {time}!"
@@ -207,7 +207,10 @@ pluralItems: (count: number): string => i18next.t("xyz789abc1", { count })
 }
 ```
 
-#### Indexed Mode
+#### Indexed Mode (Shorter - more concise)
+
+This mode makes it easier to differentiate between parameters and translation text. The indexed order is the same as the order of the function paramters.
+
 ```typescript
 // webpack.config.js
 {
