@@ -1,7 +1,7 @@
 // transformers/i18nMessagesTransformer.ts
 import ts from "typescript";
 import { stableHash } from "../common/hash";
-import { i18nStore, toRelPosix } from "../common/i18nStore";
+import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
 export type I18nextAutoKeyTransformerOptions = {
@@ -93,6 +93,105 @@ function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
     }
   }
   return out.filter(Boolean);
+}
+
+/** Extract JSDoc parameter information from function parameters */
+function extractParameterMetadata(
+  fn: ts.ArrowFunction | ts.FunctionExpression,
+  sf: ts.SourceFile
+): ParameterMetadata | undefined {
+  const params = fn.parameters;
+  if (params.length === 0) return undefined;
+
+  const parameterNames: string[] = [];
+  const parameterJSDoc: { [paramName: string]: string } = {};
+
+  // Get JSDoc comments from the function node
+  const jsDocComments = getJSDocComments(fn, sf);
+  const paramTags = extractParamTags(jsDocComments);
+
+  for (const param of params) {
+    if (ts.isIdentifier(param.name)) {
+      const paramName = param.name.text;
+      parameterNames.push(paramName);
+
+      // Look for JSDoc @param tag for this parameter
+      const paramDoc = paramTags[paramName];
+      if (paramDoc) {
+        parameterJSDoc[paramName] = paramDoc;
+      }
+    }
+  }
+
+  return parameterNames.length > 0 ? { parameterNames, parameterJSDoc } : undefined;
+}
+
+/** Get JSDoc comments from a function node */
+function getJSDocComments(node: ts.Node, sf: ts.SourceFile): string[] {
+  const anyTs: any = ts as any;
+  const comments: string[] = [];
+
+  // 1) Modern helper if present
+  if (typeof anyTs.getJSDocTags === "function") {
+    try {
+      const tags: readonly ts.JSDocTag[] = anyTs.getJSDocTags(node);
+      for (const tag of tags || []) {
+        if (tag.comment) {
+          const commentText =
+            typeof tag.comment === "string" ? tag.comment : tag.comment.map((c: any) => c.text || c.kind).join("");
+          comments.push(commentText);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // 2) Legacy: node.jsDoc
+  const jsDocs = (node as any).jsDoc as readonly ts.JSDoc[] | undefined;
+  if (jsDocs) {
+    for (const jsDoc of jsDocs) {
+      if (jsDoc.comment) {
+        const commentText =
+          typeof jsDoc.comment === "string" ? jsDoc.comment : jsDoc.comment.map((c: any) => c.text || "").join("");
+        comments.push(commentText);
+      }
+    }
+  }
+
+  // 3) Fallback: scan leading comments for JSDoc blocks
+  const text = sf.getFullText();
+  const ranges = ts.getLeadingCommentRanges?.(text, node.getFullStart());
+  if (ranges) {
+    for (const r of ranges) {
+      const comment = text.slice(r.pos, r.end);
+      if (comment.startsWith("/**")) {
+        comments.push(comment);
+      }
+    }
+  }
+
+  return comments;
+}
+
+/** Extract @param tags from JSDoc comments */
+function extractParamTags(jsDocComments: string[]): { [paramName: string]: string } {
+  const paramTags: { [paramName: string]: string } = {};
+
+  for (const comment of jsDocComments) {
+    // Parse @param tags from the comment
+    const paramRegex = /@param\s+(?:\{[^}]*\}\s+)?(\w+)\s+(.+?)(?=@\w+|$)/gs;
+    let match;
+    while ((match = paramRegex.exec(comment)) !== null) {
+      const paramName = match[1];
+      const paramDescription = match[2].trim().replace(/\s+/g, " ");
+      if (paramName && paramDescription) {
+        paramTags[paramName] = paramDescription;
+      }
+    }
+  }
+
+  return paramTags;
 }
 
 /** Try to return the node that actually contains the string literal content for better refs. */
@@ -292,11 +391,15 @@ export function createI18nextAutoKeyTransformerFactory(
             ...(anchor !== node ? getLeadingComments(sf, anchor) : []),
           ];
 
+          // Extract parameter metadata for ICU indexed mode context
+          const parameterMetadata = extractParameterMetadata(fn, sf);
+
           i18nStore.add({
             id,
             source: internedOriginal, // Use interned string to avoid duplication
             ref: { file: rel, line, column },
             comments,
+            parameterMetadata,
           });
           // ── END NEW
 

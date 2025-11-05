@@ -3,6 +3,7 @@ import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
 import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
+import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
@@ -148,7 +149,13 @@ async function processSourceFile(
 }
 
 async function generatePot(
-  entries: Array<{ id: string; source: string; refs: Set<string>; extractedComments: Set<string> }>,
+  entries: Array<{
+    id: string;
+    source: string;
+    refs: Set<string>;
+    extractedComments: Set<string>;
+    parameterMetadata?: ParameterMetadata;
+  }>,
   outputPath: string,
   projectId: string
 ): Promise<void> {
@@ -178,13 +185,31 @@ async function generatePot(
   };
 
   for (const entry of entries) {
+    // Build extracted comments including parameter metadata
+    const extractedComments = Array.from(entry.extractedComments);
+
+    // Add parameter metadata for ICU indexed mode context
+    if (entry.parameterMetadata && entry.parameterMetadata.parameterNames.length > 0) {
+      const { parameterNames, parameterJSDoc } = entry.parameterMetadata;
+
+      // Add parameter descriptions from JSDoc
+      parameterNames.forEach((paramName, index) => {
+        const jsDocDescription = parameterJSDoc[paramName];
+        if (jsDocDescription) {
+          extractedComments.push(`{${index}} (${paramName}): ${jsDocDescription}`);
+        } else {
+          extractedComments.push(`{${index}} = ${paramName}`);
+        }
+      });
+    }
+
     catalog.translations[""][entry.source] = {
       msgid: entry.source,
       msgctxt: entry.id,
       msgstr: [""],
       comments: {
         reference: Array.from(entry.refs).sort().join("\n") || undefined, // "#: file:line:column"
-        extracted: Array.from(entry.extractedComments).sort().join("\n") || undefined, // "#. comment"
+        extracted: extractedComments.sort().join("\n") || undefined, // "#. comment"
       },
     };
   }
