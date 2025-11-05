@@ -168,12 +168,29 @@ describe("i18next-auto-keys E2E Tests", () => {
           expect(values).toContain("Sign In");
           expect(values).toContain("Home");
           expect(values).toContain("Save Changes");
-          expect(values).toContain("Welcome back, {{name}}!");
-          expect(values).toContain("{{count}} items in your cart");
+
+          // For indexed arguments, expect indexed placeholders
+          if (configName === "indexedArguments") {
+            expect(values).toContain("Welcome back, {{0}}!");
+          } else {
+            expect(values).toContain("Welcome back, {{name}}!");
+          }
+
+          // For indexed arguments, expect indexed placeholders
+          if (configName === "indexedArguments") {
+            expect(values).toContain("{{0}} items in your cart");
+          } else {
+            expect(values).toContain("{{count}} items in your cart");
+          }
         }
 
         // Always expect password reset message (from auth.messages.ts)
-        expect(values).toContain("Password reset link sent to {{email}}. Expires in {{minutes}} minutes.");
+        // For indexed arguments, expect indexed placeholders
+        if (configName === "indexedArguments") {
+          expect(values).toContain("Password reset link sent to {{0}}. Expires in {{1}} minutes.");
+        } else {
+          expect(values).toContain("Password reset link sent to {{email}}. Expires in {{minutes}} minutes.");
+        }
       });
 
       it("should not include @noTranslate messages", () => {
@@ -387,5 +404,63 @@ describe("i18next-auto-keys E2E Tests", () => {
 
       cleanConfigArtifacts("strictInclude", distPath);
     }, 60000);
+
+    it("should produce identical results with indexed and named argument modes", async () => {
+      // Build both configurations
+      const namedConfig = TEST_CONFIGURATIONS.default;
+      const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
+
+      const namedResult = await buildWithConfig(namedConfig);
+      const indexedResult = await buildWithConfig(indexedConfig);
+
+      // Clear require cache and load both bundles
+      delete require.cache[namedResult.bundlePath];
+      delete require.cache[indexedResult.bundlePath];
+
+      const namedBundle = require(namedResult.bundlePath).TestBundle;
+      const indexedBundle = require(indexedResult.bundlePath).TestBundle;
+
+      // Initialize i18next for both bundles
+      await namedBundle.initializeI18next(path.dirname(namedResult.translationsPath));
+      await indexedBundle.initializeI18next(path.dirname(indexedResult.translationsPath));
+
+      // Test that both argument modes produce identical results
+      expect(namedBundle.getWelcomeMessage("John")).toBe("Welcome back, John!");
+      expect(indexedBundle.getWelcomeMessage("John")).toBe("Welcome back, John!");
+
+      // Test parameterized messages with multiple parameters
+      const namedResetMessage = namedBundle.getResetEmailMessage("user@example.com", 15);
+      const indexedResetMessage = indexedBundle.getResetEmailMessage("user@example.com", 15);
+
+      const namedComplexMessage = namedBundle.getComplexMessage();
+      const indexedComplexMessage = indexedBundle.getComplexMessage();
+
+      // Both should produce the same translated strings
+      expect(namedResetMessage).toBe("Password reset link sent to user@example.com. Expires in 15 minutes.");
+      expect(indexedResetMessage).toBe("Password reset link sent to user@example.com. Expires in 15 minutes.");
+
+      expect(namedComplexMessage).toBe("3 of 5 login attempts remaining");
+      expect(indexedComplexMessage).toBe("3 of 5 login attempts remaining");
+
+      // Test that simple messages are identical
+      const namedSimple = namedBundle.getAllSimpleMessages();
+      const indexedSimple = indexedBundle.getAllSimpleMessages();
+
+      expect(namedSimple.sort()).toEqual(indexedSimple.sort());
+
+      // Verify that the generated translations are identical
+      const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
+      const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));
+
+      // The translation values should be identical (though keys may differ due to hashing)
+      const namedValues = Object.values(namedTranslations).sort();
+      const indexedValues = Object.values(indexedTranslations).sort();
+
+      expect(namedValues).toEqual(indexedValues);
+
+      // Clean up
+      cleanConfigArtifacts("default", distPath);
+      cleanConfigArtifacts("indexed-arguments", distPath);
+    }, 120000);
   });
 });

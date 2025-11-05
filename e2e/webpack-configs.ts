@@ -15,6 +15,8 @@ interface WebpackConfigOptions {
   libraryName?: string;
   target?: string;
   loaderOptions?: Record<string, any>;
+  argMode?: "indexed" | "named";
+  resolveAlias?: Record<string, string>;
 }
 
 /**
@@ -34,6 +36,8 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     libraryName = "TestBundle",
     target = "node",
     loaderOptions = {},
+    argMode = "named",
+    resolveAlias = {},
   } = options;
 
   return {
@@ -54,6 +58,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     },
     resolve: {
       extensions: [".ts", ".tsx", ".js", ".jsx"],
+      alias: resolveAlias,
     },
     module: {
       rules: [
@@ -64,16 +69,17 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
             {
               loader: "ts-loader",
             },
-            {
-              loader: path.resolve(__dirname, "../dist/index.js"),
-              options: {
-                include,
-                hashLength,
-                setDefaultValue,
-                sourcemap,
-                ...loaderOptions,
+              {
+                loader: path.resolve(__dirname, "../dist/index.js"),
+                options: {
+                  include,
+                  hashLength,
+                  setDefaultValue,
+                  sourcemap,
+                  argMode,
+                  ...loaderOptions,
+                },
               },
-            },
           ],
         },
       ],
@@ -145,6 +151,16 @@ const TEST_CONFIGURATIONS = {
     configName: "custom-loader",
     hashLength: 10, // Would be 12, but global store prevents this
     setDefaultValue: true, // Use a valid option instead
+  }),
+
+  indexedArguments: createWebpackConfig({
+    configName: "indexed-arguments",
+    hashLength: 10,
+    argMode: "indexed",
+    resolveAlias: {
+      "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
+      "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
+    },
   }),
 };
 
