@@ -2,7 +2,7 @@
 
 The `i18next-auto-keys` package includes CLI tools for working with translations independently of your webpack build process:
 
-1. **POT file generation** - Extract translation keys from source code
+1. **Extract Messages and Keys** - Extract translation keys from source code and generate a POT template file
 2. **PO to JSON conversion** - Convert translated .po files to i18next JSON format
 
 ## Installation
@@ -21,20 +21,20 @@ Generate a POT file from your source code:
 
 ```bash
 # Generate POT file
-npx i18next-auto-keys generate --include "**/*.messages.ts" --output ./i18n/messages.pot
+npx i18next-auto-keys extract --include "**/*.messages.ts" --output ./i18n/messages.pot
 
 # Include multiple file patterns
-npx i18next-auto-keys generate --include "**/*.ts" "**/*.tsx" --output ./i18n/messages.pot
+npx i18next-auto-keys extract --include "**/*.ts" "**/*.tsx" --output ./i18n/messages.pot
 
 # Scan specific directories
-npx i18next-auto-keys generate --include "src/**/*.ts" "components/**/*.tsx" --output ./i18n/messages.pot
+npx i18next-auto-keys extract --include "src/**/*.ts" "components/**/*.tsx" --output ./i18n/messages.pot
 ```
 
 #### Advanced POT Generation
 
 ```bash
 # Full control over file patterns and settings
-npx i18next-auto-keys generate \
+npx i18next-auto-keys extract \
   --include "src/**/*.messages.ts" "components/**/*.ts" \
   --exclude "**/*.test.ts" "**/__tests__/**" \
   --output ./i18n/messages.pot \
@@ -42,7 +42,7 @@ npx i18next-auto-keys generate \
   --tsconfig ./tsconfig.json
 
 # Specify a different search root (optional)
-npx i18next-auto-keys generate \
+npx i18next-auto-keys extract \
   --source ./frontend \
   --include "**/*.ts" "**/*.tsx" \
   --output ./i18n/messages.pot
@@ -92,7 +92,7 @@ npx i18next-auto-keys convert \
 
 ### Command Line Options
 
-#### POT Generation (`generate`)
+#### Extract Messages and Keys (`extract`)
 
 - `--output, -o` (required): Output path for the POT file
 - `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
@@ -126,7 +126,7 @@ on:
     branches: [main]
 
 jobs:
-  generate-pot:
+  extract-pot:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -134,7 +134,7 @@ jobs:
         with:
           node-version: '18'
       - run: npm ci
-      - run: npx i18next-auto-keys generate --include "src/**/*.ts" "src/**/*.tsx" --output ./i18n/messages.pot
+      - run: npx i18next-auto-keys extract --include "src/**/*.ts" "src/**/*.tsx" --output ./i18n/messages.pot
       - name: Commit POT file
         run: |
           git config --local user.email "action@github.com"
@@ -151,7 +151,7 @@ Add to your `package.json`:
 ```json
 {
   "scripts": {
-    "i18n:extract": "i18next-auto-keys generate --include \"**/*.messages.ts\" --output ./i18n/messages.pot",
+    "i18n:extract": "i18next-auto-keys extract --include \"**/*.messages.ts\" --output ./i18n/messages.pot",
     "i18n:update": "i18next-auto-keys update --template ./i18n/messages.pot --po-files \"./i18n/*.po\"",
     "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch"
   }
@@ -164,7 +164,7 @@ Here's a complete translation workflow using all three CLI commands:
 
 1. **Extract keys from source code**:
    ```bash
-   npx i18next-auto-keys generate --include "**/*.messages.ts" --output ./i18n/messages.pot
+   npx i18next-auto-keys extract --include "**/*.messages.ts" --output ./i18n/messages.pot
    ```
 
 2. **Send POT file to translators** who will create language-specific .po files (e.g., es.po, fr.po, de.po)

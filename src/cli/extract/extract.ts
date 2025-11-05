@@ -6,7 +6,7 @@ import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
-export type GeneratePotOptions = {
+export type ExtractOptions = {
   source?: string;
   output: string;
   projectId?: string;
@@ -19,7 +19,7 @@ export type GeneratePotOptions = {
  * Scans TypeScript/JavaScript source files and generates a POT file
  * containing all translation keys found by the i18next-auto-keys transformer.
  */
-export async function generatePotFile(options: GeneratePotOptions): Promise<void> {
+export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Promise<void> {
   const {
     source = process.cwd(),
     output,

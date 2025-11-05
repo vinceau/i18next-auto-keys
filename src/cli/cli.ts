@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { generatePotFile } from "./generate/generate";
+import { extractKeysAndGeneratePotFile } from "./extract/extract";
 import { updatePoFiles } from "./update/update";
 import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
 
 const program = new Command();
 program.name("i18next-auto-keys").description("CLI tools for i18next-auto-keys translation workflow").version("1.0.0");
 
-// Generate POT command
+// Extract POT command
 program
-  .command("generate")
-  .description("Generate POT files from i18next-auto-keys sources")
+  .command("extract")
+  .description("Extract translation keys and generate POT files from i18next-auto-keys sources")
   .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
   .requiredOption("-o, --output <path>", "Output path for the POT file")
   .option("-p, --project-id <id>", "Project ID for POT header", "app 1.0")
@@ -19,7 +19,7 @@ program
   .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
   .action(async (options) => {
     try {
-      await generatePotFile({
+      await extractKeysAndGeneratePotFile({
         source: options.source,
         output: options.output,
         projectId: options.projectId,
@@ -28,7 +28,7 @@ program
         tsconfig: options.tsconfig,
       });
     } catch (error) {
-      console.error("❌ Error generating POT file:", error);
+      console.error("❌ Error extracting translation keys:", error);
       process.exit(1);
     }
   });

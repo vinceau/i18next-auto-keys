@@ -326,7 +326,7 @@ i18next
 
 The package includes CLI tools for translation workflow management:
 
-### Generate POT Files
+### Extract Messages and Generate POT File
 Extract translation keys from your source code for translators:
 
 ```bash

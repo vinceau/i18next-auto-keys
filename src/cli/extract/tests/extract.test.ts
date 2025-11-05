@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { generatePotFile } from "../generate";
+import { extractKeysAndGeneratePotFile } from "../extract";
 import { i18nStore } from "../../../common/i18nStore";
 
 // Mock console to avoid spam during tests
@@ -72,7 +72,7 @@ jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
-describe("generatePotFile", () => {
+describe("extractKeysAndGeneratePotFile", () => {
   const testSourceDir = "/test/src";
   const testOutputPath = "/test/output/messages.pot";
 
@@ -134,7 +134,7 @@ describe("generatePotFile", () => {
 
   it("should generate POT file successfully", async () => {
     // Use .messages.ts pattern to match what the transformer expects
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.messages.ts", "**/*.messages.tsx"],
@@ -168,7 +168,7 @@ describe("generatePotFile", () => {
       return filePath !== outputDir;
     });
 
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.ts"],
@@ -182,7 +182,7 @@ describe("generatePotFile", () => {
     const customInclude = ["**/*.custom.ts"];
     const customExclude = ["**/ignored/**"];
 
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: customInclude,
@@ -201,7 +201,7 @@ describe("generatePotFile", () => {
       return !filePath.toString().includes("tsconfig.json");
     });
 
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.ts"],
@@ -214,7 +214,7 @@ describe("generatePotFile", () => {
   it("should warn when no source files are found", async () => {
     mockGlob.sync.mockReturnValue([]);
 
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.ts"],
@@ -229,7 +229,7 @@ describe("generatePotFile", () => {
       throw new Error("File read error");
     });
 
-    await generatePotFile({
+    await extractKeysAndGeneratePotFile({
       source: testSourceDir,
       output: testOutputPath,
       include: ["**/*.ts"],
