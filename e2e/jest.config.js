@@ -12,4 +12,5 @@ module.exports = {
     '^.+\\.tsx?$': 'ts-jest',
   },
   testTimeout: 30000, // Webpack builds might take time
+  verbose: true,
 };
