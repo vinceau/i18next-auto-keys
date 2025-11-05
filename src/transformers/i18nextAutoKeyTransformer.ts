@@ -104,6 +104,7 @@ function extractParameterMetadata(
   if (params.length === 0) return undefined;
 
   const parameterNames: string[] = [];
+  const parameterTypes: string[] = [];
   const parameterJSDoc: { [paramName: string]: string } = {};
 
   // Get JSDoc comments from the function node
@@ -115,6 +116,10 @@ function extractParameterMetadata(
       const paramName = param.name.text;
       parameterNames.push(paramName);
 
+      // Extract type information
+      const paramType = getTypeString(param, sf);
+      parameterTypes.push(paramType);
+
       // Look for JSDoc @param tag for this parameter
       const paramDoc = paramTags[paramName];
       if (paramDoc) {
@@ -123,7 +128,18 @@ function extractParameterMetadata(
     }
   }
 
-  return parameterNames.length > 0 ? { parameterNames, parameterJSDoc } : undefined;
+  return parameterNames.length > 0 ? { parameterNames, parameterTypes, parameterJSDoc } : undefined;
+}
+
+/** Extract type information from a parameter declaration */
+function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile): string {
+  if (param.type) {
+    // Get the type text from the source file
+    const typeText = param.type.getText(sf);
+    return typeText;
+  }
+
+  return "unknown";
 }
 
 /** Get JSDoc comments from a function node */

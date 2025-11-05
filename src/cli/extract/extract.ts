@@ -190,15 +190,17 @@ async function generatePot(
 
     // Add parameter metadata for ICU indexed mode context
     if (entry.parameterMetadata && entry.parameterMetadata.parameterNames.length > 0) {
-      const { parameterNames, parameterJSDoc } = entry.parameterMetadata;
+      const { parameterNames, parameterTypes, parameterJSDoc } = entry.parameterMetadata;
 
       // Add parameter descriptions from JSDoc
       parameterNames.forEach((paramName, index) => {
+        const paramType = parameterTypes[index] || "unknown";
         const jsDocDescription = parameterJSDoc[paramName];
+
         if (jsDocDescription) {
-          extractedComments.push(`{${index}} (${paramName}): ${jsDocDescription}`);
+          extractedComments.push(`{${index}} (${paramName}: ${paramType}): ${jsDocDescription}`);
         } else {
-          extractedComments.push(`{${index}} = ${paramName}`);
+          extractedComments.push(`{${index}} = ${paramName}: ${paramType}`);
         }
       });
     }

@@ -303,9 +303,9 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with JSDoc available in comments
-      expect(potContent).toContain("{0} = name");
-      expect(potContent).toContain("{1} = age");
+      // Should contain parameter metadata with types and JSDoc available in comments
+      expect(potContent).toContain("{0} = name: string");
+      expect(potContent).toContain("{1} = age: number");
       expect(potContent).toContain("Hello {name}, you are {age} years old!");
       // JSDoc should be present in the comments
       expect(potContent).toContain("@param name The user's display name");
@@ -353,11 +353,11 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata without JSDoc descriptions
-      expect(potContent).toContain("{0} = count");
-      expect(potContent).toContain("{1} = total");
-      expect(potContent).toContain("{0} = username");
-      expect(potContent).toContain("{1} = email");
+      // Should contain parameter metadata with types but without JSDoc descriptions
+      expect(potContent).toContain("{0} = count: number");
+      expect(potContent).toContain("{1} = total: number");
+      expect(potContent).toContain("{0} = username: string");
+      expect(potContent).toContain("{1} = email: string");
       expect(potContent).toContain("Processing {count} of {total} files");
       expect(potContent).toContain("User: {username} ({email})");
     });
@@ -408,10 +408,10 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should contain parameter metadata with mixed documentation
-      expect(potContent).toContain("{0} = fileName");
-      expect(potContent).toContain("{1} = size"); // No JSDoc for size parameter
-      expect(potContent).toContain("{2} = errors");
+      // Should contain parameter metadata with types and mixed documentation
+      expect(potContent).toContain("{0} = fileName: string");
+      expect(potContent).toContain("{1} = size: number"); // No JSDoc for size parameter but has type
+      expect(potContent).toContain("{2} = errors: number");
       expect(potContent).toContain("File {fileName} ({size} bytes) has {errors} errors");
       // JSDoc should be present in the comments for documented parameters
       expect(potContent).toContain("@param fileName The name of the file being analyzed");
@@ -462,13 +462,82 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potBuffer).toBeInstanceOf(Buffer);
       const potContent = potBuffer.toString();
 
-      // Should not contain parameter metadata lines
+      // Should not contain parameter metadata lines for parameterless functions
       expect(potContent).not.toContain("{0}");
       expect(potContent).not.toContain("{1}");
       expect(potContent).toContain("Welcome to our application!");
       expect(potContent).toContain("Loading...");
       // May contain JSDoc comments but not parameter-specific metadata
       expect(potContent).toContain("A simple welcome message");
+    });
+
+    it("should include TypeScript parameter types in metadata", async () => {
+      // Mock file with various TypeScript parameter types
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+        const pathStr = filePath.toString();
+        if (pathStr.includes("tsconfig.json")) {
+          return JSON.stringify({
+            compilerOptions: {
+              target: "ES2020",
+              module: "commonjs",
+              strict: true,
+            },
+          });
+        }
+        if (pathStr.includes("types-test.messages.ts")) {
+          return `export const TypesTestMessages = {
+  /**
+   * Various parameter types demonstration
+   * @param isActive Whether the feature is active
+   * @param userName The user's name
+   * @param count Number of items
+   * @param tags List of tags
+   */
+  multiType: (isActive: boolean, userName: string, count: number, tags: string[]): string =>
+    "User {userName} has {count} items (active: {isActive}) with tags: {tags}",
+
+  // Complex types without JSDoc
+  complexTypes: (callback: () => void, data: { id: number; name: string }, optional?: string): string =>
+    "Processing data {data} with callback",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/types-test.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "test-types 1.0",
+      });
+
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+      // Verify POT content includes TypeScript types
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      expect(potBuffer).toBeInstanceOf(Buffer);
+      const potContent = potBuffer.toString();
+
+      // Should contain parameter metadata with correct TypeScript types
+      expect(potContent).toContain("{0} = isActive: boolean");
+      expect(potContent).toContain("{1} = userName: string");
+      expect(potContent).toContain("{2} = count: number");
+      expect(potContent).toContain("{3} = tags: string[]");
+
+      // Complex types should also be extracted
+      expect(potContent).toContain("{0} = callback: () => void");
+      expect(potContent).toContain("{1} = data: { id: number; name: string }");
+      expect(potContent).toContain("{2} = optional: string");
+
+      // JSDoc should be preserved alongside types
+      expect(potContent).toContain("@param isActive Whether the feature is active");
+      expect(potContent).toContain("@param userName The user's name");
+      expect(potContent).toContain("@param count Number of items");
     });
   });
 });

@@ -18,6 +18,7 @@ export type Entry = {
 
 export type ParameterMetadata = {
   parameterNames: string[]; // Parameter names in order
+  parameterTypes: string[]; // Parameter types in order
   parameterJSDoc: { [paramName: string]: string }; // JSDoc for each parameter
 };
 
