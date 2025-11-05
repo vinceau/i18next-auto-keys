@@ -131,7 +131,24 @@ function getJSDocComments(node: ts.Node, sf: ts.SourceFile): string[] {
   const anyTs: any = ts as any;
   const comments: string[] = [];
 
-  // 1) Modern helper if present
+  // 1) Legacy: node.jsDoc - This is the most reliable way to get JSDoc
+  const jsDocs = (node as any).jsDoc as readonly ts.JSDoc[] | undefined;
+  if (jsDocs && jsDocs.length > 0) {
+    for (const jsDoc of jsDocs) {
+      // Get the full JSDoc comment text to preserve structure
+      const jsDocText = jsDoc.getFullText?.(sf) || jsDoc.getText?.(sf);
+      if (jsDocText) {
+        comments.push(jsDocText);
+      } else if (jsDoc.comment) {
+        const commentText =
+          typeof jsDoc.comment === "string" ? jsDoc.comment : jsDoc.comment.map((c: any) => c.text || "").join("");
+        comments.push(`/**\n * ${commentText}\n */`); // Wrap in JSDoc format
+      }
+    }
+    return comments; // Return early if we found JSDoc through this method
+  }
+
+  // 2) Modern helper if present
   if (typeof anyTs.getJSDocTags === "function") {
     try {
       const tags: readonly ts.JSDocTag[] = anyTs.getJSDocTags(node);
@@ -144,18 +161,6 @@ function getJSDocComments(node: ts.Node, sf: ts.SourceFile): string[] {
       }
     } catch {
       /* ignore */
-    }
-  }
-
-  // 2) Legacy: node.jsDoc
-  const jsDocs = (node as any).jsDoc as readonly ts.JSDoc[] | undefined;
-  if (jsDocs) {
-    for (const jsDoc of jsDocs) {
-      if (jsDoc.comment) {
-        const commentText =
-          typeof jsDoc.comment === "string" ? jsDoc.comment : jsDoc.comment.map((c: any) => c.text || "").join("");
-        comments.push(commentText);
-      }
     }
   }
 
@@ -179,15 +184,41 @@ function extractParamTags(jsDocComments: string[]): { [paramName: string]: strin
   const paramTags: { [paramName: string]: string } = {};
 
   for (const comment of jsDocComments) {
-    // Parse @param tags from the comment
-    const paramRegex = /@param\s+(?:\{[^}]*\}\s+)?(\w+)\s+(.+?)(?=@\w+|$)/gs;
-    let match;
-    while ((match = paramRegex.exec(comment)) !== null) {
-      const paramName = match[1];
-      const paramDescription = match[2].trim().replace(/\s+/g, " ");
-      if (paramName && paramDescription) {
-        paramTags[paramName] = paramDescription;
+    // Parse @param tags from the comment, handling multiline and various formats
+    const lines = comment.split("\n");
+    let currentParam: string | null = null;
+    let currentDescription: string[] = [];
+
+    for (const line of lines) {
+      const cleanLine = line.replace(/^\s*\*?\s?/, "").trim(); // Remove leading * and whitespace
+
+      // Check if this line starts a new @param
+      const paramMatch = cleanLine.match(/@param\s+(?:\{[^}]*\}\s+)?(\w+)\s*(.*)/);
+      if (paramMatch) {
+        // Save previous param if exists
+        if (currentParam && currentDescription.length > 0) {
+          paramTags[currentParam] = currentDescription.join(" ").trim();
+        }
+
+        // Start new param
+        currentParam = paramMatch[1];
+        currentDescription = paramMatch[2] ? [paramMatch[2]] : [];
+      } else if (currentParam && cleanLine && !cleanLine.startsWith("@")) {
+        // Continue description for current param
+        currentDescription.push(cleanLine);
+      } else if (cleanLine.startsWith("@") || cleanLine === "") {
+        // Save current param and reset
+        if (currentParam && currentDescription.length > 0) {
+          paramTags[currentParam] = currentDescription.join(" ").trim();
+        }
+        currentParam = null;
+        currentDescription = [];
       }
+    }
+
+    // Save last param if exists
+    if (currentParam && currentDescription.length > 0) {
+      paramTags[currentParam] = currentDescription.join(" ").trim();
     }
   }
 
