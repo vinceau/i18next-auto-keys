@@ -535,5 +535,249 @@ describe("extractKeysAndGeneratePotFile", () => {
       // JSDoc main description should be preserved but cleaned up
       expect(potContent).toContain("Various parameter types demonstration");
     });
+
+    describe("Method shorthand syntax support", () => {
+      it("should extract parameter metadata from method shorthand with JSDoc", async () => {
+        // Mock file with method shorthand syntax
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes("tsconfig.json")) {
+            return JSON.stringify({
+              compilerOptions: {
+                target: "ES2020",
+                module: "commonjs",
+                strict: true,
+              },
+            });
+          }
+          if (pathStr.includes("method-shorthand.messages.ts")) {
+            return `export const MethodShorthandMessages = {
+  /**
+   * Method shorthand with full JSDoc
+   * @param userName The user's name
+   * @param status The user's status
+   */
+  methodWithJSDoc(userName: string, status: string): string {
+    return "User {userName} is {status}";
+  },
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/method-shorthand.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "method-shorthand-test 1.0",
+        });
+
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+        // Verify POT content includes method shorthand JSDoc and parameter metadata
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+
+        expect(potBuffer).toBeInstanceOf(Buffer);
+        const potContent = potBuffer.toString();
+
+        expect(potContent).toContain("Method shorthand with full JSDoc");
+        expect(potContent).toContain("{0} userName: string - The user's name");
+        expect(potContent).toContain("{1} status: string - The user's status");
+        expect(potContent).toContain('msgid "User {userName} is {status}"');
+      });
+
+      it("should extract parameter metadata from method shorthand without JSDoc", async () => {
+        // Mock file with method shorthand syntax without JSDoc
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes("tsconfig.json")) {
+            return JSON.stringify({
+              compilerOptions: {
+                target: "ES2020",
+                module: "commonjs",
+                strict: true,
+              },
+            });
+          }
+          if (pathStr.includes("method-no-jsdoc.messages.ts")) {
+            return `export const MethodNoJSDocMessages = {
+  // Method shorthand without JSDoc - should still show parameter types
+  methodWithoutJSDoc(count: number, item: string): string {
+    return "Found {count} {item}";
+  },
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/method-no-jsdoc.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "method-no-jsdoc-test 1.0",
+        });
+
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+        // Verify POT content includes parameter types without JSDoc descriptions
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+
+        expect(potBuffer).toBeInstanceOf(Buffer);
+        const potContent = potBuffer.toString();
+
+        expect(potContent).toContain("{0} count: number");
+        expect(potContent).toContain("{1} item: string");
+        expect(potContent).not.toContain("count: number -"); // No JSDoc descriptions for parameters
+        expect(potContent).not.toContain("item: string -"); // No JSDoc descriptions for parameters
+        expect(potContent).toContain('msgid "Found {count} {item}"');
+      });
+
+      it("should handle mixed syntax styles (property assignment vs method shorthand vs function expression)", async () => {
+        // Mock file with all three syntax styles
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes("tsconfig.json")) {
+            return JSON.stringify({
+              compilerOptions: {
+                target: "ES2020",
+                module: "commonjs",
+                strict: true,
+              },
+            });
+          }
+          if (pathStr.includes("mixed-syntax.messages.ts")) {
+            return `export const MixedSyntaxMessages = {
+  /**
+   * Property assignment style
+   * @param name The person's name
+   */
+  propertyStyle: (name: string): string => "Hello {name}",
+
+  /**
+   * Method shorthand style
+   * @param item The item name
+   */
+  methodStyle(item: string): string {
+    return "Item: {item}";
+  },
+
+  /**
+   * Function expression style
+   * @param value The value
+   */
+  functionStyle: function(value: string): string {
+    return "Value: {value}";
+  },
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/mixed-syntax.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "mixed-syntax-test 1.0",
+        });
+
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+        // Verify POT content handles all three syntax styles correctly
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+
+        expect(potBuffer).toBeInstanceOf(Buffer);
+        const potContent = potBuffer.toString();
+
+        // Property assignment style
+        expect(potContent).toContain("Property assignment style");
+        expect(potContent).toContain("{0} name: string - The person's name");
+        expect(potContent).toContain('msgid "Hello {name}"');
+
+        // Method shorthand style
+        expect(potContent).toContain("Method shorthand style");
+        expect(potContent).toContain("{0} item: string - The item name");
+        expect(potContent).toContain('msgid "Item: {item}"');
+
+        // Function expression style
+        expect(potContent).toContain("Function expression style");
+        expect(potContent).toContain("{0} value: string - The value");
+        expect(potContent).toContain('msgid "Value: {value}"');
+
+        // Should have exactly 3 translation entries
+        const msgctxtCount = (potContent.match(/msgctxt/g) || []).length;
+        expect(msgctxtCount).toBe(3);
+      });
+
+      it("should handle method shorthand with complex parameter types", async () => {
+        // Mock file with complex types in method shorthand
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          const pathStr = filePath.toString();
+          if (pathStr.includes("tsconfig.json")) {
+            return JSON.stringify({
+              compilerOptions: {
+                target: "ES2020",
+                module: "commonjs",
+                strict: true,
+              },
+            });
+          }
+          if (pathStr.includes("complex-method.messages.ts")) {
+            return `export const ComplexMethodMessages = {
+  /**
+   * Method with complex types
+   * @param user User object with details
+   * @param options Configuration options
+   * @param callback Function to handle result
+   */
+  complexMethod(
+    user: { name: string; age: number },
+    options: string[] | null,
+    callback: (result: boolean) => void
+  ): string {
+    return "Processing user {user} with options {options}";
+  },
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/complex-method.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "complex-method-test 1.0",
+        });
+
+        expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+        // Verify POT content handles complex types correctly
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+
+        expect(potBuffer).toBeInstanceOf(Buffer);
+        const potContent = potBuffer.toString();
+
+        expect(potContent).toContain("Method with complex types");
+        expect(potContent).toContain("{0} user: { name: string; age: number } - User object with details");
+        expect(potContent).toContain("{1} options: string[] | null - Configuration options");
+        expect(potContent).toContain("{2} callback: (result: boolean) => void - Function to handle result");
+        expect(potContent).toContain('msgid "Processing user {user} with options {options}"');
+      });
+    });
   });
 });
