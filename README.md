@@ -207,7 +207,7 @@ pluralItems: (count: number): string => i18next.t("xyz789abc1", { count })
 
 #### Indexed Mode (Shorter - more concise)
 
-This mode makes it easier to differentiate between parameters and translation text. The indexed order is the same as the order of the function paramters.
+This mode makes it easier to differentiate between parameters and translation text. The indexed order is the same as the order of the function parameters.
 
 ```typescript
 // webpack.config.js

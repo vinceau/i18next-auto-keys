@@ -1,7 +1,7 @@
 // transformers/i18nMessagesTransformer.ts
 import ts from "typescript";
 import { stableHash } from "../common/hash";
-import { i18nStore, toRelPosix } from "../common/i18nStore";
+import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
 export type I18nextAutoKeyTransformerOptions = {
@@ -95,9 +95,105 @@ function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
   return out.filter(Boolean);
 }
 
+/** Extract JSDoc parameter information from function parameters */
+function extractParameterMetadata(
+  fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
+  sf: ts.SourceFile
+): ParameterMetadata | undefined {
+  const params = fn.parameters;
+  if (params.length === 0) return undefined;
+
+  const parameterNames: string[] = [];
+  const parameterTypes: string[] = [];
+  const parameterJSDoc: { [paramName: string]: string } = {};
+
+  // Use the same method as getLeadingComments to get the JSDoc text
+  const text = sf.getFullText();
+
+  // Collect JSDoc from both the function itself AND the parent property assignment
+  let ranges: readonly ts.CommentRange[] = [];
+
+  // Try to get JSDoc from the function itself first
+  const functionRanges = ts.getLeadingCommentRanges?.(text, fn.getFullStart()) || [];
+  ranges = [...functionRanges];
+
+  // Also try the parent (property assignment) if it exists, but skip for method declarations
+  // since they already capture their own JSDoc
+  if (!ts.isMethodDeclaration(fn) && fn.parent && ts.isPropertyAssignment(fn.parent)) {
+    const parentRanges = ts.getLeadingCommentRanges?.(text, fn.parent.getFullStart()) || [];
+    // Add parent ranges if they don't overlap with function ranges
+    for (const pRange of parentRanges) {
+      const overlaps = functionRanges.some(
+        (fRange) =>
+          (pRange.pos >= fRange.pos && pRange.pos <= fRange.end) ||
+          (pRange.end >= fRange.pos && pRange.end <= fRange.end)
+      );
+      if (!overlaps) {
+        ranges = [...ranges, pRange];
+      }
+    }
+  }
+
+  for (const r of ranges) {
+    const raw = text.slice(r.pos, r.end);
+    if (raw.startsWith("/**")) {
+      // Simple, direct approach: look for @param lines
+      const lines = raw.split("\n");
+      for (const line of lines) {
+        // Extremely simple regex - just find @param followed by word and description
+        if (line.includes("@param")) {
+          const match = line.match(/@param\s+(\w+)\s+(.+)/);
+          if (match) {
+            const paramName = match[1];
+            let paramDescription = match[2];
+
+            // Remove common endings
+            paramDescription = paramDescription
+              .replace(/\*\/\s*$/, "")
+              .replace(/\*\s*$/, "")
+              .trim();
+
+            if (paramName && paramDescription) {
+              parameterJSDoc[paramName] = paramDescription;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  for (const param of params) {
+    if (ts.isIdentifier(param.name)) {
+      const paramName = param.name.text;
+      parameterNames.push(paramName);
+
+      // Extract type information
+      const paramType = getTypeString(param, sf);
+      parameterTypes.push(paramType);
+    }
+  }
+
+  return parameterNames.length > 0 ? { parameterNames, parameterTypes, parameterJSDoc } : undefined;
+}
+
+/** Extract type information from a parameter declaration */
+function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile): string {
+  if (param.type) {
+    // Get the type text from the source file
+    const typeText = param.type.getText(sf);
+    return typeText;
+  }
+
+  return "unknown";
+}
+
 /** Try to return the node that actually contains the string literal content for better refs. */
-function anchorForMessageNode(fn: ts.ArrowFunction | ts.FunctionExpression): ts.Node | undefined {
+function anchorForMessageNode(
+  fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration
+): ts.Node | undefined {
   const body = fn.body;
+  if (!body) return fn;
+
   if (ts.isStringLiteral(body) || ts.isNoSubstitutionTemplateLiteral(body) || ts.isBinaryExpression(body)) {
     return body;
   }
@@ -126,8 +222,12 @@ function evaluateStringConcat(expr: ts.Expression): string | null {
   return null;
 }
 
-function extractReturnStringLiteral(fn: ts.ArrowFunction | ts.FunctionExpression): string | null {
+function extractReturnStringLiteral(
+  fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration
+): string | null {
   const body = fn.body;
+  if (!body) return null;
+
   if (ts.isStringLiteral(body) || ts.isNoSubstitutionTemplateLiteral(body) || ts.isBinaryExpression(body)) {
     return evaluateStringConcat(body);
   }
@@ -246,7 +346,7 @@ export function createI18nextAutoKeyTransformerFactory(
     let didRewrite = false;
 
     const visitNode: ts.Visitor = (node) => {
-      // Only transform object property assignments that are functions
+      // Transform property assignments that are functions
       if (
         ts.isPropertyAssignment(node) &&
         (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
@@ -260,49 +360,102 @@ export function createI18nextAutoKeyTransformerFactory(
           return ts.visitEachChild(node, visitNode, context);
         }
 
-        const original = extractReturnStringLiteral(fn);
-        if (original !== null) {
-          // Intern the string to eliminate memory duplication across stores
-          const internedOriginal = stringPool.intern(original);
+        return processFunction(node, fn, sf, node.name);
+      }
 
-          // reuse/assign hash
-          let id = globalStore.reverse.get(internedOriginal);
-          if (!id) {
-            id = stableHash(internedOriginal, hashLength);
-            // This collision handling is not deterministic and can result in a different id
-            // for the same string, based on the order that the strings are encountered.
-            // In practice, this should not matter.
-            while (globalStore.seen.has(id) && globalStore.seen.get(id) !== internedOriginal) {
-              id = stableHash(internedOriginal + ":" + id, Math.min(40, hashLength + 2));
-            }
-            globalStore.seen.set(id, internedOriginal);
-            globalStore.reverse.set(internedOriginal, id);
+      // Transform method declarations (shorthand syntax)
+      if (ts.isMethodDeclaration(node) && node.body) {
+        const sf = node.getSourceFile?.() ?? (node as any).parent?.getSourceFile?.();
+        if (!sf) return ts.visitEachChild(node, visitNode, context);
+
+        // Skip if @noTranslate appears on the method
+        if (hasNoTranslateTag(node, sf)) {
+          return ts.visitEachChild(node, visitNode, context);
+        }
+
+        return processFunction(node, node, sf, node.name);
+      }
+
+      return ts.visitEachChild(node, visitNode, context);
+    };
+
+    const processFunction = (
+      containerNode: ts.PropertyAssignment | ts.MethodDeclaration,
+      fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
+      sf: ts.SourceFile,
+      nameNode: ts.PropertyName
+    ) => {
+      const original = extractReturnStringLiteral(fn);
+      if (original !== null) {
+        // Intern the string to eliminate memory duplication across stores
+        const internedOriginal = stringPool.intern(original);
+
+        // reuse/assign hash
+        let id = globalStore.reverse.get(internedOriginal);
+        if (!id) {
+          id = stableHash(internedOriginal, hashLength);
+          // This collision handling is not deterministic and can result in a different id
+          // for the same string, based on the order that the strings are encountered.
+          // In practice, this should not matter.
+          while (globalStore.seen.has(id) && globalStore.seen.get(id) !== internedOriginal) {
+            id = stableHash(internedOriginal + ":" + id, Math.min(40, hashLength + 2));
           }
+          globalStore.seen.set(id, internedOriginal);
+          globalStore.reverse.set(internedOriginal, id);
+        }
 
-          // ── NEW: record reference + comments for POT/PO
-          const anchor = anchorForMessageNode(fn) ?? node;
-          const start = sf.getLineAndCharacterOfPosition(anchor.getStart(sf)); // 0-based
-          const rel = toRelPosix(sf.fileName);
-          const line = start.line + 1;
-          const column = start.character + 1;
-          const comments = [
-            // comments on the property (key) itself
-            ...getLeadingComments(sf, node),
-            // and on the actual literal/return expression if different
-            ...(anchor !== node ? getLeadingComments(sf, anchor) : []),
-          ];
+        // ── NEW: record reference + comments for POT/PO
+        const anchor = anchorForMessageNode(fn) ?? containerNode;
+        const start = sf.getLineAndCharacterOfPosition(anchor.getStart(sf)); // 0-based
+        const rel = toRelPosix(sf.fileName);
+        const line = start.line + 1;
+        const column = start.character + 1;
+        const comments = [
+          // comments on the container (property/method) itself
+          ...getLeadingComments(sf, containerNode),
+          // and on the actual literal/return expression if different
+          ...(anchor !== containerNode ? getLeadingComments(sf, anchor) : []),
+        ];
 
-          i18nStore.add({
-            id,
-            source: internedOriginal, // Use interned string to avoid duplication
-            ref: { file: rel, line, column },
-            comments,
-          });
-          // ── END NEW
+        // Extract parameter metadata for ICU indexed mode context
+        const parameterMetadata = extractParameterMetadata(fn, sf);
 
-          const argsExpr = buildArgsExpr(fn.parameters);
-          const newBodyExpr = makeI18nextCall(id, argsExpr, internedOriginal, fn.body);
+        i18nStore.add({
+          id,
+          source: internedOriginal, // Use interned string to avoid duplication
+          ref: { file: rel, line, column },
+          comments,
+          parameterMetadata,
+        });
+        // ── END NEW
 
+        const argsExpr = buildArgsExpr(fn.parameters);
+        const newBodyExpr = makeI18nextCall(id, argsExpr, internedOriginal, fn.body);
+
+        if (ts.isMethodDeclaration(containerNode)) {
+          // Handle method declaration
+          const returnStmt = f.createReturnStatement(newBodyExpr);
+          ts.setTextRange(returnStmt, fn.body);
+          const block = f.createBlock([returnStmt], true);
+          ts.setTextRange(block, fn.body);
+
+          const newMethod = f.updateMethodDeclaration(
+            containerNode,
+            containerNode.modifiers as readonly ts.Modifier[] | undefined,
+            containerNode.asteriskToken,
+            containerNode.name,
+            containerNode.questionToken,
+            containerNode.typeParameters,
+            containerNode.parameters,
+            containerNode.type,
+            block
+          );
+
+          ts.setTextRange(newMethod, containerNode);
+          didRewrite = true;
+          return newMethod;
+        } else {
+          // Handle property assignment
           let newFn: ts.ArrowFunction | ts.FunctionExpression;
           if (ts.isArrowFunction(fn)) {
             newFn = f.updateArrowFunction(
@@ -320,10 +473,10 @@ export function createI18nextAutoKeyTransformerFactory(
             const block = f.createBlock([returnStmt], true);
             ts.setTextRange(block, fn.body);
             newFn = f.updateFunctionExpression(
-              fn,
-              fn.modifiers,
-              fn.asteriskToken,
-              fn.name,
+              fn as ts.FunctionExpression,
+              fn.modifiers as readonly ts.Modifier[] | undefined,
+              (fn as ts.FunctionExpression).asteriskToken,
+              (fn as ts.FunctionExpression).name,
               fn.typeParameters,
               fn.parameters,
               fn.type,
@@ -332,17 +485,14 @@ export function createI18nextAutoKeyTransformerFactory(
           }
 
           ts.setTextRange(newFn, fn);
-
           didRewrite = true;
-          const updated = f.updatePropertyAssignment(node, node.name, newFn);
-          ts.setTextRange(updated, node);
-
-          // (Optional) still writing JSON here; consider moving this to a Webpack plugin to write once per build.
-          //   writeDefaultJson(options.jsonOutputPath, globalStore.seen);
+          const updated = f.updatePropertyAssignment(containerNode as ts.PropertyAssignment, nameNode, newFn);
+          ts.setTextRange(updated, containerNode);
           return updated;
         }
       }
-      return ts.visitEachChild(node, visitNode, context);
+
+      return ts.visitEachChild(containerNode, visitNode, context);
     };
 
     return (sf: ts.SourceFile) => {

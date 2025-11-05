@@ -13,6 +13,13 @@ export type Entry = {
   source: string; // English ICU text (msgid)
   refs: Set<string>; // "file:line:column" strings (deduped)
   extractedComments: Set<string>; // "#. comment" lines
+  parameterMetadata?: ParameterMetadata; // Parameter names and JSDoc for indexed mode
+};
+
+export type ParameterMetadata = {
+  parameterNames: string[]; // Parameter names in order
+  parameterTypes: string[]; // Parameter types in order
+  parameterJSDoc: { [paramName: string]: string }; // JSDoc for each parameter
 };
 
 class I18nStore {
@@ -27,7 +34,7 @@ class I18nStore {
   }
 
   /** Adds/merges an entry with reference and comments */
-  add(params: { id: string; source: string; ref: PoRef; comments?: string[] }) {
+  add(params: { id: string; source: string; ref: PoRef; comments?: string[]; parameterMetadata?: ParameterMetadata }) {
     const key = params.id;
     // Intern the source string to avoid duplication
     const internedSource = stringPool.intern(params.source);
@@ -39,6 +46,11 @@ class I18nStore {
     } else {
       // keep latest source if it somehow changed
       e.source = internedSource;
+    }
+
+    // Update parameter metadata if provided
+    if (params.parameterMetadata) {
+      e.parameterMetadata = params.parameterMetadata;
     }
 
     const refKey = `${params.ref.file}:${params.ref.line}:${params.ref.column}`;
