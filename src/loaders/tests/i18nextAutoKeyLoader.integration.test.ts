@@ -230,4 +230,132 @@ describe("i18next-auto-keys loader integration", () => {
     expect(bundle).toContain("Hello, Default!"); // Original string should be in defaultValue
     expect(bundle).toContain("i18next"); // Should reference i18next
   });
+
+  test("transforms method shorthand syntax correctly", async () => {
+    const rules = [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-auto-keys",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              argMode: "named",
+            },
+          },
+        ],
+      },
+    ];
+
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `import { Messages } from './method.messages.ts'; console.log(Messages.statusMessage("online", "user123"));`,
+        "src/method.messages.ts": `export const Messages = {
+          /**
+           * Shows connection status
+           * @param status Current connection status
+           * @param userId The user identifier
+           */
+          statusMessage(status: string, userId: string): string {
+            return "User {userId} is {status}";
+          },
+
+          // Function expression style
+          /**
+           * Item counter
+           * @param count Number of items
+           */
+          countItems: function(count: number): string {
+            return "You have {count} items";
+          },
+
+          // Regular arrow function for comparison
+          simpleMessage: (): string => "Welcome!",
+        };`,
+      },
+      rules,
+      { entry: "/src/entry.ts" }
+    );
+
+    // Should transform all three syntax styles
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["']/); // At least one .t() call with hash
+    expect(bundle).not.toContain("User {userId} is {status}"); // Method shorthand transformed
+    expect(bundle).not.toContain("You have {count} items"); // Function expression transformed
+    expect(bundle).not.toContain("Welcome!"); // Arrow function transformed
+    expect(bundle).toContain("i18next"); // Should reference i18next
+  });
+
+  test("transforms mixed function syntax styles with JSDoc", async () => {
+    const rules = [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: [
+          {
+            loader: require.resolve("esbuild-loader"),
+            options: {
+              loader: "ts",
+              target: "es2020",
+            },
+          },
+          {
+            loader: "i18next-auto-keys",
+            options: {
+              include: /\.messages\.ts$/,
+              hashLength: 10,
+              argMode: "indexed",
+            },
+          },
+        ],
+      },
+    ];
+
+    const { bundle } = await compileWithMemoryFS(
+      {
+        "src/entry.ts": `import { MixedMessages } from './mixed.messages.ts'; console.log(MixedMessages.arrowStyle("John"));`,
+        "src/mixed.messages.ts": `export const MixedMessages = {
+          /**
+           * Arrow function greeting
+           * @param name Person's name
+           */
+          arrowStyle: (name: string): string => "Hello {name}!",
+
+          /**
+           * Method shorthand greeting  
+           * @param item Item name
+           * @param count Item quantity
+           */
+          methodStyle(item: string, count: number): string {
+            return "Found {count} {item} items";
+          },
+
+          /**
+           * Function expression greeting
+           * @param status Current status
+           */
+          functionStyle: function(status: string): string {
+            return "Status: {status}";
+          },
+        };`,
+      },
+      rules,
+      { entry: "/src/entry.ts" }
+    );
+
+    // Should transform all styles with indexed parameters
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["'],\s*{\s*["']0["']:/); // Indexed mode
+    expect(bundle).not.toContain("Hello {name}!"); // Arrow function transformed
+    expect(bundle).not.toContain("Found {count} {item} items"); // Method shorthand transformed
+    expect(bundle).not.toContain("Status: {status}"); // Function expression transformed
+    expect(bundle).toContain("i18next");
+  });
 });
