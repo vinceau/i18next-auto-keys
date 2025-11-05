@@ -43,7 +43,7 @@ describe("i18next-auto-keys loader integration", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-              argMode: "array",
+              argMode: "indexed",
             },
           },
         ],

@@ -8,7 +8,7 @@ export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
   include: RegExp | RegExp[];
   hashLength?: number;
-  argMode?: "array" | "named";
+  argMode?: "indexed" | "named";
 };
 
 const schema = {
@@ -19,7 +19,7 @@ const schema = {
       anyOf: [{ instanceof: "RegExp" }, { type: "array", items: { instanceof: "RegExp" } }],
     },
     hashLength: { type: "number", minimum: 10 },
-    argMode: { type: "string", enum: ["array", "named"] },
+    argMode: { type: "string", enum: ["indexed", "named"] },
   },
   additionalProperties: false,
 };

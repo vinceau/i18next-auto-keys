@@ -7,7 +7,7 @@ import { stringPool } from "../common/stringPool";
 export type I18nextAutoKeyTransformerOptions = {
   hashLength?: number;
   /** How to pass runtime args into i18next.t */
-  argMode?: "array" | "named";
+  argMode?: "indexed" | "named";
 };
 
 /** Global store for tracking seen strings and their hashes.
@@ -168,15 +168,23 @@ export function createI18nextAutoKeyTransformerFactory(
     const buildArgsExpr = (params: readonly ts.ParameterDeclaration[]): ts.Expression | undefined => {
       if (params.length === 0) return undefined;
 
-      if (argMode === "array") {
-        const elems = params.map((p) => {
-          const id = ts.isIdentifier(p.name) ? f.createIdentifier(p.name.text) : f.createIdentifier("undefined");
-          if (p.name) ts.setTextRange(id, p.name);
-          return id;
+      if (argMode === "indexed") {
+        const indexedProps: ts.PropertyAssignment[] = [];
+        params.forEach((p, index) => {
+          if (ts.isIdentifier(p.name)) {
+            const key = f.createStringLiteral(index.toString());
+            const value = f.createIdentifier(p.name.text);
+            if (p.name) ts.setTextRange(value, p.name);
+            const prop = f.createPropertyAssignment(key, value);
+            ts.setTextRange(prop, p.name);
+            indexedProps.push(prop);
+          }
         });
-        const arr = f.createArrayLiteralExpression(elems, false);
-        if (params.length > 0) ts.setTextRange(arr, { pos: params[0].pos, end: params[params.length - 1].end } as any);
-        return arr;
+        if (indexedProps.length === 0) return undefined;
+
+        const obj = f.createObjectLiteralExpression(indexedProps, true);
+        if (params.length > 0) ts.setTextRange(obj, { pos: params[0].pos, end: params[params.length - 1].end } as any);
+        return obj;
       }
 
       // "named"

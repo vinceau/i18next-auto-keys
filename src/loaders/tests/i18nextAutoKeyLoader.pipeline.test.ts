@@ -21,7 +21,7 @@ describe("i18next-auto-keys loader pipeline", () => {
             options: {
               include: /\.messages\.ts$/,
               hashLength: 10,
-              argMode: "array",
+              argMode: "indexed",
             },
           },
         ],

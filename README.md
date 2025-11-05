@@ -15,7 +15,7 @@
 - 📦 **Webpack integration** - Seamless webpack loader and plugin
 - 🔧 **TypeScript support** - Full TypeScript AST transformation
 - 📄 **Multiple output formats** - JSON for runtime, POT files for translators
-- 🎨 **Flexible parameter handling** - Array or named parameter modes
+- 🎨 **Flexible parameter handling** - Indexed or named parameter modes
 - 🛠️ **CLI tools** - Generate POT files and convert PO to JSON independently
 
 ## 📋 Requirements
@@ -119,7 +119,7 @@ And generates translation files:
 |--------|------|---------|-------------|
 | `include` | `RegExp \| RegExp[]` | **Required** | Pattern(s) to match files for processing |
 | `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
-| `argMode` | `'array' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
+| `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
 | `sourcemap` | `boolean` | `false` | Generate source maps |
 
 ### Plugin Options
@@ -192,18 +192,18 @@ greeting: (name: string, time: string): string => i18next.t("abc123def4", { name
 { "abc123def4": "Hello {{name}}, good {{time}}!" }
 ```
 
-#### Array Mode
+#### Indexed Mode
 ```typescript
 // webpack.config.js
 {
   loader: 'i18next-auto-keys',
   options: {
-    argMode: 'array'
+    argMode: 'indexed'
   }
 }
 
 // Transformed to
-greeting: (name: string, time: string): string => i18next.t("abc123def4", [name, time])
+greeting: (name: string, time: string): string => i18next.t("abc123def4", { "0": name, "1": time })
 ```
 
 ### Excluding Messages from Translation

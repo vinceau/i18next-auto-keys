@@ -275,7 +275,7 @@ it("handles @noTranslate with function expressions", () => {
 });
 
 describe("argument parsing modes", () => {
-  it("handles array mode with no parameters", () => {
+  it("handles indexed mode with no parameters", () => {
     const input = `export const Message = {
   greeting: (): string => "Hello",
 };`;
@@ -283,7 +283,7 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      argMode: "array",
+      argMode: "indexed",
     });
 
     // No parameters means no second argument to i18next.t
@@ -307,7 +307,7 @@ describe("argument parsing modes", () => {
     expect(transformedCode).not.toContain('i18next.t("' + stableHash("Hello", 10) + '", ');
   });
 
-  it("handles array mode with single parameter", () => {
+  it("handles indexed mode with single parameter", () => {
     const input = `export const Message = {
   greeting: (name: string): string => "Hello",
 };`;
@@ -315,13 +315,12 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      argMode: "array",
+      argMode: "indexed",
     });
 
-    // Single parameter should be passed as array
-    expect(transformedCode).toContain(
-      `greeting: (name: string): string => i18next.t("${stableHash("Hello", 10)}", [name])`
-    );
+    // Single parameter should be passed as indexed object
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Hello", 10)}", {`);
+    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name`));
   });
 
   it("handles named mode with single parameter", () => {
@@ -340,7 +339,7 @@ describe("argument parsing modes", () => {
     expect(transformedCode).toContain("name");
   });
 
-  it("handles array mode with multiple parameters", () => {
+  it("handles indexed mode with multiple parameters", () => {
     const input = `export const Message = {
   greeting: (name: string, age: number): string => "Hello",
 };`;
@@ -348,13 +347,13 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      argMode: "array",
+      argMode: "indexed",
     });
 
-    // Multiple parameters should be passed as array
-    expect(transformedCode).toContain(
-      `greeting: (name: string, age: number): string => i18next.t("${stableHash("Hello", 10)}", [name, age])`
-    );
+    // Multiple parameters should be passed as indexed object
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Hello", 10)}", {`);
+    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name`));
+    expect(transformedCode).toMatch(new RegExp(`"1":\\s*age`));
   });
 
   it("handles named mode with multiple parameters", () => {
@@ -373,7 +372,7 @@ describe("argument parsing modes", () => {
     expect(transformedCode).toMatch(/greeting:.*name.*age.*\}/s);
   });
 
-  it("handles mixed parameter scenarios in array mode", () => {
+  it("handles mixed parameter scenarios in indexed mode", () => {
     const input = `export const Message = {
   noParams: (): string => "No params",
   oneParam: (name: string): string => "One param",
@@ -383,21 +382,19 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      argMode: "array",
+      argMode: "indexed",
     });
 
     // No params - no second argument
     expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash("No params", 10)}")`);
 
-    // One param - array with single element
-    expect(transformedCode).toContain(
-      `oneParam: (name: string): string => i18next.t("${stableHash("One param", 10)}", [name])`
-    );
+    // One param - indexed object with single element
+    expect(transformedCode).toContain(`i18next.t("${stableHash("One param", 10)}", {`);
+    expect(transformedCode).toMatch(new RegExp(`oneParam:.*"0":\\s*name`, 's'));
 
-    // Two params - array with two elements
-    expect(transformedCode).toContain(
-      `twoParams: (name: string, count: number): string => i18next.t("${stableHash("Two params", 10)}", [name, count])`
-    );
+    // Two params - indexed object with two elements
+    expect(transformedCode).toContain(`i18next.t("${stableHash("Two params", 10)}", {`);
+    expect(transformedCode).toMatch(new RegExp(`twoParams:.*"0":\\s*name.*"1":\\s*count`, 's'));
   });
 
   it("handles mixed parameter scenarios in named mode", () => {
@@ -425,7 +422,7 @@ describe("argument parsing modes", () => {
     expect(transformedCode).toMatch(/twoParams:.*name.*count.*\}/s);
   });
 
-  it("handles function expressions with parameters in array mode", () => {
+  it("handles function expressions with parameters in indexed mode", () => {
     const input = `export const Message = {
   greeting: function(name: string, age: number): string { return "Hello"; },
 };`;
@@ -433,11 +430,12 @@ describe("argument parsing modes", () => {
     const transformedCode = transformTypeScript(input, {
       onlyMessagesFiles: false,
       hashLength: 10,
-      argMode: "array",
+      argMode: "indexed",
     });
 
-    // Function expression with parameters should use array mode
-    expect(transformedCode).toContain(`return i18next.t("${stableHash("Hello", 10)}", [name, age]);`);
+    // Function expression with parameters should use indexed mode
+    expect(transformedCode).toContain(`return i18next.t("${stableHash("Hello", 10)}", {`);
+    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name.*"1":\\s*age`, 's'));
   });
 
   it("handles function expressions with parameters in named mode", () => {
