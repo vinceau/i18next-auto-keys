@@ -255,10 +255,10 @@ The `setDefaultValue` option includes the original English strings as fallback v
 
 ```typescript
 // Source
-message: (name: string): string => "Hello {{name}}"
+message: (name: string): string => "Hello {name}"
 
 // Transformed to
-message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hello {{name}}", name })
+message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hello {name}", name })
 ```
 
 Typically you should only enable this in development mode to support HMR, or if you don't want to use the emit plugin's generated JSON for your default language.
