@@ -1,6 +1,6 @@
 // Main entry point for e2e testing
-import { AuthMessages } from './auth.messages';
-import { UIMessages } from './ui.messages';
+import { AuthMessages } from "./auth.messages";
+import { UIMessages } from "./ui.messages";
 
 // Export all message modules for testing
 export { AuthMessages, UIMessages };
