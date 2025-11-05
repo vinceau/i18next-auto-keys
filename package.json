@@ -33,7 +33,6 @@
     "test": "jest --runInBand",
     "test:watch": "jest --watch",
     "test:e2e": "npm run build && cd e2e && npm install && npm test",
-    "test:e2e:watch": "npm run build && cd e2e && npm install && npm run test:watch",
     "test:all": "npm test && npm run test:e2e",
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\""
