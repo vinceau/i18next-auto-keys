@@ -231,7 +231,7 @@ describe("i18next-auto-keys E2E Tests", () => {
 
         // Initialize i18next with the generated translations
         const localesDir = path.dirname(buildResult.translationsPath);
-        await bundle.initializeI18next(localesDir);
+        await bundle.initializeI18n(localesDir);
       });
 
       it("should return translated simple messages", () => {
@@ -298,7 +298,7 @@ describe("i18next-auto-keys E2E Tests", () => {
         const bundle = bundleExports.TestBundle;
 
         // Should have all expected function exports
-        expect(typeof bundle.initializeI18next).toBe("function");
+        expect(typeof bundle.initializeI18n).toBe("function");
         expect(typeof bundle.getWelcomeMessage).toBe("function");
         expect(typeof bundle.getStatusMessage).toBe("function");
         expect(typeof bundle.getAllSimpleMessages).toBe("function");
@@ -343,8 +343,8 @@ describe("i18next-auto-keys E2E Tests", () => {
       const prodBundle = require(prodResult.bundlePath).TestBundle;
 
       // Initialize both bundles
-      await defaultBundle.initializeI18next(path.dirname(defaultResult.translationsPath));
-      await prodBundle.initializeI18next(path.dirname(prodResult.translationsPath));
+      await defaultBundle.initializeI18n(path.dirname(defaultResult.translationsPath));
+      await prodBundle.initializeI18n(path.dirname(prodResult.translationsPath));
 
       // Both should produce the same translated results
       expect(defaultBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
@@ -382,7 +382,7 @@ describe("i18next-auto-keys E2E Tests", () => {
 
       // Initialize i18next with the generated translations
       const localesDir = path.dirname(result.translationsPath);
-      await bundle.initializeI18next(localesDir);
+      await bundle.initializeI18n(localesDir);
 
       // Test that auth messages are translated but UI messages remain literal
       const simpleMessages = bundle.getAllSimpleMessages();
@@ -421,8 +421,8 @@ describe("i18next-auto-keys E2E Tests", () => {
       const indexedBundle = require(indexedResult.bundlePath).TestBundle;
 
       // Initialize i18next for both bundles
-      await namedBundle.initializeI18next(path.dirname(namedResult.translationsPath));
-      await indexedBundle.initializeI18next(path.dirname(indexedResult.translationsPath));
+      await namedBundle.initializeI18n(path.dirname(namedResult.translationsPath));
+      await indexedBundle.initializeI18n(path.dirname(indexedResult.translationsPath));
 
       // Test that both argument modes produce identical results
       expect(namedBundle.getWelcomeMessage("John")).toBe("Welcome back, John!");
