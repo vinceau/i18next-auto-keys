@@ -10,7 +10,8 @@
     "build:dev": "webpack --mode development"
   },
   "dependencies": {
-    "i18next": "^23.16.8"
+    "i18next": "^23.16.8",
+    "i18next-icu": "^2.4.1"
   },
   "devDependencies": {
     "@types/jest": "^29",
