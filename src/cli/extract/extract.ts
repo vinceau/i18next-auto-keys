@@ -189,8 +189,9 @@ async function generatePot(
   };
 
   for (const entry of entries) {
-    // Build extracted comments including parameter metadata
-    const extractedComments: string[] = [];
+    // Build description comments and parameter comments separately for proper ordering
+    const descriptionComments: string[] = [];
+    const parameterComments: string[] = [];
 
     // Add main JSDoc description (cleaned up, excluding @param and @translationContext tags)
     const originalComments = Array.from(entry.extractedComments);
@@ -219,7 +220,7 @@ async function generatePot(
           .trim();
 
         if (mainDescription) {
-          extractedComments.push(mainDescription);
+          descriptionComments.push(mainDescription);
         }
       } else {
         // For simple comments, also remove asterisks to be consistent
@@ -229,7 +230,7 @@ async function generatePot(
           .trim();
 
         if (cleanedSimpleComment) {
-          extractedComments.push(cleanedSimpleComment);
+          descriptionComments.push(cleanedSimpleComment);
         }
       }
     }
@@ -244,12 +245,15 @@ async function generatePot(
         const jsDocDescription = parameterJSDoc[paramName];
 
         if (jsDocDescription) {
-          extractedComments.push(`{${index}} ${paramName}: ${paramType} - ${jsDocDescription}`);
+          parameterComments.push(`{${index}} ${paramName}: ${paramType} - ${jsDocDescription}`);
         } else {
-          extractedComments.push(`{${index}} ${paramName}: ${paramType}`);
+          parameterComments.push(`{${index}} ${paramName}: ${paramType}`);
         }
       });
     }
+
+    // Combine description and parameter comments in correct order: description first, then parameters
+    const extractedComments: string[] = [...descriptionComments, ...parameterComments];
 
     const potEntry: any = {
       msgid: entry.source,
