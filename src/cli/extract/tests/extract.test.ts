@@ -1231,8 +1231,8 @@ describe("extractKeysAndGeneratePotFile", () => {
         // Verify JSDoc descriptions are preserved (without @param content)
         expect(potContent).toContain("#. Welcome message for new users");
         expect(potContent).toContain("#. Error notification with details");
-        // Note: Single-line descriptions may have * prefix from JSDoc formatting
-        expect(potContent).toContain("#. * Simple greeting without parameters but with description");
+        // Note: Single-line descriptions have asterisks removed for consistency
+        expect(potContent).toContain("#. Simple greeting without parameters but with description");
 
         // Verify parameter metadata appears separately
         expect(potContent).toContain("{0} name: string - The user's display name");

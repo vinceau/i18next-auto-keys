@@ -151,22 +151,6 @@ async function processSourceFile(
   }
 }
 
-/**
- * Extract the main description from a processed comment string
- * @param comment Already processed comment string (flattened by getLeadingComments)
- * @returns Cleaned main description text or empty string
- */
-function parseJSDocDescription(comment: string): string {
-  if (!comment) return "";
-
-  // The comment is already processed and cleaned, just need to remove leading/trailing asterisks
-  // and trim whitespace
-  return comment
-    .replace(/^\*\s*/, "")
-    .replace(/\s*\*\s*$/, "")
-    .trim();
-}
-
 async function generatePot(
   entries: Array<{
     id: string;
@@ -222,20 +206,31 @@ async function generatePot(
           cleanedComment = parts[0];
         }
 
-        // Remove @translationContext parts (for flattened single-line comments)
+        // Remove @translationContext parts (for both single-line and multi-line comments)
         if (cleanedComment.includes("@translationContext")) {
-          // Use regex to remove @translationContext and everything after it on the same line
-          cleanedComment = cleanedComment.replace(/@translationContext.*$/, "").trim();
+          // Use regex to remove @translationContext and everything after it (multiline flag)
+          cleanedComment = cleanedComment.replace(/@translationContext[\s\S]*$/, "").trim();
         }
 
-        // Properly parse JSDoc comment block
-        const mainDescription = parseJSDocDescription(cleanedComment);
+        // For comments with @param/@translationContext, remove asterisks
+        const mainDescription = cleanedComment
+          .replace(/^\*\s*/, "")
+          .replace(/\s*\*\s*$/, "")
+          .trim();
 
         if (mainDescription) {
           extractedComments.push(mainDescription);
         }
       } else {
-        extractedComments.push(comment);
+        // For simple comments, also remove asterisks to be consistent
+        const cleanedSimpleComment = comment
+          .replace(/^\*\s*/, "")
+          .replace(/\s*\*\s*$/, "")
+          .trim();
+
+        if (cleanedSimpleComment) {
+          extractedComments.push(cleanedSimpleComment);
+        }
       }
     }
 
