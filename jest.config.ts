@@ -20,7 +20,9 @@ const config: Config = {
   // Support absolute imports and path mapping
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1'
-  }
+  },
+  // Setup automatic mocking
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts']
 };
 
 export default config;

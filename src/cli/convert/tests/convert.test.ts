@@ -86,14 +86,7 @@ jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
-// Mock loadConfig to return a default configuration
-jest.mock("../../../common/config/loadConfig", () => ({
-  loadConfig: jest.fn(() => ({
-    config: {
-      hashLength: 10,
-    },
-  })),
-}));
+// loadConfig is now automatically mocked by Jest setup
 
 // Mock console to avoid spam during tests
 const mockConsole = {

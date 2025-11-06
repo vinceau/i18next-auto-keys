@@ -22,16 +22,7 @@ jest.mock("fs");
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
-// Mock loadConfig to return a default configuration
-jest.mock("../../../common/config/loadConfig", () => ({
-  loadConfig: jest.fn(() => ({
-    config: {
-      projectId: "test-app 1.0",
-      hashLength: 10,
-      argMode: "indexed",
-    },
-  })),
-}));
+// loadConfig is now automatically mocked by Jest setup
 
 // Mock glob
 jest.mock("glob", () => ({
