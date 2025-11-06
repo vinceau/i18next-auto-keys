@@ -62,7 +62,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
       }
 
       // Generate hash from msgid + msgctxt (translation context)
-      const key = stableHash(msgid, msgctxt, config.hashLength);
+      const key = stableHash(msgid, { context: msgctxt, hashLength: config.hashLength });
 
       // Use the generated hash as a flat key (no nesting)
       translations[key] = msgstr;

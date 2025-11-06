@@ -55,8 +55,8 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
     const messagesDict = JSON.parse(jsonContent.toString());
 
     // Verify the JSON contains the expected message mappings
-    const helloHash = stableHash("Hello, World!", "", 10);
-    const goodbyeHash = stableHash("Goodbye!", "", 10);
+    const helloHash = stableHash("Hello, World!", { hashLength: 10 });
+    const goodbyeHash = stableHash("Goodbye!", { hashLength: 10 });
 
     expect(messagesDict).toEqual({
       [helloHash]: "Hello, World!",
@@ -234,9 +234,9 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
     // The actual translations should be nested under the topLevelKey
     const translations = parsed.translations;
     expect(Object.keys(translations)).toHaveLength(2);
-    expect(translations).toHaveProperty(stableHash("Welcome user!", "", 10));
-    expect(translations).toHaveProperty(stableHash("Loading data...", "", 10));
-    expect(translations[stableHash("Welcome user!", "", 10)]).toBe("Welcome user!");
-    expect(translations[stableHash("Loading data...", "", 10)]).toBe("Loading data...");
+    expect(translations).toHaveProperty(stableHash("Welcome user!", { hashLength: 10 }));
+    expect(translations).toHaveProperty(stableHash("Loading data...", { hashLength: 10 }));
+    expect(translations[stableHash("Welcome user!", { hashLength: 10 })]).toBe("Welcome user!");
+    expect(translations[stableHash("Loading data...", { hashLength: 10 })]).toBe("Loading data...");
   });
 });

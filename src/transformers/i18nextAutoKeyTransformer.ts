@@ -455,12 +455,12 @@ export function createI18nextAutoKeyTransformerFactory(
         // reuse/assign hash
         let id = globalStore.reverse.get(compositeKey);
         if (!id) {
-          id = stableHash(internedOriginal, translationContext, hashLength);
+          id = stableHash(internedOriginal, { context: translationContext, hashLength });
           // This collision handling is not deterministic and can result in a different id
           // for the same string, based on the order that the strings are encountered.
           // In practice, this should not matter.
           while (globalStore.seen.has(id) && globalStore.seen.get(id) !== compositeKey) {
-            id = stableHash(compositeKey + ":" + id, undefined, Math.min(40, hashLength + 2));
+            id = stableHash(compositeKey + ":" + id, { hashLength: Math.min(40, hashLength + 2) });
           }
           globalStore.seen.set(id, compositeKey);
           globalStore.reverse.set(compositeKey, id);
