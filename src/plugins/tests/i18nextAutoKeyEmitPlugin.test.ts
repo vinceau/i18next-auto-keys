@@ -180,6 +180,56 @@ describe("I18nextAutoKeyEmitPlugin", () => {
       expect(keys).toEqual(["alpha", "beta", "zebra"]);
     });
 
+    it("should sort entries with hash IDs consistently", async () => {
+      const { stableHash } = await import("../../common/hash");
+
+      const plugin = new I18nextAutoKeyEmitPlugin({
+        jsonOutputPath: "output.json",
+      });
+
+      plugin.apply(mockCompiler);
+      const compilationCallback = (mockCompiler.hooks.thisCompilation.tap as jest.Mock).mock.calls[0][1];
+      compilationCallback(mockCompilation);
+
+      // Generate hash IDs that would sort differently than insertion order
+      const zHash = stableHash("Z Message", { hashLength: 10 });
+      const aHash = stableHash("A Message", { hashLength: 10 });
+      const mHash = stableHash("M Message", { hashLength: 10 });
+
+      // Add entries in non-sorted order
+      i18nStore.add({
+        id: zHash,
+        source: "Z Message",
+        ref: { file: "test.ts", line: 1, column: 1 },
+      });
+      i18nStore.add({
+        id: aHash,
+        source: "A Message",
+        ref: { file: "test.ts", line: 2, column: 1 },
+      });
+      i18nStore.add({
+        id: mHash,
+        source: "M Message",
+        ref: { file: "test.ts", line: 3, column: 1 },
+      });
+
+      const processAssetsCallback = (mockCompilation.hooks.processAssets.tapPromise as jest.Mock).mock.calls[0][1];
+      await processAssetsCallback();
+
+      const emitCall = (mockCompilation.emitAsset as jest.Mock).mock.calls[0];
+      const jsonContent = JSON.parse(emitCall[1].buffer.toString());
+      const keys = Object.keys(jsonContent);
+      const expectedSortedKeys = [zHash, aHash, mHash].sort();
+
+      // Verify keys are sorted alphabetically by hash
+      expect(keys).toEqual(expectedSortedKeys);
+
+      // Verify content is correct
+      expect(jsonContent[zHash]).toBe("Z Message");
+      expect(jsonContent[aHash]).toBe("A Message");
+      expect(jsonContent[mHash]).toBe("M Message");
+    });
+
     it("should handle empty store gracefully", async () => {
       const plugin = new I18nextAutoKeyEmitPlugin({
         jsonOutputPath: "empty.json",

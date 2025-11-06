@@ -249,6 +249,57 @@ describe("convertPoToJson", () => {
     expect(writtenContent).toMatch(/{\n    "/); // 4 spaces after opening brace
   });
 
+  it("should sort JSON keys by hash key for consistent output", async () => {
+    // Create PO content with entries in non-alphabetical order of their hashes
+    const unsortedPoContent = `
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\\n"
+
+#: src/z.ts:1
+msgctxt "context-z"
+msgid "Z Message"
+msgstr "Z Translation"
+
+#: src/a.ts:1
+msgctxt "context-a"
+msgid "A Message"
+msgstr "A Translation"
+
+#: src/m.ts:1
+msgctxt "context-m"
+msgid "M Message"
+msgstr "M Translation"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(unsortedPoContent));
+
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+    });
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Calculate expected hashes
+    const zHash = stableHash("Z Message", { context: "context-z", hashLength: 10 });
+    const aHash = stableHash("A Message", { context: "context-a", hashLength: 10 });
+    const mHash = stableHash("M Message", { context: "context-m", hashLength: 10 });
+
+    // Get the actual keys from JSON
+    const actualKeys = Object.keys(parsedJson);
+    const expectedSortedKeys = [zHash, aHash, mHash].sort();
+
+    // Verify keys are sorted alphabetically
+    expect(actualKeys).toEqual(expectedSortedKeys);
+
+    // Verify content is correct
+    expect(parsedJson[zHash]).toBe("Z Translation");
+    expect(parsedJson[aHash]).toBe("A Translation");
+    expect(parsedJson[mHash]).toBe("M Translation");
+  });
+
   it("should skip untranslated entries with warning", async () => {
     await convertPoToJson({
       input: "/test/input.po",

@@ -71,10 +71,18 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
 
   console.log(`🔑 Processed ${translationCount} translations`);
 
+  // Sort translations by key for consistent output (matches emit plugin behavior)
+  const sortedTranslations: Record<string, string> = {};
+  Object.keys(translations)
+    .sort()
+    .forEach((key) => {
+      sortedTranslations[key] = translations[key];
+    });
+
   // Wrap under topLevelKey if specified (matches emit plugin behavior)
-  let output_data: any = translations;
+  let output_data: any = sortedTranslations;
   if (topLevelKey) {
-    output_data = { [topLevelKey]: translations };
+    output_data = { [topLevelKey]: sortedTranslations };
   }
 
   // Ensure output directory exists
