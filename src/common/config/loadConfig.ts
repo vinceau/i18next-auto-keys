@@ -8,6 +8,7 @@ import pkg from "../../../package.json";
 const I18nSchema = z.object({
   potTemplatePath: z.string().default("i18n/messages.pot"),
   hashLength: z.number().int().min(10).default(10),
+  argMode: z.enum(["indexed", "named"]).default("named"),
   topLevelKey: z.string().optional(),
   projectId: z.string().optional().default("app 1.0"),
   jsonIndentSpaces: z.number().int().min(0).default(2),

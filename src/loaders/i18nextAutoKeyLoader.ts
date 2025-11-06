@@ -9,7 +9,6 @@ const { config } = loadConfig();
 export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
   include: RegExp | RegExp[];
-  hashLength?: number;
   argMode?: "indexed" | "named";
   setDefaultValue?: boolean;
 };
@@ -21,7 +20,6 @@ const schema = {
     include: {
       anyOf: [{ instanceof: "RegExp" }, { type: "array", items: { instanceof: "RegExp" } }],
     },
-    hashLength: { type: "number", minimum: 10 },
     argMode: { type: "string", enum: ["indexed", "named"] },
     setDefaultValue: { type: "boolean" },
   },
@@ -48,7 +46,7 @@ export function i18nextAutoKeyLoader(
   const options: I18nextAutoKeyLoaderOptions = {
     ...loaderOptions,
     // Prioritize config values over loader options
-    hashLength: config.hashLength ?? loaderOptions.hashLength,
+    argMode: config.argMode ?? loaderOptions.argMode,
   }
 
   this.cacheable && this.cacheable(true);
@@ -69,7 +67,7 @@ export function i18nextAutoKeyLoader(
   );
 
   const transformer = createI18nextAutoKeyTransformerFactory({
-    hashLength: options.hashLength,
+    hashLength: config.hashLength, // This needs to be the same as the config so don't override it with options
     argMode: options.argMode,
     setDefaultValue: options.setDefaultValue,
   });
