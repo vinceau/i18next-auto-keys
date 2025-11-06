@@ -553,9 +553,15 @@ msgstr "Habilitar características beta"
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes with complex contexts
-    const emailHash = stableHash("Email notifications", { context: "user-settings.privacy.notifications", hashLength: 10 });
+    const emailHash = stableHash("Email notifications", {
+      context: "user-settings.privacy.notifications",
+      hashLength: 10,
+    });
     const deleteHash = stableHash("Delete user", { context: "admin-panel/user-management", hashLength: 10 });
-    const betaHash = stableHash("Enable beta features", { context: "feature-flags.experimental.beta-features", hashLength: 10 });
+    const betaHash = stableHash("Enable beta features", {
+      context: "feature-flags.experimental.beta-features",
+      hashLength: 10,
+    });
 
     expect(parsedJson).toHaveProperty(emailHash, "Notificaciones por email");
     expect(parsedJson).toHaveProperty(deleteHash, "Eliminar usuario");

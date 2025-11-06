@@ -142,7 +142,9 @@ it("respects @noTranslate JSDoc tag", () => {
   expect(transformedCode).toContain('alsoSkip: (): string => "also skip"');
 
   // Functions without @noTranslate should be transformed
-  expect(transformedCode).toContain(`translate: (): string => i18next.t("${stableHash("translate me", { hashLength: 10 })}")`);
+  expect(transformedCode).toContain(
+    `translate: (): string => i18next.t("${stableHash("translate me", { hashLength: 10 })}")`
+  );
 
   // Should have i18next import since at least one function was transformed
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -171,8 +173,12 @@ it("handles mixed @noTranslate scenarios", () => {
   });
 
   // Normal functions should be transformed
-  expect(transformedCode).toContain(`normal: (): string => i18next.t("${stableHash("normal message", { hashLength: 10 })}")`);
-  expect(transformedCode).toContain(`user: (): string => i18next.t("${stableHash("user message", { hashLength: 10 })}")`);
+  expect(transformedCode).toContain(
+    `normal: (): string => i18next.t("${stableHash("normal message", { hashLength: 10 })}")`
+  );
+  expect(transformedCode).toContain(
+    `user: (): string => i18next.t("${stableHash("user message", { hashLength: 10 })}")`
+  );
 
   // Functions with @noTranslate should remain unchanged
   expect(transformedCode).toContain('debug: (): string => "Debug: internal message"');
@@ -214,7 +220,9 @@ it("handles different JSDoc comment styles for @noTranslate", () => {
   expect(transformedCode).toContain('withDescription: (): string => "with description"');
 
   // Regular function should be transformed
-  expect(transformedCode).toContain(`regular: (): string => i18next.t("${stableHash("regular message", { hashLength: 10 })}")`);
+  expect(transformedCode).toContain(
+    `regular: (): string => i18next.t("${stableHash("regular message", { hashLength: 10 })}")`
+  );
 
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -290,7 +298,9 @@ describe("argument parsing modes", () => {
     });
 
     // No parameters means no second argument to i18next.t
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello", { hashLength: 10 })}")`);
+    expect(transformedCode).toContain(
+      `greeting: (): string => i18next.t("${stableHash("Hello", { hashLength: 10 })}")`
+    );
     expect(transformedCode).not.toContain('i18next.t("' + stableHash("Hello", { hashLength: 10 }) + '", ');
   });
 
@@ -306,7 +316,9 @@ describe("argument parsing modes", () => {
     });
 
     // No parameters means no second argument to i18next.t
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello", { hashLength: 10 })}")`);
+    expect(transformedCode).toContain(
+      `greeting: (): string => i18next.t("${stableHash("Hello", { hashLength: 10 })}")`
+    );
     expect(transformedCode).not.toContain('i18next.t("' + stableHash("Hello", { hashLength: 10 }) + '", ');
   });
 
@@ -389,7 +401,9 @@ describe("argument parsing modes", () => {
     });
 
     // No params - no second argument
-    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash("No params", { hashLength: 10 })}")`);
+    expect(transformedCode).toContain(
+      `noParams: (): string => i18next.t("${stableHash("No params", { hashLength: 10 })}")`
+    );
 
     // One param - indexed object with single element
     expect(transformedCode).toContain(`i18next.t("${stableHash("One param", { hashLength: 10 })}", {`);
@@ -414,7 +428,9 @@ describe("argument parsing modes", () => {
     });
 
     // No params - no second argument
-    expect(transformedCode).toContain(`noParams: (): string => i18next.t("${stableHash("No params", { hashLength: 10 })}")`);
+    expect(transformedCode).toContain(
+      `noParams: (): string => i18next.t("${stableHash("No params", { hashLength: 10 })}")`
+    );
 
     // One param - object with single property (TypeScript printer formats with newlines)
     expect(transformedCode).toContain(`i18next.t("${stableHash("One param", { hashLength: 10 })}", {`);
@@ -490,7 +506,9 @@ describe("setDefaultValue option", () => {
     });
 
     // Check that defaultValue is included for simple message
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello world", { hashLength: 10 })}"`);
+    expect(transformedCode).toContain(
+      `greeting: (): string => i18next.t("${stableHash("Hello world", { hashLength: 10 })}"`
+    );
     expect(transformedCode).toContain(`defaultValue: "Hello world"`);
 
     // Check that defaultValue is included with arguments
@@ -518,7 +536,9 @@ describe("setDefaultValue option", () => {
 
     // Check that defaultValue is not included
     expect(transformedCode).not.toContain("defaultValue");
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${stableHash("Hello world", { hashLength: 10 })}")`);
+    expect(transformedCode).toContain(
+      `greeting: (): string => i18next.t("${stableHash("Hello world", { hashLength: 10 })}")`
+    );
     expect(transformedCode).toContain(
       `withArgs: (name: string): string => i18next.t("${stableHash("Hello {{ name }}", { hashLength: 10 })}"`
     );
@@ -537,7 +557,9 @@ describe("setDefaultValue option", () => {
     });
 
     // Check that only defaultValue is in the options object
-    expect(transformedCode).toContain(`simple: (): string => i18next.t("${stableHash("Simple message", { hashLength: 10 })}"`);
+    expect(transformedCode).toContain(
+      `simple: (): string => i18next.t("${stableHash("Simple message", { hashLength: 10 })}"`
+    );
     expect(transformedCode).toContain(`defaultValue: "Simple message"`);
   });
 });

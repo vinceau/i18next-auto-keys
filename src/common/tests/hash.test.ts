@@ -188,11 +188,11 @@ describe("Hash Functions", () => {
         const text = "Hello   world";
         const textWithExtraSpaces = "Hello     world";
         const textWithTabs = "Hello\t\tworld";
-        
+
         const hash1 = stableHash(text, { normalize: true });
         const hash2 = stableHash(textWithExtraSpaces, { normalize: true });
         const hash3 = stableHash(textWithTabs, { normalize: true });
-        
+
         // All should produce the same hash when normalized
         expect(hash1).toBe(hash2);
         expect(hash1).toBe(hash3);
@@ -202,11 +202,11 @@ describe("Hash Functions", () => {
         const unixText = "Line 1\nLine 2";
         const windowsText = "Line 1\r\nLine 2";
         const mixedText = "Line 1\r\n\nLine 2";
-        
+
         const hash1 = stableHash(unixText, { normalize: true });
         const hash2 = stableHash(windowsText, { normalize: true });
         const hash3 = stableHash(mixedText, { normalize: true });
-        
+
         // Unix and Windows line endings should produce the same hash
         expect(hash1).toBe(hash2);
         // Mixed endings should normalize to consistent format
@@ -217,11 +217,11 @@ describe("Hash Functions", () => {
         const text1 = "Hello {name}, you have {count} messages";
         const text2 = "Hello { name }, you have { count } messages";
         const text3 = "Hello {  name  } , you have {  count  } messages";
-        
+
         const hash1 = stableHash(text1, { normalize: true });
         const hash2 = stableHash(text2, { normalize: true });
         const hash3 = stableHash(text3, { normalize: true });
-        
+
         // All should produce the same hash after ICU punctuation normalization
         expect(hash1).toBe(hash2);
         expect(hash1).toBe(hash3);
@@ -231,11 +231,11 @@ describe("Hash Functions", () => {
         const text1 = "Hello world";
         const text2 = "  Hello world  ";
         const text3 = "\t\nHello world\n\t";
-        
+
         const hash1 = stableHash(text1, { normalize: true });
         const hash2 = stableHash(text2, { normalize: true });
         const hash3 = stableHash(text3, { normalize: true });
-        
+
         // All should produce the same hash after trimming
         expect(hash1).toBe(hash2);
         expect(hash1).toBe(hash3);
@@ -244,18 +244,18 @@ describe("Hash Functions", () => {
       it("produces different hashes when normalization is disabled", () => {
         const text1 = "Hello world";
         const text2 = "Hello   world";
-        
+
         const hashNormalized1 = stableHash(text1, { normalize: true });
         const hashNormalized2 = stableHash(text2, { normalize: true });
         const hashNotNormalized1 = stableHash(text1, { normalize: false });
         const hashNotNormalized2 = stableHash(text2, { normalize: false });
-        
+
         // Normalized versions should be the same
         expect(hashNormalized1).toBe(hashNormalized2);
-        
+
         // Non-normalized versions should be different
         expect(hashNotNormalized1).not.toBe(hashNotNormalized2);
-        
+
         // Normalized vs non-normalized should be different for the spaced version
         expect(hashNormalized2).not.toBe(hashNotNormalized2);
       });
@@ -263,19 +263,19 @@ describe("Hash Functions", () => {
       it("defaults to normalization enabled when normalize option is not specified", () => {
         const text1 = "Hello world";
         const text2 = "Hello   world";
-        
+
         // Default behavior (normalize should be true by default)
         const hashDefault1 = stableHash(text1);
         const hashDefault2 = stableHash(text2);
-        
+
         // Explicit normalization enabled
         const hashExplicit1 = stableHash(text1, { normalize: true });
         const hashExplicit2 = stableHash(text2, { normalize: true });
-        
+
         // Default should match explicit normalize: true
         expect(hashDefault1).toBe(hashExplicit1);
         expect(hashDefault2).toBe(hashExplicit2);
-        
+
         // Both should be the same due to normalization
         expect(hashDefault1).toBe(hashDefault2);
       });
@@ -284,13 +284,13 @@ describe("Hash Functions", () => {
         const text1 = "Hello  world";
         const text2 = "Hello    world";
         const context = "greeting";
-        
+
         const hash1 = stableHash(text1, { context, normalize: true });
         const hash2 = stableHash(text2, { context, normalize: true });
-        
+
         // Should produce the same hash with context and normalization
         expect(hash1).toBe(hash2);
-        
+
         // Should be different from the same text without context
         const hashNoContext = stableHash(text1, { normalize: true });
         expect(hash1).not.toBe(hashNoContext);
