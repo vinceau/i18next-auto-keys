@@ -270,7 +270,16 @@ async function generatePot(
       potEntry.msgctxt = entry.translationContext;
     }
 
-    catalog.translations[""][entry.source] = potEntry;
+    // Organize entries by msgctxt as gettext-parser expects: translations[msgctxt][msgid]
+    // This allows same msgid with different msgctxt to coexist
+    const contextKey = entry.translationContext || "";
+
+    // Ensure the context section exists
+    if (!catalog.translations[contextKey]) {
+      catalog.translations[contextKey] = {};
+    }
+
+    catalog.translations[contextKey][entry.source] = potEntry;
   }
 
   const potBuffer = parser.po.compile(catalog, { sort: true });

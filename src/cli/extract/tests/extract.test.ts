@@ -50,39 +50,41 @@ msgstr ""
 
 `;
 
-      // Add entries from the catalog
-      if (catalog.translations && catalog.translations[""]) {
-        for (const [msgid, entry] of Object.entries(catalog.translations[""])) {
-          if (msgid !== "") {
-            // Skip header entry
-            const entryData = entry as any;
+      // Add entries from all contexts in the catalog
+      if (catalog.translations) {
+        for (const [contextKey, contextEntries] of Object.entries(catalog.translations)) {
+          for (const [msgid, entry] of Object.entries(contextEntries as any)) {
+            if (msgid !== "") {
+              // Skip header entry
+              const entryData = entry as any;
 
-            // Add reference comments if present
-            if (entryData.comments?.reference) {
-              const refLines = entryData.comments.reference.split("\n");
-              for (const line of refLines) {
-                potContent += `#: ${line}\n`;
-              }
-            }
-
-            // Add extracted comments if present
-            if (entryData.comments?.extracted) {
-              const extractedLines = entryData.comments.extracted.split("\n");
-              for (const line of extractedLines) {
-                if (line.trim()) {
-                  potContent += `#. ${line}\n`;
+              // Add reference comments if present
+              if (entryData.comments?.reference) {
+                const refLines = entryData.comments.reference.split("\n");
+                for (const line of refLines) {
+                  potContent += `#: ${line}\n`;
                 }
               }
-            }
 
-            // Only include msgctxt if it exists and is not undefined
-            if (entryData.msgctxt && entryData.msgctxt !== "undefined") {
-              potContent += `msgctxt "${entryData.msgctxt}"\n`;
-            }
-            potContent += `msgid "${msgid}"
+              // Add extracted comments if present
+              if (entryData.comments?.extracted) {
+                const extractedLines = entryData.comments.extracted.split("\n");
+                for (const line of extractedLines) {
+                  if (line.trim()) {
+                    potContent += `#. ${line}\n`;
+                  }
+                }
+              }
+
+              // Only include msgctxt if it exists and is not undefined and not empty
+              if (entryData.msgctxt && entryData.msgctxt !== "undefined" && entryData.msgctxt !== "") {
+                potContent += `msgctxt "${entryData.msgctxt}"\n`;
+              }
+              potContent += `msgid "${msgid}"
 msgstr ""
 
 `;
+            }
           }
         }
       }
@@ -1057,6 +1059,71 @@ describe("extractKeysAndGeneratePotFile", () => {
 
       // The POT file should be sorted (gettext-parser handles this)
       expect(potContent).toMatch(/msgid/g);
+    });
+
+    it("handles same source text with different contexts as separate entries", async () => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+        if (filePath === "/test/src/same-text-different-contexts.messages.ts") {
+          return `export const Messages = {
+  /**
+   * Save button in forms
+   * @translationContext forms
+   */
+  saveForm: (): string => "Save",
+
+  /**
+   * Save menu item for files
+   * @translationContext file-menu
+   */
+  saveFile: (): string => "Save",
+
+  /**
+   * Save without any context
+   */
+  saveGeneric: (): string => "Save",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/same-text-different-contexts.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "same-text-contexts-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Should have 3 separate entries, all with msgid "Save" but different contexts
+      const msgidMatches = potContent.match(/msgid "Save"/g) || [];
+      expect(msgidMatches.length).toBe(3);
+
+      // Check that all three contexts are present
+      expect(potContent).toContain('msgctxt "forms"');
+      expect(potContent).toContain('msgctxt "file-menu"');
+
+      // Check that we have the appropriate comments for each context
+      expect(potContent).toContain("#. Save button in forms");
+      expect(potContent).toContain("#. Save menu item for files");
+      expect(potContent).toContain("#. Save without any context");
+
+      // Verify the structure: each "Save" entry should be preceded by its own msgctxt (when present)
+      const saveWithFormsContext = potContent.includes('msgctxt "forms"\nmsgid "Save"');
+      const saveWithFileMenuContext = potContent.includes('msgctxt "file-menu"\nmsgid "Save"');
+
+      expect(saveWithFormsContext).toBe(true);
+      expect(saveWithFileMenuContext).toBe(true);
+
+      // Count the total number of translation entries (excluding the header entry with msgid "")
+      const allMsgidMatches = potContent.match(/msgid ".+"/g) || [];
+      expect(allMsgidMatches.length).toBe(3);
     });
 
     describe("JSDoc Description Preservation", () => {
