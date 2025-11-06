@@ -2,6 +2,8 @@
 import type { Compiler } from "webpack";
 import { i18nStore } from "../common/i18nStore";
 import { emitIfChanged } from "./emitIfChanged";
+import { loadConfig } from "../common/config/loadConfig";
+const { config, file: cfgFile } = loadConfig();
 
 export type I18nextAutoKeyEmitPluginOptions = {
   /** Path inside Webpack output where the runtime JSON should be emitted (e.g. "i18n/en.json"). */
@@ -19,12 +21,17 @@ export class I18nextAutoKeyEmitPlugin {
 
   constructor(opts: I18nextAutoKeyEmitPluginOptions) {
     this.jsonOutputPath = opts.jsonOutputPath;
-    this.topLevelKey = opts.topLevelKey;
+    this.topLevelKey = config.topLevelKey ?? opts.topLevelKey;
   }
 
   apply(compiler: Compiler): void {
     const { Compilation, sources } = compiler.webpack;
     const pluginName = "I18nextAutoKeyEmitPlugin";
+
+    // add the config file as a build dependency so changes trigger rebuilds:
+    if (cfgFile) {
+      compiler.hooks.thisCompilation.tap("I18nextAutokeyConfig", (compilation) => compilation.fileDependencies.add(cfgFile));
+    }
 
     compiler.hooks.thisCompilation.tap(pluginName, (compilation) => {
       // Start each compilation fresh; transformer will repopulate the store.
