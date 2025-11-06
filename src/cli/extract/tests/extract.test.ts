@@ -1058,5 +1058,205 @@ describe("extractKeysAndGeneratePotFile", () => {
       // The POT file should be sorted (gettext-parser handles this)
       expect(potContent).toMatch(/msgid/g);
     });
+
+    describe("JSDoc Description Preservation", () => {
+      it("preserves JSDoc descriptions when @translationContext is present", async () => {
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          if (filePath === "/test/src/description-context.messages.ts") {
+            return `export const Messages = {
+  /**
+   * Close button for modal dialogs
+   * @translationContext dialog
+   */
+  closeDialog: (): string => "Close",
+
+  /**
+   * Save action for user profile settings
+   * @translationContext user-profile
+   */
+  saveProfile: (): string => "Save",
+
+  /**
+   * Multi-line description that spans
+   * multiple lines with details
+   * @translationContext complex-feature
+   */
+  complexAction: (): string => "Execute Action",
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/description-context.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "description-context-test 1.0",
+        });
+
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+        const potContent = potBuffer.toString();
+
+        // Verify JSDoc descriptions are preserved as #. comments
+        expect(potContent).toContain("#. Close button for modal dialogs");
+        expect(potContent).toContain("#. Save action for user profile settings");
+        // Note: Multi-line descriptions get flattened and may contain * from JSDoc formatting
+        expect(potContent).toContain("#. Multi-line description that spans * multiple lines with details");
+
+        // Verify translation contexts are in msgctxt
+        expect(potContent).toContain('msgctxt "dialog"');
+        expect(potContent).toContain('msgctxt "user-profile"');
+        expect(potContent).toContain('msgctxt "complex-feature"');
+
+        // Verify msgids are correct
+        expect(potContent).toContain('msgid "Close"');
+        expect(potContent).toContain('msgid "Save"');
+        expect(potContent).toContain('msgid "Execute Action"');
+
+        // Verify @translationContext doesn't appear in descriptions
+        expect(potContent).not.toContain("#. @translationContext");
+      });
+
+      it("preserves JSDoc descriptions when @param is present without duplication", async () => {
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          if (filePath === "/test/src/description-params.messages.ts") {
+            return `export const Messages = {
+  /**
+   * Welcome message for new users
+   * @param name The user's display name
+   * @param count Number of items in their account
+   */
+  welcomeMessage: (name: string, count: number): string => "Welcome {name}! You have {count} items.",
+
+  /**
+   * Error notification with details
+   * @param errorCode The specific error identifier
+   */
+  errorNotification: (errorCode: string): string => "Error occurred: {errorCode}",
+
+  /**
+   * Simple greeting without parameters but with description
+   */
+  simpleGreeting: (): string => "Hello there!",
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/description-params.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "description-params-test 1.0",
+        });
+
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+        const potContent = potBuffer.toString();
+
+        // Verify JSDoc descriptions are preserved (without @param content)
+        expect(potContent).toContain("#. Welcome message for new users");
+        expect(potContent).toContain("#. Error notification with details");
+        // Note: Single-line descriptions may have * prefix from JSDoc formatting
+        expect(potContent).toContain("#. * Simple greeting without parameters but with description");
+
+        // Verify parameter metadata appears separately
+        expect(potContent).toContain("{0} name: string - The user's display name");
+        expect(potContent).toContain("{1} count: number - Number of items in their account");
+        expect(potContent).toContain("{0} errorCode: string - The specific error identifier");
+
+        // Verify @param doesn't appear in main descriptions
+        expect(potContent).not.toContain("#. Welcome message for new users @param");
+        expect(potContent).not.toContain("#. Error notification with details @param");
+
+        // Verify parameter descriptions don't appear twice
+        const nameParamMatches = (potContent.match(/The user's display name/g) || []).length;
+        const countParamMatches = (potContent.match(/Number of items in their account/g) || []).length;
+        expect(nameParamMatches).toBe(1);
+        expect(countParamMatches).toBe(1);
+      });
+
+      it("handles JSDoc descriptions with both @translationContext and @param correctly", async () => {
+        (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+          if (filePath === "/test/src/full-jsdoc.messages.ts") {
+            return `export const Messages = {
+  /**
+   * Confirmation message for user deletion
+   * @translationContext admin-panel
+   * @param userName The name of the user being deleted
+   * @param itemCount How many items they have
+   */
+  deleteConfirmation: (userName: string, itemCount: number): string =>
+    "Delete user {userName}? This will remove {itemCount} items.",
+
+  /**
+   * Status update notification
+   * @param status Current status code
+   * @translationContext notifications
+   * @param timestamp When the status changed
+   */
+  statusUpdate: (status: string, timestamp: number): string =>
+    "Status changed to {status} at {timestamp}",
+
+  /**
+   * Simple message with only translation context
+   * @translationContext simple-context
+   */
+  simpleMessage: (): string => "Simple text",
+};`;
+          }
+          return "export const NoMessages = {};";
+        });
+
+        mockGlob.sync.mockReturnValue(["/test/src/full-jsdoc.messages.ts"]);
+
+        await extractKeysAndGeneratePotFile({
+          source: testSourceDir,
+          output: testOutputPath,
+          include: ["**/*.messages.ts"],
+          projectId: "full-jsdoc-test 1.0",
+        });
+
+        const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+          (call) => call[0] === testOutputPath
+        )?.[1] as Buffer;
+        const potContent = potBuffer.toString();
+
+        // Verify main descriptions are preserved (without @tags)
+        expect(potContent).toContain("#. Confirmation message for user deletion");
+        expect(potContent).toContain("#. Status update notification");
+        expect(potContent).toContain("#. Simple message with only translation context");
+
+        // Verify translation contexts
+        expect(potContent).toContain('msgctxt "admin-panel"');
+        expect(potContent).toContain('msgctxt "notifications"');
+        expect(potContent).toContain('msgctxt "simple-context"');
+
+        // Verify parameter metadata
+        expect(potContent).toContain("{0} userName: string - The name of the user being deleted");
+        expect(potContent).toContain("{1} itemCount: number - How many items they have");
+        expect(potContent).toContain("{0} status: string - Current status code");
+        expect(potContent).toContain("{1} timestamp: number - When the status changed");
+
+        // Verify no @tags appear in descriptions
+        expect(potContent).not.toContain("#. Confirmation message for user deletion @translationContext");
+        expect(potContent).not.toContain("#. Status update notification @param");
+        expect(potContent).not.toContain("#. @translationContext");
+        expect(potContent).not.toContain("#. @param");
+
+        // Verify no duplication of information
+        const userNameMatches = (potContent.match(/The name of the user being deleted/g) || []).length;
+        const statusMatches = (potContent.match(/Current status code/g) || []).length;
+        expect(userNameMatches).toBe(1);
+        expect(statusMatches).toBe(1);
+      });
+    });
   });
 });
