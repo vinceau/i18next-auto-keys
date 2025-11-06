@@ -344,8 +344,8 @@ describe("i18next-auto-keys loader integration", () => {
       { entry: "/src/entry.ts" }
     );
 
-    // Should transform all styles with named parameters (config default overrides loader option)
-    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["'],\s*{\s*\w+\s*[,}]/); // Named mode (from config)
+    // Should transform all styles with indexed parameters
+    expect(bundle).toMatch(/\.t\(["'][a-f0-9]{10}["'],\s*{\s*["']0["']:/); // Indexed mode
     expect(bundle).not.toContain("Hello {name}!"); // Arrow function transformed
     expect(bundle).not.toContain("Found {count} {item} items"); // Method shorthand transformed
     expect(bundle).not.toContain("Status: {status}"); // Function expression transformed
