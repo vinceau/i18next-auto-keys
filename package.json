@@ -60,8 +60,10 @@
   },
   "dependencies": {
     "commander": "^12.1.0",
+    "cosmiconfig": "^9.0.0",
     "glob": "^11.0.0",
-    "schema-utils": "^4.3.3"
+    "schema-utils": "^4.3.3",
+    "zod": "^4.1.12"
   },
   "engines": {
     "node": ">=16.0.0"
