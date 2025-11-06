@@ -23,19 +23,15 @@ jest.mock("fs");
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
 // Mock loadConfig to return a default configuration
-jest.mock("../../../index", () => {
-  const actual = jest.requireActual("../../../index") as any;
-  return {
-    ...actual,
-    loadConfig: jest.fn(() => ({
-      config: {
-        projectId: "test-app 1.0",
-        hashLength: 10,
-        argMode: "indexed",
-      },
-    })),
-  };
-});
+jest.mock("../../../common/config/loadConfig", () => ({
+  loadConfig: jest.fn(() => ({
+    config: {
+      projectId: "test-app 1.0",
+      hashLength: 10,
+      argMode: "indexed",
+    },
+  })),
+}));
 
 // Mock glob
 jest.mock("glob", () => ({
@@ -88,8 +84,11 @@ msgstr ""
               }
             }
 
-            potContent += `msgctxt "${entryData.msgctxt}"
-msgid "${msgid}"
+            // Only include msgctxt if it exists and is not undefined
+            if (entryData.msgctxt && entryData.msgctxt !== "undefined") {
+              potContent += `msgctxt "${entryData.msgctxt}"\n`;
+            }
+            potContent += `msgid "${msgid}"
 msgstr ""
 
 `;
@@ -730,9 +729,10 @@ describe("extractKeysAndGeneratePotFile", () => {
         expect(potContent).toContain("{0} value: string - The value");
         expect(potContent).toContain('msgid "Value: {value}"');
 
-        // Should have exactly 3 translation entries
-        const msgctxtCount = (potContent.match(/msgctxt/g) || []).length;
-        expect(msgctxtCount).toBe(3);
+        // Should have exactly 3 translation entries (but no msgctxt since no @translationContext)
+        // Exclude the header entry (msgid "")
+        const msgidCount = (potContent.match(/msgid ".+"/g) || []).length;
+        expect(msgidCount).toBe(3);
       });
 
       it("should handle method shorthand with complex parameter types", async () => {
@@ -815,7 +815,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("includes translation context in msgctxt field", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/context.messages.ts") {
           return `export const Messages = {
   /**
@@ -860,7 +860,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("handles entries without translation context", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/mixed.messages.ts") {
           return `export const Messages = {
   /**
@@ -906,7 +906,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("preserves existing comments alongside translation context", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/detailed.messages.ts") {
           return `export const Messages = {
   /**
@@ -947,7 +947,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("handles complex translation contexts with special characters", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/complex-context.messages.ts") {
           return `export const Messages = {
   /**
@@ -987,7 +987,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("uses first @translationContext when multiple are present", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/multiple-contexts.messages.ts") {
           return `export const Messages = {
   /**
@@ -1023,7 +1023,7 @@ describe("extractKeysAndGeneratePotFile", () => {
     });
 
     it("sorts entries correctly with and without contexts", async () => {
-      mockedFs.readFileSync.mockImplementation((filePath) => {
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         if (filePath === "/test/src/sorting.messages.ts") {
           return `export const Messages = {
   /**

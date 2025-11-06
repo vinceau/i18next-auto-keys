@@ -225,15 +225,21 @@ async function generatePot(
       });
     }
 
-    catalog.translations[""][entry.source] = {
+    const potEntry: any = {
       msgid: entry.source,
-      msgctxt: entry.translationContext || undefined,
       msgstr: [""],
       comments: {
         reference: Array.from(entry.refs).sort().join("\n") || undefined, // "#: file:line:column"
         extracted: extractedComments.join("\n") || undefined, // "#. comment"
       },
     };
+
+    // Only include msgctxt if translation context exists
+    if (entry.translationContext) {
+      potEntry.msgctxt = entry.translationContext;
+    }
+
+    catalog.translations[""][entry.source] = potEntry;
   }
 
   const potBuffer = parser.po.compile(catalog, { sort: true });
