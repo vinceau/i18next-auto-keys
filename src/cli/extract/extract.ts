@@ -192,13 +192,27 @@ async function generatePot(
     // Build extracted comments including parameter metadata
     const extractedComments: string[] = [];
 
-    // Add main JSDoc description (cleaned up, excluding @param tags)
+    // Add main JSDoc description (cleaned up, excluding @param and @translationContext tags)
     const originalComments = Array.from(entry.extractedComments);
     for (const comment of originalComments) {
-      if (comment.includes("@param")) {
-        // Extract just the main description part before @param tags
-        const parts = comment.split("@param");
-        const mainDescription = parts[0].replace(/^\*\s*/, "").trim();
+      if (comment.includes("@param") || comment.includes("@translationContext")) {
+        // Extract just the main description part before @param or @translationContext tags
+        let cleanedComment = comment;
+
+        // Remove @param sections
+        if (cleanedComment.includes("@param")) {
+          const parts = cleanedComment.split("@param");
+          cleanedComment = parts[0];
+        }
+
+        // Remove @translationContext lines
+        if (cleanedComment.includes("@translationContext")) {
+          const lines = cleanedComment.split("\n");
+          const filteredLines = lines.filter((line) => !line.includes("@translationContext"));
+          cleanedComment = filteredLines.join("\n");
+        }
+
+        const mainDescription = cleanedComment.replace(/^\*\s*/, "").trim();
         if (mainDescription) {
           extractedComments.push(mainDescription);
         }
