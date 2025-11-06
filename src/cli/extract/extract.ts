@@ -151,6 +151,22 @@ async function processSourceFile(
   }
 }
 
+/**
+ * Extract the main description from a processed comment string
+ * @param comment Already processed comment string (flattened by getLeadingComments)
+ * @returns Cleaned main description text or empty string
+ */
+function parseJSDocDescription(comment: string): string {
+  if (!comment) return "";
+
+  // The comment is already processed and cleaned, just need to remove leading/trailing asterisks
+  // and trim whitespace
+  return comment
+    .replace(/^\*\s*/, "")
+    .replace(/\s*\*\s*$/, "")
+    .trim();
+}
+
 async function generatePot(
   entries: Array<{
     id: string;
@@ -194,6 +210,7 @@ async function generatePot(
 
     // Add main JSDoc description (cleaned up, excluding @param and @translationContext tags)
     const originalComments = Array.from(entry.extractedComments);
+
     for (const comment of originalComments) {
       if (comment.includes("@param") || comment.includes("@translationContext")) {
         // Extract just the main description part before @param or @translationContext tags
@@ -205,14 +222,15 @@ async function generatePot(
           cleanedComment = parts[0];
         }
 
-        // Remove @translationContext lines
+        // Remove @translationContext parts (for flattened single-line comments)
         if (cleanedComment.includes("@translationContext")) {
-          const lines = cleanedComment.split("\n");
-          const filteredLines = lines.filter((line) => !line.includes("@translationContext"));
-          cleanedComment = filteredLines.join("\n");
+          // Use regex to remove @translationContext and everything after it on the same line
+          cleanedComment = cleanedComment.replace(/@translationContext.*$/, "").trim();
         }
 
-        const mainDescription = cleanedComment.replace(/^\*\s*/, "").trim();
+        // Properly parse JSDoc comment block
+        const mainDescription = parseJSDocDescription(cleanedComment);
+
         if (mainDescription) {
           extractedComments.push(mainDescription);
         }
