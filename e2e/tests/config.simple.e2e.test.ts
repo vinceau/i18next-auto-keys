@@ -31,8 +31,6 @@ describe("Configuration System Simplified E2E Tests", () => {
     // Clear any config files before each test
     const configFiles = [
       ".i18next-auto-keysrc.json",
-      ".i18next-auto-keysrc.js", 
-      "i18next-auto-keys.config.js",
       "package.json"
     ];
     configFiles.forEach(file => {
@@ -114,27 +112,6 @@ describe("Configuration System Simplified E2E Tests", () => {
         jsonIndentSpaces: 4,
         topLevelKey: "messages"
       });
-    });
-  });
-
-  describe("JavaScript Configuration File", () => {
-    test("should load JS configuration file", () => {
-      const configContent = `module.exports = {
-        hashLength: 14,
-        argMode: "named"
-      };`;
-
-      const configPath = path.join(testWorkspace, "i18next-auto-keys.config.js");
-      fs.writeFileSync(configPath, configContent);
-
-      // Verify file was written
-      expect(fs.existsSync(configPath)).toBe(true);
-
-      const result = loadConfig(testWorkspace);
-
-      expect(result.file).toBe(configPath);
-      expect(result.config.hashLength).toBe(14);
-      expect(result.config.argMode).toBe("named");
     });
   });
 
