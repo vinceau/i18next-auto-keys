@@ -127,6 +127,9 @@ describe("Configuration System Simplified E2E Tests", () => {
       const configPath = path.join(testWorkspace, "i18next-auto-keys.config.js");
       fs.writeFileSync(configPath, configContent);
 
+      // Verify file was written
+      expect(fs.existsSync(configPath)).toBe(true);
+
       const result = loadConfig(testWorkspace);
 
       expect(result.file).toBe(configPath);
