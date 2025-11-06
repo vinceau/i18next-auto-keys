@@ -1,5 +1,8 @@
 import path from "path";
 import { Volume } from "memfs";
+
+// Unmock loadConfig for this test file so we test the real implementation
+jest.unmock("../loadConfig");
 import { loadConfig } from "../loadConfig";
 
 // Mock the package.json import
