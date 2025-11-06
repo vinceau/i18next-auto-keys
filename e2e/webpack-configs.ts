@@ -69,16 +69,16 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
             {
               loader: "ts-loader",
             },
-              {
-                loader: path.resolve(__dirname, "../dist/index.js"),
-                options: {
-                  include,
-                  setDefaultValue,
-                  sourcemap,
-                  argMode,
-                  ...loaderOptions,
-                },
+            {
+              loader: path.resolve(__dirname, "../dist/index.js"),
+              options: {
+                include,
+                setDefaultValue,
+                sourcemap,
+                argMode,
+                ...loaderOptions,
               },
+            },
           ],
         },
       ],
@@ -149,6 +149,11 @@ const TEST_CONFIGURATIONS = {
       "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
       "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
     },
+  }),
+
+  translationContext: createWebpackConfig({
+    configName: "translation-context",
+    include: /(context|auth|ui)\.messages\.(ts|tsx)$/, // Include context, auth, and ui messages
   }),
 };
 

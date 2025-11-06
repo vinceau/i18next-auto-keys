@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { AuthMessages } from "./auth.messages";
 import { UIMessages } from "./ui.messages";
+import { ContextMessages } from "./context.messages";
 import i18next from "i18next";
 
 // Flag to track if i18next has been initialized
@@ -39,7 +40,7 @@ export async function initializeI18n(translationsDir: string): Promise<void> {
 }
 
 // Export all message modules for testing
-export { AuthMessages, UIMessages };
+export { AuthMessages, UIMessages, ContextMessages };
 
 // Example usage functions that will be tested
 export function getWelcomeMessage(userName: string): string {
@@ -72,4 +73,69 @@ export function getComplexMessage(): string {
 // This should remain unchanged due to @noTranslate
 export function getDebugMessage(): string {
   return AuthMessages.debugInfo();
+}
+
+// Context-specific message functions for testing translation context disambiguation
+export function getCloseDialogMessage(): string {
+  return ContextMessages.closeModal();
+}
+
+export function getCloseFileMessage(): string {
+  return ContextMessages.closeFile();
+}
+
+export function getCloseNotificationMessage(): string {
+  return ContextMessages.closeNotification();
+}
+
+export function getSaveDocumentMessage(): string {
+  return ContextMessages.saveDocument();
+}
+
+export function getSaveProfileMessage(): string {
+  return ContextMessages.saveProfile();
+}
+
+export function getSaveGameMessage(): string {
+  return ContextMessages.saveGame();
+}
+
+export function getAccountSettingsMessage(): string {
+  return ContextMessages.accountSettings();
+}
+
+export function getAppSettingsMessage(): string {
+  return ContextMessages.appSettings();
+}
+
+export function getPrivacySettingsMessage(): string {
+  return ContextMessages.privacySettings();
+}
+
+export function getAuthWelcomeMessage(name: string): string {
+  return ContextMessages.welcomeUser(name);
+}
+
+export function getGuestWelcomeMessage(name: string): string {
+  return ContextMessages.welcomeGuest(name);
+}
+
+export function getAdminNotificationMessage(count: number): string {
+  return ContextMessages.adminNotification(count);
+}
+
+export function getUserNotificationMessage(count: number): string {
+  return ContextMessages.userNotification(count);
+}
+
+export function getGenericErrorMessage(): string {
+  return ContextMessages.genericError();
+}
+
+export function getConfirmActionMessage(): string {
+  return ContextMessages.confirmAction();
+}
+
+export function getComplexFeatureHelpMessage(): string {
+  return ContextMessages.complexFeatureHelp();
 }

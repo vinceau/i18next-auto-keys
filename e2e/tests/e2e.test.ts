@@ -354,6 +354,39 @@ describe("i18next-auto-keys E2E Tests", () => {
       cleanConfigArtifacts("production", distPath);
     }, 120000);
 
+    it("should support translation context configuration (feature verification)", async () => {
+      // Verify that the translation context configuration can be created without errors
+      const contextConfig = TEST_CONFIGURATIONS.translationContext;
+
+      expect(contextConfig).toBeDefined();
+      expect(contextConfig.name).toBe("translation-context");
+      expect(contextConfig.module).toBeDefined();
+      expect(contextConfig.module!.rules).toBeDefined();
+      expect(Array.isArray(contextConfig.module!.rules)).toBe(true);
+
+      // Verify the include pattern includes context message files
+      const rule = contextConfig.module!.rules!.find(
+        (r: any) => r && typeof r === "object" && r.test && r.test.test && r.test.test(".ts")
+      ) as any;
+      expect(rule).toBeDefined();
+      expect(rule.use).toBeDefined();
+
+      // Find the i18next-auto-keys loader options
+      const loaderConfig = Array.isArray(rule.use)
+        ? rule.use.find((loader: any) => loader && loader.loader && loader.loader.includes("dist/index.js"))
+        : rule.use;
+
+      expect(loaderConfig).toBeDefined();
+      expect(loaderConfig.options).toBeDefined();
+      expect(loaderConfig.options.include).toBeDefined();
+
+      // Verify the include pattern matches context message files
+      const includePattern = loaderConfig.options.include;
+      expect(includePattern.test("context.messages.ts")).toBe(true);
+      expect(includePattern.test("auth.messages.ts")).toBe(true);
+      expect(includePattern.test("ui.messages.ts")).toBe(true);
+    });
+
     it("should handle production mode correctly", async () => {
       const prodConfig = TEST_CONFIGURATIONS.production;
       const result = await buildWithConfig(prodConfig);

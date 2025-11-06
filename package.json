@@ -35,7 +35,7 @@
     "test:e2e": "npm run build && cd e2e && npm install && npm test",
     "test:all": "npm test && npm run test:e2e",
     "prepublishOnly": "npm run clean && npm run build",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\" \"e2e/**/*.ts\""
   },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",

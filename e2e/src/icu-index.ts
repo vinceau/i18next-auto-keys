@@ -20,7 +20,7 @@ export async function initializeI18n(translationsDir: string): Promise<void> {
   // Find the correct translation file in the directory
   // Look for any *-en.json file or fallback to en.json
   const files = fs.readdirSync(translationsDir);
-  const translationFile = files.find(file => file.endsWith('-en.json')) || 'en.json';
+  const translationFile = files.find((file) => file.endsWith("-en.json")) || "en.json";
   const translationsPath = path.join(translationsDir, translationFile);
 
   // Load translations if they exist

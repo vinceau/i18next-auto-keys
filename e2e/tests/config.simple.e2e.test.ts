@@ -4,7 +4,7 @@ import { loadConfig } from "../../dist/index";
 
 /**
  * Simplified E2E Tests for Configuration System
- * 
+ *
  * These tests verify that the configuration system works correctly
  * in a real filesystem environment.
  */
@@ -29,11 +29,8 @@ describe("Configuration System Simplified E2E Tests", () => {
 
   beforeEach(() => {
     // Clear any config files before each test
-    const configFiles = [
-      ".i18next-auto-keysrc.json",
-      "package.json"
-    ];
-    configFiles.forEach(file => {
+    const configFiles = [".i18next-auto-keysrc.json", "package.json"];
+    configFiles.forEach((file) => {
       const filePath = path.join(testWorkspace, file);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
@@ -61,7 +58,7 @@ describe("Configuration System Simplified E2E Tests", () => {
     test("should respect custom hashLength in JSON config", () => {
       const config = {
         hashLength: 15,
-        argMode: "named"
+        argMode: "named",
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -77,7 +74,7 @@ describe("Configuration System Simplified E2E Tests", () => {
     test("should respect argMode configuration", () => {
       const config = {
         hashLength: 12,
-        argMode: "indexed"
+        argMode: "indexed",
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -96,7 +93,7 @@ describe("Configuration System Simplified E2E Tests", () => {
         potTemplatePath: "custom/path/messages.pot",
         projectId: "test-project v1.0",
         jsonIndentSpaces: 4,
-        topLevelKey: "messages"
+        topLevelKey: "messages",
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -108,9 +105,9 @@ describe("Configuration System Simplified E2E Tests", () => {
         hashLength: 20,
         argMode: "indexed",
         potTemplatePath: path.resolve(testWorkspace, "custom/path/messages.pot"),
-        projectId: "test-project v1.0", 
+        projectId: "test-project v1.0",
         jsonIndentSpaces: 4,
-        topLevelKey: "messages"
+        topLevelKey: "messages",
       });
     });
   });
@@ -118,12 +115,12 @@ describe("Configuration System Simplified E2E Tests", () => {
   describe("Package.json Configuration", () => {
     test("should load configuration from package.json", () => {
       const packageJsonContent = {
-        "name": "test-project",
-        "version": "1.0.0",
+        name: "test-project",
+        version: "1.0.0",
         "i18next-auto-keys": {
           hashLength: 16,
-          argMode: "indexed"
-        }
+          argMode: "indexed",
+        },
       };
 
       const packageJsonPath = path.join(testWorkspace, "package.json");
@@ -140,7 +137,7 @@ describe("Configuration System Simplified E2E Tests", () => {
   describe("Configuration Validation", () => {
     test("should reject invalid hashLength", () => {
       const config = {
-        hashLength: 5 // Too small, minimum is 10
+        hashLength: 5, // Too small, minimum is 10
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -151,7 +148,7 @@ describe("Configuration System Simplified E2E Tests", () => {
 
     test("should reject invalid argMode", () => {
       const config = {
-        argMode: "invalid"
+        argMode: "invalid",
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -162,7 +159,7 @@ describe("Configuration System Simplified E2E Tests", () => {
 
     test("should reject negative jsonIndentSpaces", () => {
       const config = {
-        jsonIndentSpaces: -1
+        jsonIndentSpaces: -1,
       };
 
       const configPath = path.join(testWorkspace, ".i18next-auto-keysrc.json");
@@ -176,17 +173,17 @@ describe("Configuration System Simplified E2E Tests", () => {
     test("should prioritize package.json over rc files (cosmiconfig precedence)", () => {
       // Create both config files
       const packageJsonContent = {
-        "name": "test-project",
-        "version": "1.0.0", 
+        name: "test-project",
+        version: "1.0.0",
         "i18next-auto-keys": {
           hashLength: 11,
-          argMode: "named"
-        }
+          argMode: "named",
+        },
       };
 
       const dedicatedConfig = {
         hashLength: 17,
-        argMode: "indexed"
+        argMode: "indexed",
       };
 
       const packageJsonPath = path.join(testWorkspace, "package.json");

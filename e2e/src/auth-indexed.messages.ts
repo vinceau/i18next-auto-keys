@@ -15,8 +15,7 @@ export const AuthMessages = {
   resetEmailSent: (email: string, minutes: number): string =>
     "Password reset link sent to {{0}}. Expires in {{1}} minutes.",
 
-  attemptsRemaining: (count: number, maxAttempts: number): string =>
-    "{{0}} of {{1}} login attempts remaining",
+  attemptsRemaining: (count: number, maxAttempts: number): string => "{{0}} of {{1}} login attempts remaining",
 
   // Complex message with conditional content
   accountLocked: (unlockTime: string): string => "Account temporarily locked. Please try again after {{0}}.",

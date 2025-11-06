@@ -2,10 +2,11 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
-import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
+
+import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "@/index";
 
 export type ExtractOptions = {
   source?: string;
@@ -154,6 +155,7 @@ async function generatePot(
   entries: Array<{
     id: string;
     source: string;
+    translationContext?: string;
     refs: Set<string>;
     extractedComments: Set<string>;
     parameterMetadata?: ParameterMetadata;
@@ -190,18 +192,45 @@ async function generatePot(
     // Build extracted comments including parameter metadata
     const extractedComments: string[] = [];
 
-    // Add main JSDoc description (cleaned up, excluding @param tags)
+    // Add main JSDoc description (cleaned up, excluding @param and @translationContext tags)
     const originalComments = Array.from(entry.extractedComments);
+
     for (const comment of originalComments) {
-      if (comment.includes("@param")) {
-        // Extract just the main description part before @param tags
-        const parts = comment.split("@param");
-        const mainDescription = parts[0].replace(/^\*\s*/, "").trim();
+      if (comment.includes("@param") || comment.includes("@translationContext")) {
+        // Extract just the main description part before @param or @translationContext tags
+        let cleanedComment = comment;
+
+        // Remove @param sections
+        if (cleanedComment.includes("@param")) {
+          const parts = cleanedComment.split("@param");
+          cleanedComment = parts[0];
+        }
+
+        // Remove @translationContext parts (for both single-line and multi-line comments)
+        if (cleanedComment.includes("@translationContext")) {
+          // Use regex to remove @translationContext and everything after it (multiline flag)
+          cleanedComment = cleanedComment.replace(/@translationContext[\s\S]*$/, "").trim();
+        }
+
+        // For comments with @param/@translationContext, remove asterisks
+        const mainDescription = cleanedComment
+          .replace(/^\*\s*/, "")
+          .replace(/\s*\*\s*$/, "")
+          .trim();
+
         if (mainDescription) {
           extractedComments.push(mainDescription);
         }
       } else {
-        extractedComments.push(comment);
+        // For simple comments, also remove asterisks to be consistent
+        const cleanedSimpleComment = comment
+          .replace(/^\*\s*/, "")
+          .replace(/\s*\*\s*$/, "")
+          .trim();
+
+        if (cleanedSimpleComment) {
+          extractedComments.push(cleanedSimpleComment);
+        }
       }
     }
 
@@ -222,15 +251,30 @@ async function generatePot(
       });
     }
 
-    catalog.translations[""][entry.source] = {
+    const potEntry: any = {
       msgid: entry.source,
-      msgctxt: entry.id,
       msgstr: [""],
       comments: {
         reference: Array.from(entry.refs).sort().join("\n") || undefined, // "#: file:line:column"
         extracted: extractedComments.join("\n") || undefined, // "#. comment"
       },
     };
+
+    // Only include msgctxt if translation context exists
+    if (entry.translationContext) {
+      potEntry.msgctxt = entry.translationContext;
+    }
+
+    // Organize entries by msgctxt as gettext-parser expects: translations[msgctxt][msgid]
+    // This allows same msgid with different msgctxt to coexist
+    const contextKey = entry.translationContext || "";
+
+    // Ensure the context section exists
+    if (!catalog.translations[contextKey]) {
+      catalog.translations[contextKey] = {};
+    }
+
+    catalog.translations[contextKey][entry.source] = potEntry;
   }
 
   const potBuffer = parser.po.compile(catalog, { sort: true });

@@ -9,8 +9,9 @@ export type PoRef = {
 };
 
 export type Entry = {
-  id: string; // hash key (msgctxt)
+  id: string; // hash key (will be generated from source + translationContext)
   source: string; // English ICU text (msgid)
+  translationContext?: string; // Translation context from @translationContext (msgctxt)
   refs: Set<string>; // "file:line:column" strings (deduped)
   extractedComments: Set<string>; // "#. comment" lines
   parameterMetadata?: ParameterMetadata; // Parameter names and JSDoc for indexed mode
@@ -34,7 +35,14 @@ class I18nStore {
   }
 
   /** Adds/merges an entry with reference and comments */
-  add(params: { id: string; source: string; ref: PoRef; comments?: string[]; parameterMetadata?: ParameterMetadata }) {
+  add(params: {
+    id: string;
+    source: string;
+    translationContext?: string;
+    ref: PoRef;
+    comments?: string[];
+    parameterMetadata?: ParameterMetadata;
+  }) {
     const key = params.id;
     // Intern the source string to avoid duplication
     const internedSource = stringPool.intern(params.source);
@@ -46,6 +54,11 @@ class I18nStore {
     } else {
       // keep latest source if it somehow changed
       e.source = internedSource;
+    }
+
+    // Update translation context if provided
+    if (params.translationContext !== undefined) {
+      e.translationContext = params.translationContext;
     }
 
     // Update parameter metadata if provided

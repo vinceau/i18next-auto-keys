@@ -176,6 +176,62 @@ function extractParameterMetadata(
   return parameterNames.length > 0 ? { parameterNames, parameterTypes, parameterJSDoc } : undefined;
 }
 
+/** Extract @translationContext from JSDoc comments */
+function extractTranslationContext(
+  containerNode: ts.PropertyAssignment | ts.MethodDeclaration,
+  fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
+  sf: ts.SourceFile
+): string | undefined {
+  const text = sf.getFullText();
+
+  // Collect JSDoc from both the function itself AND the parent property assignment
+  let ranges: readonly ts.CommentRange[] = [];
+
+  // Try to get JSDoc from the function itself first
+  const functionRanges = ts.getLeadingCommentRanges?.(text, fn.getFullStart()) || [];
+  ranges = [...functionRanges];
+
+  // Also try the parent (container) for property assignments and method declarations
+  const containerRanges = ts.getLeadingCommentRanges?.(text, containerNode.getFullStart()) || [];
+  // Add container ranges if they don't overlap with function ranges
+  for (const cRange of containerRanges) {
+    const overlaps = functionRanges.some(
+      (fRange) =>
+        (cRange.pos >= fRange.pos && cRange.pos <= fRange.end) || (cRange.end >= fRange.pos && cRange.end <= fRange.end)
+    );
+    if (!overlaps) {
+      ranges = [...ranges, cRange];
+    }
+  }
+
+  for (const r of ranges) {
+    const raw = text.slice(r.pos, r.end);
+    if (raw.startsWith("/**")) {
+      // Look for @translationContext lines
+      const lines = raw.split("\n");
+      for (const line of lines) {
+        if (line.includes("@translationContext")) {
+          const match = line.match(/@translationContext\s+(.+)/);
+          if (match) {
+            let context = match[1];
+            // Remove common endings and clean up
+            context = context
+              .replace(/\*\/\s*$/, "")
+              .replace(/\*\s*$/, "")
+              .trim();
+
+            if (context) {
+              return context;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return undefined;
+}
+
 /** Extract type information from a parameter declaration */
 function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile): string {
   if (param.type) {
@@ -390,18 +446,24 @@ export function createI18nextAutoKeyTransformerFactory(
         // Intern the string to eliminate memory duplication across stores
         const internedOriginal = stringPool.intern(original);
 
+        // Extract translation context from JSDoc
+        const translationContext = extractTranslationContext(containerNode, fn, sf);
+
+        // Create composite key for global store (source + context)
+        const compositeKey = translationContext ? `${internedOriginal}::${translationContext}` : internedOriginal;
+
         // reuse/assign hash
-        let id = globalStore.reverse.get(internedOriginal);
+        let id = globalStore.reverse.get(compositeKey);
         if (!id) {
-          id = stableHash(internedOriginal, hashLength);
+          id = stableHash(internedOriginal, { context: translationContext, hashLength });
           // This collision handling is not deterministic and can result in a different id
           // for the same string, based on the order that the strings are encountered.
           // In practice, this should not matter.
-          while (globalStore.seen.has(id) && globalStore.seen.get(id) !== internedOriginal) {
-            id = stableHash(internedOriginal + ":" + id, Math.min(40, hashLength + 2));
+          while (globalStore.seen.has(id) && globalStore.seen.get(id) !== compositeKey) {
+            id = stableHash(compositeKey + ":" + id, { hashLength: Math.min(40, hashLength + 2) });
           }
-          globalStore.seen.set(id, internedOriginal);
-          globalStore.reverse.set(internedOriginal, id);
+          globalStore.seen.set(id, compositeKey);
+          globalStore.reverse.set(compositeKey, id);
         }
 
         // ── NEW: record reference + comments for POT/PO
@@ -423,6 +485,7 @@ export function createI18nextAutoKeyTransformerFactory(
         i18nStore.add({
           id,
           source: internedOriginal, // Use interned string to avoid duplication
+          translationContext,
           ref: { file: rel, line, column },
           comments,
           parameterMetadata,

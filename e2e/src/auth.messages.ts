@@ -26,7 +26,7 @@ export const AuthMessages = {
   /**
    * Account creation button text
    */
-  signUpButton: function(): string {
+  signUpButton: function (): string {
     return "Create Account";
   },
 
@@ -56,7 +56,7 @@ export const AuthMessages = {
    * @param email The email address where reset link was sent
    * @param minutes Number of minutes until the link expires
    */
-  resetEmailSent: function(email: string, minutes: number): string {
+  resetEmailSent: function (email: string, minutes: number): string {
     return "Password reset link sent to {{email}}. Expires in {{minutes}} minutes.";
   },
 
