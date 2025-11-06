@@ -423,6 +423,86 @@ describe("extractKeysAndGeneratePotFile", () => {
       expect(potContent).toContain("Shows file analysis results");
     });
 
+    it("should order comments correctly: file location, description, then parameter info", async () => {
+      // Mock file with both JSDoc description and parameters
+      (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+        const pathStr = filePath.toString();
+        if (pathStr.includes("comment-order.messages.ts")) {
+          return `export const CommentOrderMessages = {
+  /**
+   * This is the main description for the greeting function
+   * @param userName The user's display name
+   * @param userAge The user's age in years
+   */
+  greeting: (userName: string, userAge: number): string => "Hello {userName}, you are {userAge} years old!",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/comment-order.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "test-comment-order 1.0",
+      });
+
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+      // Verify POT content has correct comment ordering
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      expect(potBuffer).toBeInstanceOf(Buffer);
+      const potContent = potBuffer.toString();
+
+      // Find the entry section for our message
+      const entryMatch = potContent.match(
+        /#: .*comment-order\.messages\.ts.*?\n(.*?\n)*?msgid "Hello \{userName\}, you are \{userAge\} years old!"/s
+      );
+      expect(entryMatch).toBeTruthy();
+
+      const entrySection = entryMatch![0];
+
+      // Verify order:
+      // 1. File location info (#:) should come first
+      // 2. Description (#.) should come next
+      // 3. Parameter info (#.) should come last
+
+      const lines = entrySection.split("\n");
+      let fileLocationIndex = -1;
+      let descriptionIndex = -1;
+      let parameterIndex = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith("#:") && fileLocationIndex === -1) {
+          fileLocationIndex = i;
+        } else if (line.includes("This is the main description") && descriptionIndex === -1) {
+          descriptionIndex = i;
+        } else if (line.includes("{0} userName: string") && parameterIndex === -1) {
+          parameterIndex = i;
+        }
+      }
+
+      // Verify all elements were found
+      expect(fileLocationIndex).toBeGreaterThanOrEqual(0);
+      expect(descriptionIndex).toBeGreaterThanOrEqual(0);
+      expect(parameterIndex).toBeGreaterThanOrEqual(0);
+
+      // Verify correct order: file location < description < parameters
+      expect(fileLocationIndex).toBeLessThan(descriptionIndex);
+      expect(descriptionIndex).toBeLessThan(parameterIndex);
+
+      // Verify content is present
+      expect(potContent).toContain("This is the main description for the greeting function");
+      expect(potContent).toContain("{0} userName: string - The user's display name");
+      expect(potContent).toContain("{1} userAge: number - The user's age in years");
+    });
+
     it("should handle functions with no parameters", async () => {
       // Mock file with functions that have no parameters
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
