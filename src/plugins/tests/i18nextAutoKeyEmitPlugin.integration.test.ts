@@ -23,7 +23,6 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
             },
           },
         ],
@@ -82,7 +81,6 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
             },
           },
         ],
@@ -148,7 +146,6 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
             },
           },
         ],
@@ -196,7 +193,6 @@ describe("I18nextAutoKeyEmitPlugin integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
             },
           },
         ],

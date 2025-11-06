@@ -5,7 +5,6 @@ const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
 interface WebpackConfigOptions {
   configName?: string;
   mode?: "development" | "production" | "none";
-  hashLength?: number;
   include?: RegExp;
   setDefaultValue?: boolean;
   sourcemap?: boolean;
@@ -27,7 +26,6 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
   const {
     configName = "default",
     mode = "development",
-    hashLength = 10,
     include = /\.messages\.(ts|tsx)$/,
     setDefaultValue = false,
     sourcemap = true,
@@ -75,7 +73,6 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
                 loader: path.resolve(__dirname, "../dist/index.js"),
                 options: {
                   include,
-                  hashLength,
                   setDefaultValue,
                   sourcemap,
                   argMode,
@@ -99,40 +96,33 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
 /**
  * Predefined test configurations
  *
- * NOTE: Due to a global store in the transformer, different hashLength values
- * cannot be properly tested in the same process. The first configuration to run
- * will set the hash length for all subsequent configurations.
+ * NOTE: hashLength is now configured globally via cosmiconfig and defaults to 10.
+ * Individual configurations no longer override this value.
  */
 const TEST_CONFIGURATIONS = {
   default: createWebpackConfig({
     configName: "default",
-    hashLength: 10,
     setDefaultValue: false,
   }),
 
-  // Note: These have the same hashLength due to global store limitation
   shortHashes: createWebpackConfig({
     configName: "short-hashes",
-    hashLength: 10,
     setDefaultValue: false,
   }),
 
   longHashes: createWebpackConfig({
     configName: "long-hashes",
-    hashLength: 10, // Would be 16, but global store prevents this
     setDefaultValue: false,
   }),
 
   withDefaultValues: createWebpackConfig({
     configName: "with-defaults",
-    hashLength: 10,
     setDefaultValue: true,
   }),
 
   production: createWebpackConfig({
     configName: "production",
     mode: "production",
-    hashLength: 10,
     minimize: true,
     sourcemap: false,
   }),
@@ -140,24 +130,20 @@ const TEST_CONFIGURATIONS = {
   strictInclude: createWebpackConfig({
     configName: "strict-include",
     include: /auth\.messages\.(ts|tsx)$/, // Only auth.messages.ts files
-    hashLength: 10,
   }),
 
   noSourcemaps: createWebpackConfig({
     configName: "no-sourcemaps",
     sourcemap: false,
-    hashLength: 10,
   }),
 
   customLoaderOptions: createWebpackConfig({
     configName: "custom-loader",
-    hashLength: 10, // Would be 12, but global store prevents this
-    setDefaultValue: true, // Use a valid option instead
+    setDefaultValue: true,
   }),
 
   indexedArguments: createWebpackConfig({
     configName: "indexed-arguments",
-    hashLength: 10,
     argMode: "indexed",
     resolveAlias: {
       "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),

@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
-import { i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
+import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
@@ -21,10 +21,11 @@ export type ExtractOptions = {
  * containing all translation keys found by the i18next-auto-keys transformer.
  */
 export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Promise<void> {
+  const { config } = loadConfig();
   const {
     source = process.cwd(),
     output,
-    projectId = "app 1.0",
+    projectId = config.projectId,
     include,
     exclude = ["node_modules/**", "dist/**", "build/**"],
   } = options;
@@ -50,8 +51,9 @@ export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Pr
 
   // Process each source file with the transformer
   const transformer = createI18nextAutoKeyTransformerFactory({
-    hashLength: 10,
-    argMode: "named",
+    // This needs to be the same as the loader options
+    hashLength: config.hashLength,
+    argMode: config.argMode,
   });
 
   for (const filePath of sourceFiles) {

@@ -6,7 +6,7 @@ describe("i18next-auto-keys loader integration", () => {
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        use: [{ loader: "i18next-auto-keys", options: { include: /\.messages\.js$/, hashLength: 10 } }],
+        use: [{ loader: "i18next-auto-keys", options: { include: /\.messages\.js$/ } }],
       },
     ];
 
@@ -42,7 +42,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
               argMode: "indexed",
             },
           },
@@ -86,7 +85,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
               argMode: "named",
             },
           },
@@ -130,7 +128,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
             },
           },
         ],
@@ -171,7 +168,6 @@ describe("i18next-auto-keys loader integration", () => {
             options: {
               include: /\.messages\.ts$/,
               sourcemap: true,
-              hashLength: 10,
             },
           },
         ],
@@ -208,7 +204,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
               setDefaultValue: true,
             },
           },
@@ -248,7 +243,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
               argMode: "named",
             },
           },
@@ -311,7 +305,6 @@ describe("i18next-auto-keys loader integration", () => {
             loader: "i18next-auto-keys",
             options: {
               include: /\.messages\.ts$/,
-              hashLength: 10,
               argMode: "indexed",
             },
           },

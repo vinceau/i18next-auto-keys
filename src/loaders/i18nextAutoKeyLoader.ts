@@ -3,11 +3,11 @@ import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
 import ts from "typescript";
 import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
+import { loadConfig } from "../common/config/loadConfig";
 
 export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
   include: RegExp | RegExp[];
-  hashLength?: number;
   argMode?: "indexed" | "named";
   setDefaultValue?: boolean;
 };
@@ -19,7 +19,6 @@ const schema = {
     include: {
       anyOf: [{ instanceof: "RegExp" }, { type: "array", items: { instanceof: "RegExp" } }],
     },
-    hashLength: { type: "number", minimum: 10 },
     argMode: { type: "string", enum: ["indexed", "named"] },
     setDefaultValue: { type: "boolean" },
   },
@@ -39,10 +38,17 @@ export function i18nextAutoKeyLoader(
   meta?: any
 ) {
   // Use webpack 5's getOptions method (this loader targets webpack 5+)
-  const options: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
-
+  const loaderOptions: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
   // validate in a version-agnostic way
-  validate(schema as any, options, { name: "i18next-auto-keys" });
+  validate(schema as any, loaderOptions, { name: "i18next-auto-keys" });
+
+  const { config } = loadConfig();
+
+  const options: I18nextAutoKeyLoaderOptions = {
+    ...loaderOptions,
+    // Prioritize loader options over config defaults, but use config if no loader option is provided
+    argMode: loaderOptions.argMode ?? config.argMode,
+  };
 
   this.cacheable && this.cacheable(true);
 
@@ -62,7 +68,7 @@ export function i18nextAutoKeyLoader(
   );
 
   const transformer = createI18nextAutoKeyTransformerFactory({
-    hashLength: options.hashLength,
+    hashLength: config.hashLength, // This needs to be the same as the config so don't override it with options
     argMode: options.argMode,
     setDefaultValue: options.setDefaultValue,
   });

@@ -1,4 +1,6 @@
+const pkg = require('./package.json');
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'production',
@@ -17,6 +19,10 @@ module.exports = {
   },
   // Preserve shebang for CLI executables
   plugins: [
+    new webpack.DefinePlugin({
+      'process.env.PACKAGE_NAME': JSON.stringify(pkg.name),
+      'process.env.PACKAGE_VERSION': JSON.stringify(pkg.version),
+    }),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('BannerPlugin', (compilation) => {
@@ -69,14 +75,15 @@ module.exports = {
   },
   devtool: 'source-map',
   externals: [
-    // Keep external dependencies as externals instead of bundling them
     {
-      'schema-utils': 'schema-utils',
       webpack: 'webpack',
       typescript: 'typescript',
       'gettext-parser': 'gettext-parser',
-      commander: 'commander',
-      glob: 'glob',
+      // Keep external dependencies as externals instead of bundling them
+      ...Object.keys(pkg.dependencies).reduce((acc, dep) => {
+        acc[dep] = dep;
+        return acc;
+      }, {}),
     },
     // For the CLI bundle, make index.js external to avoid duplication
     function ({ context, request }, callback) {
@@ -84,8 +91,8 @@ module.exports = {
 
       if (isCliBuild) {
         // Make main index external for CLI to reuse shared functionality
-        if (request === '../index') {
-          return callback(null, 'commonjs2 ../index');
+        if (request === '../index' || request === '../../index' || request === './index') {
+          return callback(null, 'commonjs2 ./index');
         }
       }
       callback();

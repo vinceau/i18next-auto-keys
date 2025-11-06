@@ -108,9 +108,8 @@ describe("i18next-auto-keys E2E Tests", () => {
       it("should transform string returns to i18next.t() calls", () => {
         expect(transformedCode).toMatch(/\.t\(/);
 
-        // Check for hash pattern matching the expected length
-        const expectedLength = (config.module?.rules?.[0] as any)?.use?.[1]?.options?.hashLength || 10;
-        const hashPattern = new RegExp(`\\.t\\(\\s*['"](\\w{${expectedLength}})['"]`);
+        // Check for hash pattern with default length of 10
+        const hashPattern = new RegExp(`\\.t\\(\\s*['"](\\w{10})['"]`);
         expect(transformedCode).toMatch(hashPattern);
       });
 
@@ -119,23 +118,21 @@ describe("i18next-auto-keys E2E Tests", () => {
       });
 
       it("should include parameter objects for parameterized messages", () => {
-        const expectedLength = (config.module?.rules?.[0] as any)?.use?.[1]?.options?.hashLength || 10;
-        const paramPattern = new RegExp(`\\.t\\(\\s*['"](\\w{${expectedLength}})['"]\\s*,\\s*\\{`);
+        const paramPattern = new RegExp(`\\.t\\(\\s*['"](\\w{10})['"]\\s*,\\s*\\{`);
         expect(transformedCode).toMatch(paramPattern);
       });
 
       it("should generate hash keys of correct length", () => {
-        const expectedLength = (config.module?.rules?.[0] as any)?.use?.[1]?.options?.hashLength || 10;
-        const hashPattern = new RegExp(`\\.t\\(\\s*["'](\\w{${expectedLength}})["']`, "g");
+        const hashPattern = new RegExp(`\\.t\\(\\s*["'](\\w{10})["']`, "g");
         const hashMatches = transformedCode.match(hashPattern);
 
         expect(hashMatches).toBeTruthy();
         expect(hashMatches!.length).toBeGreaterThan(0);
 
         hashMatches!.forEach((match) => {
-          const hash = match.match(new RegExp(`["'](\\w{${expectedLength}})["']`))?.[1];
+          const hash = match.match(new RegExp(`["'](\\w{10})["']`))?.[1];
           expect(hash).toBeDefined();
-          expect(hash!.length).toBe(expectedLength);
+          expect(hash!.length).toBe(10);
         });
       });
     });
@@ -202,9 +199,8 @@ describe("i18next-auto-keys E2E Tests", () => {
         const keys = Object.keys(translations);
         expect(keys.length).toBeGreaterThan(0);
 
-        const expectedLength = (config.module?.rules?.[0] as any)?.use?.[1]?.options?.hashLength || 10;
         keys.forEach((key) => {
-          expect(key).toMatch(new RegExp(`^\\w{${expectedLength}}$`));
+          expect(key).toMatch(new RegExp(`^\\w{10}$`));
         });
       });
 

@@ -23,7 +23,6 @@ const webpackAsync = promisify(webpack);
 const ICU_TEST_CONFIGURATIONS = {
   icuNamed: createWebpackConfig({
     configName: "icu-named",
-    hashLength: 10,
     argMode: "named",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
@@ -33,7 +32,6 @@ const ICU_TEST_CONFIGURATIONS = {
 
   icuIndexed: createWebpackConfig({
     configName: "icu-indexed", 
-    hashLength: 10,
     argMode: "indexed",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
