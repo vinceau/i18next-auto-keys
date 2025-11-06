@@ -4,7 +4,6 @@ import type { RawSourceMap } from "source-map";
 import ts from "typescript";
 import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
 import { loadConfig } from "../common/config/loadConfig";
-const { config } = loadConfig();
 
 export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
@@ -42,6 +41,8 @@ export function i18nextAutoKeyLoader(
   const loaderOptions: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
   // validate in a version-agnostic way
   validate(schema as any, loaderOptions, { name: "i18next-auto-keys" });
+
+  const { config } = loadConfig();
 
   const options: I18nextAutoKeyLoaderOptions = {
     ...loaderOptions,

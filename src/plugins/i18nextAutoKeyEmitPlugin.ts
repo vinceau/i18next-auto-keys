@@ -2,8 +2,8 @@
 import type { Compiler } from "webpack";
 import { i18nStore } from "../common/i18nStore";
 import { emitIfChanged } from "./emitIfChanged";
+import type { Configuration } from "../common/config/loadConfig";
 import { loadConfig } from "../common/config/loadConfig";
-const { config, file: cfgFile } = loadConfig();
 
 export type I18nextAutoKeyEmitPluginOptions = {
   /** Path inside Webpack output where the runtime JSON should be emitted (e.g. "i18n/en.json"). */
@@ -18,10 +18,12 @@ export type I18nextAutoKeyEmitPluginOptions = {
 export class I18nextAutoKeyEmitPlugin {
   private readonly jsonOutputPath: string;
   private readonly topLevelKey?: string;
+  private readonly configuration: Configuration;
 
   constructor(opts: I18nextAutoKeyEmitPluginOptions) {
     this.jsonOutputPath = opts.jsonOutputPath;
-    this.topLevelKey = config.topLevelKey ?? opts.topLevelKey;
+    this.configuration = loadConfig();
+    this.topLevelKey = this.configuration.config.topLevelKey ?? opts.topLevelKey;
   }
 
   apply(compiler: Compiler): void {
@@ -29,6 +31,7 @@ export class I18nextAutoKeyEmitPlugin {
     const pluginName = "I18nextAutoKeyEmitPlugin";
 
     // add the config file as a build dependency so changes trigger rebuilds:
+    const cfgFile = this.configuration.file;
     if (cfgFile) {
       compiler.hooks.thisCompilation.tap("I18nextAutokeyConfig", (compilation) => compilation.fileDependencies.add(cfgFile));
     }
@@ -53,7 +56,8 @@ export class I18nextAutoKeyEmitPlugin {
           // Optionally wrap under topLevelKey
           const finalOutput = this.topLevelKey ? { [this.topLevelKey]: dict } : dict;
 
-          const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, config.jsonIndentSpaces), "utf8");
+          const indentSpaces = this.configuration.config.jsonIndentSpaces;
+          const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, indentSpaces), "utf8");
           emitIfChanged(compilation, sources, this.normalize(this.jsonOutputPath), jsonBuf);
         }
       );

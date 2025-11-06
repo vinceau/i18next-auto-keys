@@ -3,8 +3,6 @@ import path from "path";
 import { cosmiconfigSync } from "cosmiconfig";
 import { z } from "zod";
 
-import pkg from "../../../package.json";
-
 const I18nSchema = z.object({
   potTemplatePath: z.string().default("i18n/messages.pot"),
   hashLength: z.number().int().min(10).default(10),
@@ -16,8 +14,10 @@ const I18nSchema = z.object({
 
 export type I18nConfig = z.infer<typeof I18nSchema>;
 
-export function loadConfig(cwd = process.cwd()): { config: I18nConfig; file?: string } {
-  const search = cosmiconfigSync(pkg.name).search(cwd);
+export type Configuration = { config: I18nConfig; file?: string };
+
+export function loadConfig(cwd = process.cwd()): Configuration {
+  const search = cosmiconfigSync("i18next-auto-keys").search(cwd);
   const raw = search?.config ?? {};
   const parsed = I18nSchema.parse(raw);
   // Make paths relative to repo root

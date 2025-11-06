@@ -6,7 +6,6 @@ import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from ".
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
-const { config } = loadConfig();
 
 export type ExtractOptions = {
   source?: string;
@@ -22,6 +21,7 @@ export type ExtractOptions = {
  * containing all translation keys found by the i18next-auto-keys transformer.
  */
 export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Promise<void> {
+  const { config } = loadConfig();
   const {
     source = process.cwd(),
     output,
