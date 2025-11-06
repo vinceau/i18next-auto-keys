@@ -3,6 +3,8 @@ import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
 import ts from "typescript";
 import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
+import { loadConfig } from "../common/config/loadConfig";
+const { config } = loadConfig();
 
 export type I18nextAutoKeyLoaderOptions = {
   sourcemap?: boolean;
@@ -39,10 +41,15 @@ export function i18nextAutoKeyLoader(
   meta?: any
 ) {
   // Use webpack 5's getOptions method (this loader targets webpack 5+)
-  const options: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
-
+  const loaderOptions: I18nextAutoKeyLoaderOptions = this.getOptions() || {};
   // validate in a version-agnostic way
-  validate(schema as any, options, { name: "i18next-auto-keys" });
+  validate(schema as any, loaderOptions, { name: "i18next-auto-keys" });
+
+  const options: I18nextAutoKeyLoaderOptions = {
+    ...loaderOptions,
+    // Prioritize config values over loader options
+    hashLength: config.hashLength ?? loaderOptions.hashLength,
+  }
 
   this.cacheable && this.cacheable(true);
 
