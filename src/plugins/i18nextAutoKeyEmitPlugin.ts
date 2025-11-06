@@ -53,7 +53,7 @@ export class I18nextAutoKeyEmitPlugin {
           // Optionally wrap under topLevelKey
           const finalOutput = this.topLevelKey ? { [this.topLevelKey]: dict } : dict;
 
-          const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, 2), "utf8");
+          const jsonBuf = Buffer.from(JSON.stringify(finalOutput, null, config.jsonIndentSpaces), "utf8");
           emitIfChanged(compilation, sources, this.normalize(this.jsonOutputPath), jsonBuf);
         }
       );
