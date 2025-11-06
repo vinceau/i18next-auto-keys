@@ -46,8 +46,8 @@ export function i18nextAutoKeyLoader(
 
   const options: I18nextAutoKeyLoaderOptions = {
     ...loaderOptions,
-    // Prioritize config values over loader options
-    argMode: config.argMode ?? loaderOptions.argMode,
+    // Prioritize loader options over config defaults, but use config if no loader option is provided
+    argMode: loaderOptions.argMode ?? config.argMode,
   }
 
   this.cacheable && this.cacheable(true);
