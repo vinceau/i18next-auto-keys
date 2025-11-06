@@ -2,7 +2,9 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
-import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "../../index";
+import { loadConfig } from "../../common/config/loadConfig";
+import { i18nStore } from "../../common/i18nStore";
+import { createI18nextAutoKeyTransformerFactory } from "../../transformers/i18nextAutoKeyTransformer";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
@@ -154,6 +156,7 @@ async function generatePot(
   entries: Array<{
     id: string;
     source: string;
+    translationContext?: string;
     refs: Set<string>;
     extractedComments: Set<string>;
     parameterMetadata?: ParameterMetadata;
@@ -224,7 +227,7 @@ async function generatePot(
 
     catalog.translations[""][entry.source] = {
       msgid: entry.source,
-      msgctxt: entry.id,
+      msgctxt: entry.translationContext || undefined,
       msgstr: [""],
       comments: {
         reference: Array.from(entry.refs).sort().join("\n") || undefined, // "#: file:line:column"
