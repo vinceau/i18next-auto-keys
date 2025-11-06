@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import pkg from "../../package.json";
 import { Command } from "commander";
 import { extractKeysAndGeneratePotFile } from "./extract/extract";
 import { updatePoFiles } from "./update/update";
@@ -8,7 +7,10 @@ import { loadConfig } from "../index";
 const { config } = loadConfig();
 
 const program = new Command();
-program.name(pkg.name).description("CLI tools for i18next-auto-keys translation workflow").version(pkg.version);
+program
+  .name(process.env.PACKAGE_NAME || "i18next-auto-keys")
+  .description("CLI tools for i18next-auto-keys translation workflow")
+  .version(process.env.PACKAGE_VERSION || "unknown");
 
 // Extract POT command
 program

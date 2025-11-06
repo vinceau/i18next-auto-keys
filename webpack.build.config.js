@@ -1,5 +1,6 @@
 const pkg = require('./package.json');
 const path = require('path');
+const webpack = require('webpack');
 
 module.exports = {
   mode: 'production',
@@ -18,6 +19,10 @@ module.exports = {
   },
   // Preserve shebang for CLI executables
   plugins: [
+    new webpack.DefinePlugin({
+      'process.env.PACKAGE_NAME': JSON.stringify(pkg.name),
+      'process.env.PACKAGE_VERSION': JSON.stringify(pkg.version),
+    }),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('BannerPlugin', (compilation) => {
@@ -86,8 +91,8 @@ module.exports = {
 
       if (isCliBuild) {
         // Make main index external for CLI to reuse shared functionality
-        if (request === '../index') {
-          return callback(null, 'commonjs2 ../index');
+        if (request === './index') {
+          return callback(null, 'commonjs2 ./index');
         }
       }
       callback();
