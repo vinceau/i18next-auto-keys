@@ -69,16 +69,16 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
             {
               loader: "ts-loader",
             },
-              {
-                loader: path.resolve(__dirname, "../dist/index.js"),
-                options: {
-                  include,
-                  setDefaultValue,
-                  sourcemap,
-                  argMode,
-                  ...loaderOptions,
-                },
+            {
+              loader: path.resolve(__dirname, "../dist/index.js"),
+              options: {
+                include,
+                setDefaultValue,
+                sourcemap,
+                argMode,
+                ...loaderOptions,
               },
+            },
           ],
         },
       ],

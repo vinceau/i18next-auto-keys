@@ -320,69 +320,72 @@ describe("i18next-auto-keys E2E Tests", () => {
       });
     });
 
-      it("should demonstrate programmatic configuration capabilities", async () => {
-        // NOTE: Due to global store in the transformer, different hash lengths
-        // cannot be tested in the same process. This is a known limitation.
-        // However, programmatic configs still provide value for other settings.
+    it("should demonstrate programmatic configuration capabilities", async () => {
+      // NOTE: Due to global store in the transformer, different hash lengths
+      // cannot be tested in the same process. This is a known limitation.
+      // However, programmatic configs still provide value for other settings.
 
-        const defaultConfig = TEST_CONFIGURATIONS.default;
-        const prodConfig = TEST_CONFIGURATIONS.production;
+      const defaultConfig = TEST_CONFIGURATIONS.default;
+      const prodConfig = TEST_CONFIGURATIONS.production;
 
-        const defaultResult = await buildWithConfig(defaultConfig);
-        const prodResult = await buildWithConfig(prodConfig);
+      const defaultResult = await buildWithConfig(defaultConfig);
+      const prodResult = await buildWithConfig(prodConfig);
 
-        // Test that both configurations produce working bundles
-        delete require.cache[defaultResult.bundlePath];
-        delete require.cache[prodResult.bundlePath];
+      // Test that both configurations produce working bundles
+      delete require.cache[defaultResult.bundlePath];
+      delete require.cache[prodResult.bundlePath];
 
-        const defaultBundle = require(defaultResult.bundlePath).TestBundle;
-        const prodBundle = require(prodResult.bundlePath).TestBundle;
+      const defaultBundle = require(defaultResult.bundlePath).TestBundle;
+      const prodBundle = require(prodResult.bundlePath).TestBundle;
 
-        // Initialize both bundles
-        await defaultBundle.initializeI18n(path.dirname(defaultResult.translationsPath));
-        await prodBundle.initializeI18n(path.dirname(prodResult.translationsPath));
+      // Initialize both bundles
+      await defaultBundle.initializeI18n(path.dirname(defaultResult.translationsPath));
+      await prodBundle.initializeI18n(path.dirname(prodResult.translationsPath));
 
-        // Both should produce the same translated results
-        expect(defaultBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
-        expect(prodBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
+      // Both should produce the same translated results
+      expect(defaultBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
+      expect(prodBundle.getWelcomeMessage("Test")).toBe("Welcome back, Test!");
 
-        expect(defaultBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
-        expect(prodBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
+      expect(defaultBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
+      expect(prodBundle.getDebugMessage()).toBe("Debug: Auth component mounted");
 
-        // Clean up
-        cleanConfigArtifacts("default", distPath);
-        cleanConfigArtifacts("production", distPath);
-      }, 120000);
+      // Clean up
+      cleanConfigArtifacts("default", distPath);
+      cleanConfigArtifacts("production", distPath);
+    }, 120000);
 
-      it("should support translation context configuration (feature verification)", async () => {
-        // Verify that the translation context configuration can be created without errors
-        const contextConfig = TEST_CONFIGURATIONS.translationContext;
+    it("should support translation context configuration (feature verification)", async () => {
+      // Verify that the translation context configuration can be created without errors
+      const contextConfig = TEST_CONFIGURATIONS.translationContext;
 
-        expect(contextConfig).toBeDefined();
-        expect(contextConfig.name).toBe("translation-context");
-        expect(contextConfig.module.rules).toBeDefined();
-        expect(Array.isArray(contextConfig.module.rules)).toBe(true);
+      expect(contextConfig).toBeDefined();
+      expect(contextConfig.name).toBe("translation-context");
+      expect(contextConfig.module).toBeDefined();
+      expect(contextConfig.module!.rules).toBeDefined();
+      expect(Array.isArray(contextConfig.module!.rules)).toBe(true);
 
-        // Verify the include pattern includes context message files
-        const rule = contextConfig.module.rules.find(r => r.test && r.test.test('.ts'));
-        expect(rule).toBeDefined();
-        expect(rule.use).toBeDefined();
+      // Verify the include pattern includes context message files
+      const rule = contextConfig.module!.rules!.find(
+        (r: any) => r && typeof r === "object" && r.test && r.test.test && r.test.test(".ts")
+      ) as any;
+      expect(rule).toBeDefined();
+      expect(rule.use).toBeDefined();
 
-        // Find the i18next-auto-keys loader options
-        const loaderConfig = Array.isArray(rule.use) ?
-          rule.use.find(loader => loader.loader && loader.loader.includes('dist/index.js')) :
-          rule.use;
+      // Find the i18next-auto-keys loader options
+      const loaderConfig = Array.isArray(rule.use)
+        ? rule.use.find((loader: any) => loader && loader.loader && loader.loader.includes("dist/index.js"))
+        : rule.use;
 
-        expect(loaderConfig).toBeDefined();
-        expect(loaderConfig.options).toBeDefined();
-        expect(loaderConfig.options.include).toBeDefined();
+      expect(loaderConfig).toBeDefined();
+      expect(loaderConfig.options).toBeDefined();
+      expect(loaderConfig.options.include).toBeDefined();
 
-        // Verify the include pattern matches context message files
-        const includePattern = loaderConfig.options.include;
-        expect(includePattern.test('context.messages.ts')).toBe(true);
-        expect(includePattern.test('auth.messages.ts')).toBe(true);
-        expect(includePattern.test('ui.messages.ts')).toBe(true);
-      });
+      // Verify the include pattern matches context message files
+      const includePattern = loaderConfig.options.include;
+      expect(includePattern.test("context.messages.ts")).toBe(true);
+      expect(includePattern.test("auth.messages.ts")).toBe(true);
+      expect(includePattern.test("ui.messages.ts")).toBe(true);
+    });
 
     it("should handle production mode correctly", async () => {
       const prodConfig = TEST_CONFIGURATIONS.production;
