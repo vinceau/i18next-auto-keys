@@ -116,18 +116,8 @@ describe("extractKeysAndGeneratePotFile", () => {
     mockedFs.mkdirSync.mockReturnValue(undefined as any);
     mockedFs.writeFileSync.mockReturnValue(undefined);
 
-    // Mock tsconfig.json to avoid parsing errors
     (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
       const pathStr = filePath.toString();
-      if (pathStr.includes("tsconfig.json")) {
-        return JSON.stringify({
-          compilerOptions: {
-            target: "ES2020",
-            module: "commonjs",
-            strict: true,
-          },
-        });
-      }
       return mockFileContent(pathStr);
     });
 
@@ -233,7 +223,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       include: ["**/*.ts"],
     });
 
-    // Should still process files even without tsconfig
     expect(mockedFs.readFileSync).toHaveBeenCalled();
   });
 
@@ -269,15 +258,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       // Mock file with full JSDoc for all parameters
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         const pathStr = filePath.toString();
-        if (pathStr.includes("tsconfig.json")) {
-          return JSON.stringify({
-            compilerOptions: {
-              target: "ES2020",
-              module: "commonjs",
-              strict: true,
-            },
-          });
-        }
         if (pathStr.includes("jsdoc-full.messages.ts")) {
           return `export const JSDocMessages = {
   /**
@@ -322,15 +302,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       // Mock file with no JSDoc
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         const pathStr = filePath.toString();
-        if (pathStr.includes("tsconfig.json")) {
-          return JSON.stringify({
-            compilerOptions: {
-              target: "ES2020",
-              module: "commonjs",
-              strict: true,
-            },
-          });
-        }
         if (pathStr.includes("no-jsdoc.messages.ts")) {
           return `export const NoJSDocMessages = {
   status: (count: number, total: number): string => "Processing {count} of {total} files",
@@ -372,15 +343,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       // Mock file with partial JSDoc
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         const pathStr = filePath.toString();
-        if (pathStr.includes("tsconfig.json")) {
-          return JSON.stringify({
-            compilerOptions: {
-              target: "ES2020",
-              module: "commonjs",
-              strict: true,
-            },
-          });
-        }
         if (pathStr.includes("mixed-jsdoc.messages.ts")) {
           return `export const MixedJSDocMessages = {
   /**
@@ -507,15 +469,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       // Mock file with functions that have no parameters
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         const pathStr = filePath.toString();
-        if (pathStr.includes("tsconfig.json")) {
-          return JSON.stringify({
-            compilerOptions: {
-              target: "ES2020",
-              module: "commonjs",
-              strict: true,
-            },
-          });
-        }
         if (pathStr.includes("no-params.messages.ts")) {
           return `export const NoParamsMessages = {
   /**
@@ -560,15 +513,6 @@ describe("extractKeysAndGeneratePotFile", () => {
       // Mock file with various TypeScript parameter types
       (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
         const pathStr = filePath.toString();
-        if (pathStr.includes("tsconfig.json")) {
-          return JSON.stringify({
-            compilerOptions: {
-              target: "ES2020",
-              module: "commonjs",
-              strict: true,
-            },
-          });
-        }
         if (pathStr.includes("types-test.messages.ts")) {
           return `export const TypesTestMessages = {
   /**
@@ -628,15 +572,6 @@ describe("extractKeysAndGeneratePotFile", () => {
         // Mock file with method shorthand syntax
         (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
           const pathStr = filePath.toString();
-          if (pathStr.includes("tsconfig.json")) {
-            return JSON.stringify({
-              compilerOptions: {
-                target: "ES2020",
-                module: "commonjs",
-                strict: true,
-              },
-            });
-          }
           if (pathStr.includes("method-shorthand.messages.ts")) {
             return `export const MethodShorthandMessages = {
   /**
@@ -681,15 +616,6 @@ describe("extractKeysAndGeneratePotFile", () => {
         // Mock file with method shorthand syntax without JSDoc
         (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
           const pathStr = filePath.toString();
-          if (pathStr.includes("tsconfig.json")) {
-            return JSON.stringify({
-              compilerOptions: {
-                target: "ES2020",
-                module: "commonjs",
-                strict: true,
-              },
-            });
-          }
           if (pathStr.includes("method-no-jsdoc.messages.ts")) {
             return `export const MethodNoJSDocMessages = {
   // Method shorthand without JSDoc - should still show parameter types
@@ -731,15 +657,6 @@ describe("extractKeysAndGeneratePotFile", () => {
         // Mock file with all three syntax styles
         (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
           const pathStr = filePath.toString();
-          if (pathStr.includes("tsconfig.json")) {
-            return JSON.stringify({
-              compilerOptions: {
-                target: "ES2020",
-                module: "commonjs",
-                strict: true,
-              },
-            });
-          }
           if (pathStr.includes("mixed-syntax.messages.ts")) {
             return `export const MixedSyntaxMessages = {
   /**
@@ -812,15 +729,6 @@ describe("extractKeysAndGeneratePotFile", () => {
         // Mock file with complex types in method shorthand
         (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
           const pathStr = filePath.toString();
-          if (pathStr.includes("tsconfig.json")) {
-            return JSON.stringify({
-              compilerOptions: {
-                target: "ES2020",
-                module: "commonjs",
-                strict: true,
-              },
-            });
-          }
           if (pathStr.includes("complex-method.messages.ts")) {
             return `export const ComplexMethodMessages = {
   /**
