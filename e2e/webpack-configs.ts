@@ -150,6 +150,11 @@ const TEST_CONFIGURATIONS = {
       "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
     },
   }),
+
+  translationContext: createWebpackConfig({
+    configName: "translation-context",
+    include: /(context|auth|ui)\.messages\.(ts|tsx)$/, // Include context, auth, and ui messages
+  }),
 };
 
 export { createWebpackConfig, TEST_CONFIGURATIONS };

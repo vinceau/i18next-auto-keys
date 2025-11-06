@@ -777,12 +777,12 @@ describe("Translation Context (@translationContext)", () => {
     // Let's check what's actually happening
     const entries = Array.from(i18nStore.all().values());
     expect(entries).toHaveLength(2);
-    
+
     // Get the actual hashes that were generated
-    const actualHashes = entries.map(e => e.id);
+    const actualHashes = entries.map((e) => e.id);
     expect(transformedCode).toContain(`i18next.t("${actualHashes[0]}")`);
     expect(transformedCode).toContain(`i18next.t("${actualHashes[1]}")`);
-    
+
     // The current implementation might not inherit context from nested object properties
     // This is a limitation of the current transformer
     // For now, let's verify that the functions are transformed correctly, even without context inheritance
