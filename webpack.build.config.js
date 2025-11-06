@@ -1,3 +1,4 @@
+const pkg = require('./package.json');
 const path = require('path');
 
 module.exports = {
@@ -69,14 +70,15 @@ module.exports = {
   },
   devtool: 'source-map',
   externals: [
-    // Keep external dependencies as externals instead of bundling them
     {
-      'schema-utils': 'schema-utils',
       webpack: 'webpack',
       typescript: 'typescript',
       'gettext-parser': 'gettext-parser',
-      commander: 'commander',
-      glob: 'glob',
+      // Keep external dependencies as externals instead of bundling them
+      ...Object.keys(pkg.dependencies).reduce((acc, dep) => {
+        acc[dep] = dep;
+        return acc;
+      }, {}),
     },
     // For the CLI bundle, make index.js external to avoid duplication
     function ({ context, request }, callback) {
