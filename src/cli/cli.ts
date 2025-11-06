@@ -3,7 +3,8 @@ import { Command } from "commander";
 import { extractKeysAndGeneratePotFile } from "./extract/extract";
 import { updatePoFiles } from "./update/update";
 import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
-import { loadConfig } from "../index";
+import { loadConfig } from "@/index";
+
 const { config } = loadConfig();
 
 const program = new Command();

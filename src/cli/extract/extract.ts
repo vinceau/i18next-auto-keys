@@ -2,12 +2,11 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import ts from "typescript";
-import { loadConfig } from "../../common/config/loadConfig";
-import { i18nStore } from "../../common/i18nStore";
-import { createI18nextAutoKeyTransformerFactory } from "../../transformers/i18nextAutoKeyTransformer";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
+
+import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "@/index";
 
 export type ExtractOptions = {
   source?: string;

@@ -58,6 +58,9 @@ module.exports = {
   ],
   resolve: {
     extensions: ['.ts', '.js'],
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
   },
   module: {
     rules: [
@@ -91,7 +94,7 @@ module.exports = {
 
       if (isCliBuild) {
         // Make main index external for CLI to reuse shared functionality
-        if (request === '../index' || request === '../../index' || request === './index') {
+        if (request === '@/index') {
           return callback(null, 'commonjs2 ./index');
         }
       }

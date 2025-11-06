@@ -2,8 +2,7 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import { loadGettextParser } from "../loadGettextParser";
-import { stableHash } from "../../common/hash";
-import { loadConfig } from "../../common/config/loadConfig";
+import { stableHash, loadConfig } from "@/index";
 
 export type ConvertPoOptions = {
   input: string;
