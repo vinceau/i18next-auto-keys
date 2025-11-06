@@ -91,7 +91,7 @@ module.exports = {
 
       if (isCliBuild) {
         // Make main index external for CLI to reuse shared functionality
-        if (request === './index') {
+        if (request === '../index' || request === '../../index' || request === './index') {
           return callback(null, 'commonjs2 ./index');
         }
       }
