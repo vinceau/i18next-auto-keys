@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import { loadGettextParser } from "../loadGettextParser";
-import { stableHashWithContext } from "../../common/hash";
+import { stableHash } from "../../common/hash";
 import { loadConfig } from "../../common/config/loadConfig";
 
 export type ConvertPoOptions = {
@@ -62,7 +62,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
       }
 
       // Generate hash from msgid + msgctxt (translation context)
-      const key = stableHashWithContext(msgid, msgctxt, config.hashLength);
+      const key = stableHash(msgid, msgctxt, config.hashLength);
 
       // Use the generated hash as a flat key (no nesting)
       translations[key] = msgstr;

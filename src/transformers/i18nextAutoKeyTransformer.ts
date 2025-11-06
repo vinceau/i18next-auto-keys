@@ -1,6 +1,6 @@
 // transformers/i18nMessagesTransformer.ts
 import ts from "typescript";
-import { stableHash, stableHashWithContext } from "../common/hash";
+import { stableHash } from "../common/hash";
 import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
@@ -455,12 +455,12 @@ export function createI18nextAutoKeyTransformerFactory(
         // reuse/assign hash
         let id = globalStore.reverse.get(compositeKey);
         if (!id) {
-          id = stableHashWithContext(internedOriginal, translationContext, hashLength);
+          id = stableHash(internedOriginal, translationContext, hashLength);
           // This collision handling is not deterministic and can result in a different id
           // for the same string, based on the order that the strings are encountered.
           // In practice, this should not matter.
           while (globalStore.seen.has(id) && globalStore.seen.get(id) !== compositeKey) {
-            id = stableHashWithContext(compositeKey + ":" + id, undefined, Math.min(40, hashLength + 2));
+            id = stableHash(compositeKey + ":" + id, undefined, Math.min(40, hashLength + 2));
           }
           globalStore.seen.set(id, compositeKey);
           globalStore.reverse.set(compositeKey, id);

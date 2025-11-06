@@ -3,7 +3,7 @@ import { I18nextAutoKeyEmitPlugin } from "./plugins/i18nextAutoKeyEmitPlugin";
 import { createI18nextAutoKeyTransformerFactory } from "./transformers/i18nextAutoKeyTransformer";
 import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";
-import { stableHash, stableHashWithContext } from "./common/hash";
+import { stableHash } from "./common/hash";
 
 // Webpack loader compatibility: Export loader as default, plugin as property
 module.exports = i18nextAutoKeyLoader;
@@ -15,7 +15,7 @@ module.exports.createI18nextAutoKeyTransformerFactory = createI18nextAutoKeyTran
 module.exports.i18nStore = i18nStore;
 module.exports.loadConfig = loadConfig;
 module.exports.stableHash = stableHash;
-module.exports.stableHashWithContext = stableHashWithContext;
+// stableHashWithContext is now merged into stableHash
 
 // Also provide TypeScript-friendly named exports for better DX
 export {
@@ -25,5 +25,4 @@ export {
   i18nStore,
   loadConfig,
   stableHash,
-  stableHashWithContext,
 };

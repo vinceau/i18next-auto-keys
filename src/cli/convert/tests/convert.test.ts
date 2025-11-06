@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { convertPoToJson, convertMultiplePoToJson } from "../convert";
-import { stableHashWithContext } from "../../../common/hash";
+import { stableHash } from "../../../common/hash";
 
 // Create a mock that behaves like real gettext-parser but parses our test content
 const mockGettextParser = {
@@ -210,11 +210,11 @@ describe("convertPoToJson", () => {
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes
-    const welcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
-    const signInHash = stableHashWithContext("Sign In", "authentication", 10);
-    const forgotPasswordHash = stableHashWithContext("Forgot Password?", "authentication", 10);
-    const validationHash = stableHashWithContext("Invalid email: {{email}}", "forms", 10);
-    const simpleHash = stableHashWithContext("Simple message without context", undefined, 10);
+    const welcomeHash = stableHash("Welcome Back!", "authentication", 10);
+    const signInHash = stableHash("Sign In", "authentication", 10);
+    const forgotPasswordHash = stableHash("Forgot Password?", "authentication", 10);
+    const validationHash = stableHash("Invalid email: {{email}}", "forms", 10);
+    const simpleHash = stableHash("Simple message without context", undefined, 10);
 
     expect(parsedJson).toHaveProperty(welcomeHash, "¡Bienvenido de vuelta!");
     expect(parsedJson).toHaveProperty(signInHash, "Iniciar Sesión");
@@ -258,7 +258,7 @@ describe("convertPoToJson", () => {
     expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: navigation");
 
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
-    const untranslatedHash = stableHashWithContext("Untranslated Text", "navigation", 10);
+    const untranslatedHash = stableHash("Untranslated Text", "navigation", 10);
     expect(writtenContent).not.toContain(`"${untranslatedHash}"`);
   });
 
@@ -298,11 +298,11 @@ describe("convertPoToJson", () => {
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes from msgid + msgctxt
-    const welcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
-    const signInHash = stableHashWithContext("Sign In", "authentication", 10);
-    const forgotPasswordHash = stableHashWithContext("Forgot Password?", "authentication", 10);
-    const validationHash = stableHashWithContext("Invalid email: {{email}}", "forms", 10);
-    const simpleHash = stableHashWithContext("Simple message without context", undefined, 10);
+    const welcomeHash = stableHash("Welcome Back!", "authentication", 10);
+    const signInHash = stableHash("Sign In", "authentication", 10);
+    const forgotPasswordHash = stableHash("Forgot Password?", "authentication", 10);
+    const validationHash = stableHash("Invalid email: {{email}}", "forms", 10);
+    const simpleHash = stableHash("Simple message without context", undefined, 10);
 
     // Should have generated hash keys as direct properties
     expect(parsedJson).toHaveProperty(welcomeHash, "¡Bienvenido de vuelta!");
@@ -312,7 +312,7 @@ describe("convertPoToJson", () => {
     expect(parsedJson).toHaveProperty(simpleHash, "Mensaje simple sin contexto");
 
     // Should not have untranslated entries
-    const untranslatedHash = stableHashWithContext("Untranslated Text", "navigation", 10);
+    const untranslatedHash = stableHash("Untranslated Text", "navigation", 10);
     expect(parsedJson).not.toHaveProperty(untranslatedHash);
   });
 });
@@ -364,8 +364,8 @@ describe("convertMultiplePoToJson", () => {
     const frContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[1][1] as string;
 
     // Both should have the same hash for "Welcome Back!" but different contexts
-    const esWelcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
-    const frWelcomeHash = stableHashWithContext("Welcome Back!", "user-dashboard", 10);
+    const esWelcomeHash = stableHash("Welcome Back!", "authentication", 10);
+    const frWelcomeHash = stableHash("Welcome Back!", "user-dashboard", 10);
 
     expect(esContent).toContain(`"${esWelcomeHash}": "¡Bienvenido de vuelta!"`);
     expect(frContent).toContain(`"${frWelcomeHash}": "Bienvenue de retour!"`);
@@ -472,9 +472,9 @@ msgstr "Cerrar"
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes - same text, different contexts
-    const buttonHash = stableHashWithContext("Close", "button", 10);
-    const dialogHash = stableHashWithContext("Close", "dialog", 10);
-    const fileMenuHash = stableHashWithContext("Close", "file-menu", 10);
+    const buttonHash = stableHash("Close", "button", 10);
+    const dialogHash = stableHash("Close", "dialog", 10);
+    const fileMenuHash = stableHash("Close", "file-menu", 10);
 
     // All should be different hashes despite same English text
     expect(buttonHash).not.toBe(dialogHash);
@@ -515,9 +515,9 @@ msgstr "Perfil"
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes
-    const homeHash = stableHashWithContext("Home", "navigation", 10);
-    const aboutHash = stableHashWithContext("About", undefined, 10); // No context
-    const profileHash = stableHashWithContext("Profile", "user-menu", 10);
+    const homeHash = stableHash("Home", "navigation", 10);
+    const aboutHash = stableHash("About", undefined, 10); // No context
+    const profileHash = stableHash("Profile", "user-menu", 10);
 
     expect(parsedJson).toHaveProperty(homeHash, "Inicio");
     expect(parsedJson).toHaveProperty(aboutHash, "Acerca de");
@@ -553,9 +553,9 @@ msgstr "Habilitar características beta"
     const parsedJson = JSON.parse(writtenContent);
 
     // Calculate expected hashes with complex contexts
-    const emailHash = stableHashWithContext("Email notifications", "user-settings.privacy.notifications", 10);
-    const deleteHash = stableHashWithContext("Delete user", "admin-panel/user-management", 10);
-    const betaHash = stableHashWithContext("Enable beta features", "feature-flags.experimental.beta-features", 10);
+    const emailHash = stableHash("Email notifications", "user-settings.privacy.notifications", 10);
+    const deleteHash = stableHash("Delete user", "admin-panel/user-management", 10);
+    const betaHash = stableHash("Enable beta features", "feature-flags.experimental.beta-features", 10);
 
     expect(parsedJson).toHaveProperty(emailHash, "Notificaciones por email");
     expect(parsedJson).toHaveProperty(deleteHash, "Eliminar usuario");
@@ -631,10 +631,10 @@ msgstr "Ahorrar"
     const parsedJson = JSON.parse(writtenContent);
 
     // Each context should get different hash despite same English word
-    const fileMenuHash = stableHashWithContext("Save", "file-menu", 10);
-    const progressHash = stableHashWithContext("Save", "progress-indicator", 10);
-    const gameHash = stableHashWithContext("Save", "video-game", 10);
-    const bankingHash = stableHashWithContext("Save", "banking", 10);
+    const fileMenuHash = stableHash("Save", "file-menu", 10);
+    const progressHash = stableHash("Save", "progress-indicator", 10);
+    const gameHash = stableHash("Save", "video-game", 10);
+    const bankingHash = stableHash("Save", "banking", 10);
 
     // All hashes should be different
     const allHashes = [fileMenuHash, progressHash, gameHash, bankingHash];

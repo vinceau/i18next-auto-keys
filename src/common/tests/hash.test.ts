@@ -1,4 +1,4 @@
-import { stableHash, stableHashWithContext } from "../hash";
+import { stableHash } from "../hash";
 
 describe("Hash Functions", () => {
   describe("stableHash", () => {
@@ -23,8 +23,8 @@ describe("Hash Functions", () => {
 
     it("respects custom hash length", () => {
       const text = "Test string";
-      const hash6 = stableHash(text, 6);
-      const hash15 = stableHash(text, 15);
+      const hash6 = stableHash(text, "", 6);
+      const hash15 = stableHash(text, "", 15);
 
       expect(hash6).toHaveLength(6);
       expect(hash15).toHaveLength(15);
@@ -35,7 +35,7 @@ describe("Hash Functions", () => {
 
     it("enforces minimum hash length of 4", () => {
       const text = "Test";
-      const hash = stableHash(text, 2); // Request 2, should get 4
+      const hash = stableHash(text, "", 2); // Request 2, should get 4
 
       expect(hash).toHaveLength(4);
     });
@@ -55,15 +55,13 @@ describe("Hash Functions", () => {
       expect(hash2).toHaveLength(10);
       expect(hash1).not.toBe(hash2);
     });
-  });
 
-  describe("stableHashWithContext", () => {
     it("generates consistent hashes for same source and context", () => {
       const source = "Login";
       const context = "authentication";
 
-      const hash1 = stableHashWithContext(source, context);
-      const hash2 = stableHashWithContext(source, context);
+      const hash1 = stableHash(source, context);
+      const hash2 = stableHash(source, context);
 
       expect(hash1).toBe(hash2);
       expect(hash1).toHaveLength(10); // Default length
@@ -72,9 +70,9 @@ describe("Hash Functions", () => {
     it("generates different hashes for same source with different contexts", () => {
       const source = "Settings";
 
-      const hashAuth = stableHashWithContext(source, "authentication");
-      const hashNav = stableHashWithContext(source, "navigation");
-      const hashUser = stableHashWithContext(source, "user-profile");
+      const hashAuth = stableHash(source, "authentication");
+      const hashNav = stableHash(source, "navigation");
+      const hashUser = stableHash(source, "user-profile");
 
       expect(hashAuth).not.toBe(hashNav);
       expect(hashAuth).not.toBe(hashUser);
@@ -84,9 +82,9 @@ describe("Hash Functions", () => {
     it("generates different hashes for different sources with same context", () => {
       const context = "authentication";
 
-      const hashLogin = stableHashWithContext("Login", context);
-      const hashLogout = stableHashWithContext("Logout", context);
-      const hashSignup = stableHashWithContext("Sign Up", context);
+      const hashLogin = stableHash("Login", context);
+      const hashLogout = stableHash("Logout", context);
+      const hashSignup = stableHash("Sign Up", context);
 
       expect(hashLogin).not.toBe(hashLogout);
       expect(hashLogin).not.toBe(hashSignup);
@@ -96,25 +94,25 @@ describe("Hash Functions", () => {
     it("handles undefined/null context gracefully", () => {
       const source = "Welcome message";
 
-      const hashUndefined = stableHashWithContext(source, undefined);
-      const hashNull = stableHashWithContext(source, null as any);
-      const hashEmpty = stableHashWithContext(source, "");
-      const hashNoContext = stableHash(source); // Original function
+      const hashUndefined = stableHash(source, undefined as any);
+      const hashNull = stableHash(source, null as any);
+      const hashEmpty = stableHash(source, "");
+      const hashNoContext = stableHash(source); // No context parameter
 
       // Undefined and null should behave the same as no context
       expect(hashUndefined).toBe(hashNoContext);
       expect(hashNull).toBe(hashNoContext);
 
-      // Empty string is a valid context, should be different
-      expect(hashEmpty).not.toBe(hashNoContext);
+      // Empty string should also behave the same as no context (since we check for length > 0)
+      expect(hashEmpty).toBe(hashNoContext);
     });
 
-    it("respects custom hash length", () => {
+    it("respects custom hash length with context", () => {
       const source = "Test message";
       const context = "test-context";
 
-      const hash6 = stableHashWithContext(source, context, 6);
-      const hash15 = stableHashWithContext(source, context, 15);
+      const hash6 = stableHash(source, context, 6);
+      const hash15 = stableHash(source, context, 15);
 
       expect(hash6).toHaveLength(6);
       expect(hash15).toHaveLength(15);
@@ -128,14 +126,14 @@ describe("Hash Functions", () => {
         { source: "Close", context: "file-operation" },
       ];
 
-      const hashes = scenarios.map(({ source, context }) => stableHashWithContext(source, context));
+      const hashes = scenarios.map(({ source, context }) => stableHash(source, context));
 
       // All should be different
       expect(new Set(hashes).size).toBe(3);
 
       // But consistent when called again
       scenarios.forEach(({ source, context }, index) => {
-        const repeatHash = stableHashWithContext(source, context);
+        const repeatHash = stableHash(source, context);
         expect(repeatHash).toBe(hashes[index]);
       });
     });
@@ -143,10 +141,10 @@ describe("Hash Functions", () => {
     it("handles special characters in context", () => {
       const source = "Message";
 
-      const hashDash = stableHashWithContext(source, "user-profile");
-      const hashUnderscore = stableHashWithContext(source, "user_profile");
-      const hashDot = stableHashWithContext(source, "user.profile");
-      const hashSlash = stableHashWithContext(source, "user/profile");
+      const hashDash = stableHash(source, "user-profile");
+      const hashUnderscore = stableHash(source, "user_profile");
+      const hashDot = stableHash(source, "user.profile");
+      const hashSlash = stableHash(source, "user/profile");
 
       // All should be different (different context strings)
       const allHashes = [hashDash, hashUnderscore, hashDot, hashSlash];
@@ -158,7 +156,7 @@ describe("Hash Functions", () => {
       const context = "context";
 
       // Our approach uses "::" separator internally
-      const ourHash = stableHashWithContext(source, context);
+      const ourHash = stableHash(source, context);
 
       // Naive concatenation approaches
       const concatHash = stableHash(source + context);
@@ -175,9 +173,9 @@ describe("Hash Functions", () => {
       // Test cases where naive concatenation might cause collisions
       // but our approach with "::" separator should not
 
-      const hash1 = stableHashWithContext("abc", "def");
-      const hash2 = stableHashWithContext("ab", "cdef");
-      const hash3 = stableHashWithContext("abcd", "ef");
+      const hash1 = stableHash("abc", "def");
+      const hash2 = stableHash("ab", "cdef");
+      const hash3 = stableHash("abcd", "ef");
 
       // These should all be different due to :: separator
       expect(hash1).not.toBe(hash2);
