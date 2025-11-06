@@ -269,7 +269,9 @@ it("handles @noTranslate with function expressions", () => {
   // Function expressions get formatted with proper indentation by TypeScript printer
   expect(transformedCode).toContain(`return i18next.t("${stableHash("transform this", "", 10)}");`);
   expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
-  expect(transformedCode).toContain(`transformArrow: (): string => i18next.t("${stableHash("transform arrow", "", 10)}")`);
+  expect(transformedCode).toContain(
+    `transformArrow: (): string => i18next.t("${stableHash("transform arrow", "", 10)}")`
+  );
 
   // Should have i18next import
   expect(transformedCode).toContain('import i18next from "i18next"');
@@ -467,7 +469,9 @@ describe("argument parsing modes", () => {
     });
 
     // Should use named mode by default
-    expect(transformedCode).toContain(`greeting: (name: string): string => i18next.t("${stableHash("Hello", "", 10)}", {`);
+    expect(transformedCode).toContain(
+      `greeting: (name: string): string => i18next.t("${stableHash("Hello", "", 10)}", {`
+    );
     expect(transformedCode).toContain("name");
   });
 });

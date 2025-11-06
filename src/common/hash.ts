@@ -9,7 +9,11 @@ function normalizeForHash(s: string) {
     .trim();
 }
 
-export function stableHash(text: string, {context = "", normalize = true, hashLength = 10}: {context?: string, normalize?: boolean, hashLength?: number}): string {
+export function stableHash(
+  text: string,
+  options: { context?: string; normalize?: boolean; hashLength?: number } = {}
+): string {
+  const { context = "", normalize = true, hashLength = 10 } = options;
   const normalizedText = normalize ? normalizeForHash(text) : text;
   const textToHash = context && context.length > 0 ? `${normalizedText}::${context}` : normalizedText;
   const h = createHash("sha1").update(textToHash, "utf8").digest("hex");
