@@ -10,7 +10,8 @@ jest.mock("fs", () => ({
 import ts from "typescript";
 import fs from "fs";
 import { createI18nextAutoKeyTransformerFactory } from "../i18nextAutoKeyTransformer";
-import { stableHash } from "../../common/hash";
+import { stableHash, stableHashWithContext } from "../../common/hash";
+import { i18nStore } from "../../common/i18nStore";
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 
@@ -534,5 +535,254 @@ describe("setDefaultValue option", () => {
     // Check that only defaultValue is in the options object
     expect(transformedCode).toContain(`simple: (): string => i18next.t("${stableHash("Simple message", 10)}"`);
     expect(transformedCode).toContain(`defaultValue: "Simple message"`);
+  });
+});
+
+describe("Translation Context (@translationContext)", () => {
+  beforeEach(() => {
+    // Clear the i18n store before each test
+    i18nStore.clear();
+  });
+
+  it("generates different hashes for same text with different contexts", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext authentication
+       */
+      login: (): string => "Login",
+
+      /**
+       * @translationContext navigation
+       */
+      login: (): string => "Login",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const authHash = stableHashWithContext("Login", "authentication", 10);
+    const navHash = stableHashWithContext("Login", "navigation", 10);
+
+    expect(transformedCode).toContain(`i18next.t("${authHash}")`);
+    expect(transformedCode).toContain(`i18next.t("${navHash}")`);
+    expect(authHash).not.toBe(navHash);
+  });
+
+  it("handles translation context on property assignments", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext user-profile
+       * Welcome message for authenticated users
+       */
+      welcome: (): string => "Welcome back!",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Welcome back!", "user-profile", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    // Check that i18nStore received the context
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries).toHaveLength(1);
+    expect(entries[0].translationContext).toBe("user-profile");
+    expect(entries[0].source).toBe("Welcome back!");
+  });
+
+  it("handles translation context on method declarations", () => {
+    const input = `export class Messages {
+      /**
+       * @translationContext error-handling
+       */
+      errorMessage(): string {
+        return "An error occurred";
+      }
+    }`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("An error occurred", "error-handling", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    // Check that i18nStore received the context
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries).toHaveLength(1);
+    expect(entries[0].translationContext).toBe("error-handling");
+  });
+
+  it("works without translation context (backward compatibility)", () => {
+    const input = `export const Messages = {
+      // No @translationContext annotation
+      simple: (): string => "Simple message",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Simple message", undefined, 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    // Check that i18nStore has no context
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries).toHaveLength(1);
+    expect(entries[0].translationContext).toBeUndefined();
+    expect(entries[0].source).toBe("Simple message");
+  });
+
+  it("handles multi-line translation context", () => {
+    const input = `export const Messages = {
+      /**
+       * Long description of the component
+       * @translationContext complex-dialog-with-many-options
+       * More description here
+       */
+      title: (): string => "Dialog Title",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Dialog Title", "complex-dialog-with-many-options", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBe("complex-dialog-with-many-options");
+  });
+
+  it("handles translation context with special characters", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext user-profile.settings.privacy
+       */
+      privateMode: (): string => "Private Mode",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Private Mode", "user-profile.settings.privacy", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBe("user-profile.settings.privacy");
+  });
+
+  it("handles translation context on function expressions", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext validation
+       */
+      passwordError: function(): string {
+        return "Password is too weak";
+      },
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Password is too weak", "validation", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBe("validation");
+  });
+
+  it("ignores @translationContext in non-JSDoc comments", () => {
+    const input = `export const Messages = {
+      // @translationContext this-should-be-ignored
+      /* @translationContext this-too */
+      simple: (): string => "Simple message",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    // Should use hash without context (since context is ignored)
+    const expectedHash = stableHashWithContext("Simple message", undefined, 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBeUndefined();
+  });
+
+  it("handles multiple @translationContext tags (uses first one)", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext first-context
+       * @translationContext second-context
+       */
+      message: (): string => "Test message",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    const expectedHash = stableHashWithContext("Test message", "first-context", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBe("first-context");
+  });
+
+  it("combines with existing JSDoc tags", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext forms
+       * @param email User's email address
+       */
+      emailValidation: (email: string): string => "Invalid email: {email}",
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+      argMode: "named",
+    });
+
+    const expectedHash = stableHashWithContext("Invalid email: {email}", "forms", 10);
+    expect(transformedCode).toContain(`i18next.t("${expectedHash}", { email })`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries[0].translationContext).toBe("forms");
+    expect(entries[0].parameterMetadata?.parameterNames).toEqual(["email"]);
+  });
+
+  it("handles context inheritance from container to function", () => {
+    const input = `export const Messages = {
+      /**
+       * @translationContext auth-forms
+       */
+      loginForm: {
+        title: (): string => "Login",
+        subtitle: (): string => "Enter your credentials",
+      },
+    };`;
+
+    const transformedCode = transformTypeScript(input, {
+      hashLength: 10,
+    });
+
+    // Both should get the context from the container
+    const titleHash = stableHashWithContext("Login", "auth-forms", 10);
+    const subtitleHash = stableHashWithContext("Enter your credentials", "auth-forms", 10);
+
+    expect(transformedCode).toContain(`i18next.t("${titleHash}")`);
+    expect(transformedCode).toContain(`i18next.t("${subtitleHash}")`);
+
+    const entries = Array.from(i18nStore.all().values());
+    expect(entries).toHaveLength(2);
+    entries.forEach((entry) => {
+      expect(entry.translationContext).toBe("auth-forms");
+    });
   });
 });

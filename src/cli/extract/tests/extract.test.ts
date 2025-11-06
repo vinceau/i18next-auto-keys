@@ -795,4 +795,277 @@ describe("extractKeysAndGeneratePotFile", () => {
       });
     });
   });
+
+  describe("Translation Context (@translationContext)", () => {
+    beforeEach(() => {
+      i18nStore.clear();
+      jest.clearAllMocks();
+
+      // Mock console methods
+      console.log = mockConsole.log;
+      console.warn = mockConsole.warn;
+      console.error = mockConsole.error;
+    });
+
+    afterEach(() => {
+      // Restore original console methods
+      console.log = originalConsole.log;
+      console.warn = originalConsole.warn;
+      console.error = originalConsole.error;
+    });
+
+    it("includes translation context in msgctxt field", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/context.messages.ts") {
+          return `export const Messages = {
+  /**
+   * @translationContext authentication
+   */
+  login: (): string => "Log In",
+
+  /**
+   * @translationContext navigation
+   */
+  home: (): string => "Home",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/context.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "context-test 1.0",
+      });
+
+      expect(mockedFs.writeFileSync).toHaveBeenCalledWith(testOutputPath, expect.any(Buffer));
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Check that msgctxt contains translation context, not hash IDs
+      expect(potContent).toContain('msgctxt "authentication"');
+      expect(potContent).toContain('msgid "Log In"');
+      expect(potContent).toContain('msgctxt "navigation"');
+      expect(potContent).toContain('msgid "Home"');
+
+      // Should not contain hash-like msgctxt values
+      expect(potContent).not.toMatch(/msgctxt "[a-f0-9]{10}"/);
+    });
+
+    it("handles entries without translation context", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/mixed.messages.ts") {
+          return `export const Messages = {
+  /**
+   * @translationContext forms
+   */
+  submit: (): string => "Submit",
+
+  // No context annotation
+  cancel: (): string => "Cancel",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/mixed.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "mixed-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Entry with context
+      expect(potContent).toContain('msgctxt "forms"');
+      expect(potContent).toContain('msgid "Submit"');
+
+      // Entry without context should not have msgctxt or have empty msgctxt
+      const cancelSection = potContent.split('msgid "Cancel"')[0];
+      const lastMsgctxt = cancelSection.lastIndexOf("msgctxt ");
+
+      if (lastMsgctxt !== -1) {
+        // If there's a msgctxt before Cancel, it should be for Submit, not Cancel
+        const msgctxtLine = cancelSection.substring(lastMsgctxt).split("\n")[0];
+        expect(msgctxtLine).toContain('msgctxt "forms"');
+      }
+    });
+
+    it("preserves existing comments alongside translation context", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/detailed.messages.ts") {
+          return `export const Messages = {
+  /**
+   * Welcome message shown to authenticated users
+   * @translationContext user-dashboard
+   * @param userName The user's display name
+   */
+  welcome: (userName: string): string => "Welcome back, {userName}!",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/detailed.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "detailed-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Should have translation context in msgctxt
+      expect(potContent).toContain('msgctxt "user-dashboard"');
+      expect(potContent).toContain('msgid "Welcome back, {userName}!"');
+
+      // Should preserve original comments
+      expect(potContent).toContain("Welcome message shown to authenticated users");
+
+      // Should include parameter metadata
+      expect(potContent).toContain("{0} userName: string - The user's display name");
+    });
+
+    it("handles complex translation contexts with special characters", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/complex-context.messages.ts") {
+          return `export const Messages = {
+  /**
+   * @translationContext user-settings.privacy.notifications
+   */
+  emailNotifications: (): string => "Email notifications",
+
+  /**
+   * @translationContext admin-panel/user-management
+   */
+  deleteUser: (): string => "Delete user",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/complex-context.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "complex-context-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Should handle complex context strings properly
+      expect(potContent).toContain('msgctxt "user-settings.privacy.notifications"');
+      expect(potContent).toContain('msgid "Email notifications"');
+      expect(potContent).toContain('msgctxt "admin-panel/user-management"');
+      expect(potContent).toContain('msgid "Delete user"');
+    });
+
+    it("uses first @translationContext when multiple are present", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/multiple-contexts.messages.ts") {
+          return `export const Messages = {
+  /**
+   * @translationContext first-context
+   * @translationContext second-context
+   * This should use first-context
+   */
+  message: (): string => "Test message",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/multiple-contexts.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "multiple-contexts-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // Should use the first context
+      expect(potContent).toContain('msgctxt "first-context"');
+      expect(potContent).not.toContain('msgctxt "second-context"');
+      expect(potContent).toContain('msgid "Test message"');
+    });
+
+    it("sorts entries correctly with and without contexts", async () => {
+      mockedFs.readFileSync.mockImplementation((filePath) => {
+        if (filePath === "/test/src/sorting.messages.ts") {
+          return `export const Messages = {
+  /**
+   * @translationContext z-context
+   */
+  zMessage: (): string => "Z message",
+
+  aMessage: (): string => "A message",
+
+  /**
+   * @translationContext b-context
+   */
+  bMessage: (): string => "B message",
+};`;
+        }
+        return "export const NoMessages = {};";
+      });
+
+      mockGlob.sync.mockReturnValue(["/test/src/sorting.messages.ts"]);
+
+      await extractKeysAndGeneratePotFile({
+        source: testSourceDir,
+        output: testOutputPath,
+        include: ["**/*.messages.ts"],
+        projectId: "sorting-test 1.0",
+      });
+
+      const potBuffer = (mockedFs.writeFileSync as jest.Mock).mock.calls.find(
+        (call) => call[0] === testOutputPath
+      )?.[1] as Buffer;
+
+      const potContent = potBuffer.toString();
+
+      // All messages should be present with appropriate contexts
+      expect(potContent).toContain('msgctxt "z-context"');
+      expect(potContent).toContain('msgid "Z message"');
+      expect(potContent).toContain('msgctxt "b-context"');
+      expect(potContent).toContain('msgid "B message"');
+      expect(potContent).toContain('msgid "A message"');
+
+      // The POT file should be sorted (gettext-parser handles this)
+      expect(potContent).toMatch(/msgid/g);
+    });
+  });
 });

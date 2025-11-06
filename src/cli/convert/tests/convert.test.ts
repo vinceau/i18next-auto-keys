@@ -2,6 +2,7 @@ import { jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { convertPoToJson, convertMultiplePoToJson } from "../convert";
+import { stableHashWithContext } from "../../../common/hash";
 
 // Create a mock that behaves like real gettext-parser but parses our test content
 const mockGettextParser = {
@@ -29,21 +30,46 @@ const mockGettextParser = {
         } as any,
       };
 
-      // Parse msgctxt, msgid, msgstr sequences
-      const entryRegex = /msgctxt "([^"]+)"\s+msgid "([^"]+)"\s+msgstr "([^"]*)"/g;
+      // Parse msgctxt, msgid, msgstr sequences (with and without msgctxt)
+      const entryWithContextRegex = /msgctxt "([^"]+)"\s+msgid "([^"]+)"\s+msgstr "([^"]*)"/g;
+      const entryWithoutContextRegex = /(?<!msgctxt "[^"]*"\s+)msgid "([^"]+)"\s+msgstr "([^"]*)"/g;
+
       let match;
 
-      while ((match = entryRegex.exec(content)) !== null) {
+      // Parse entries with context
+      while ((match = entryWithContextRegex.exec(content)) !== null) {
         const [, msgctxt, msgid, msgstr] = match;
 
         if (msgctxt && msgid) {
-          catalog.translations[msgctxt] = {
-            [msgid]: {
-              msgid,
-              msgctxt,
-              msgstr: [msgstr || ""],
-              comments: {},
-            },
+          if (!catalog.translations[""]) {
+            catalog.translations[""] = {};
+          }
+          catalog.translations[""][msgid] = {
+            msgid,
+            msgctxt,
+            msgstr: [msgstr || ""],
+            comments: {},
+          };
+        }
+      }
+
+      // Parse entries without context
+      content.replace(entryWithContextRegex, ""); // Remove entries with context first
+      const contentWithoutContext = content.replace(entryWithContextRegex, "");
+
+      while ((match = entryWithoutContextRegex.exec(contentWithoutContext)) !== null) {
+        const [, msgid, msgstr] = match;
+
+        if (msgid && msgid !== "") {
+          // Skip header
+          if (!catalog.translations[""]) {
+            catalog.translations[""] = {};
+          }
+          catalog.translations[""][msgid] = {
+            msgid,
+            msgctxt: undefined,
+            msgstr: [msgstr || ""],
+            comments: {},
           };
         }
       }
@@ -84,7 +110,7 @@ jest.mock("glob", () => ({
 const glob = require("glob");
 const mockGlob = glob;
 
-// Sample PO file content for testing
+// Sample PO file content for testing (NEW FORMAT with translation context in msgctxt)
 const samplePoContent = `# Translation file
 msgid ""
 msgstr ""
@@ -94,29 +120,33 @@ msgstr ""
 "PO-Revision-Date: 2025-11-04T14:07:58.618Z\\n"
 
 #: src/components/welcome.ts:5
-msgctxt "a1b2c3d4e5"
+msgctxt "authentication"
 msgid "Welcome Back!"
 msgstr "¡Bienvenido de vuelta!"
 
 #: src/components/auth.ts:12
-msgctxt "f6g7h8i9j0"
+msgctxt "authentication"
 msgid "Sign In"
 msgstr "Iniciar Sesión"
 
 #: src/components/auth.ts:24
-msgctxt "k1l2m3n4o5"
+msgctxt "authentication"
 msgid "Forgot Password?"
 msgstr "¿Olvidaste tu contraseña?"
 
 #: src/components/validation.ts:8
-msgctxt "p6q7r8s9t0"
+msgctxt "forms"
 msgid "Invalid email: {{email}}"
 msgstr "Correo inválido: {{email}}"
 
 #: src/components/untranslated.ts:3
-msgctxt "x9y8z7w6v5"
+msgctxt "navigation"
 msgid "Untranslated Text"
 msgstr ""
+
+#: src/components/simple.ts:1
+msgid "Simple message without context"
+msgstr "Mensaje simple sin contexto"
 `;
 
 const samplePoContentSecond = `# Second translation file
@@ -127,12 +157,12 @@ msgstr ""
 "Language: fr\\n"
 
 #: src/components/welcome.ts:5
-msgctxt "a1b2c3d4e5"
+msgctxt "user-dashboard"
 msgid "Welcome Back!"
 msgstr "Bienvenue de retour!"
 
 #: src/components/settings.ts:15
-msgctxt "z1y2x3w4v5"
+msgctxt "settings-panel"
 msgid "Settings"
 msgstr "Paramètres"
 `;
@@ -161,7 +191,7 @@ describe("convertPoToJson", () => {
     console.error = originalConsole.error;
   });
 
-  it("should convert PO file to flat JSON structure", async () => {
+  it("should convert PO file to flat JSON structure with generated hashes", async () => {
     await convertPoToJson({
       input: "/test/input.po",
       output: "/test/output.json",
@@ -172,9 +202,22 @@ describe("convertPoToJson", () => {
     expect(mockedFs.readFileSync).toHaveBeenCalledWith("/test/input.po");
     expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/output.json", expect.any(String), "utf8");
 
-    // Check the JSON content separately
+    // Check the JSON content - hashes should be generated from msgid + msgctxt
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
-    expect(writtenContent).toContain('"a1b2c3d4e5": "¡Bienvenido de vuelta!"');
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Calculate expected hashes
+    const welcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
+    const signInHash = stableHashWithContext("Sign In", "authentication", 10);
+    const forgotPasswordHash = stableHashWithContext("Forgot Password?", "authentication", 10);
+    const validationHash = stableHashWithContext("Invalid email: {{email}}", "forms", 10);
+    const simpleHash = stableHashWithContext("Simple message without context", undefined, 10);
+
+    expect(parsedJson).toHaveProperty(welcomeHash, "¡Bienvenido de vuelta!");
+    expect(parsedJson).toHaveProperty(signInHash, "Iniciar Sesión");
+    expect(parsedJson).toHaveProperty(forgotPasswordHash, "¿Olvidaste tu contraseña?");
+    expect(parsedJson).toHaveProperty(validationHash, "Correo inválido: {{email}}");
+    expect(parsedJson).toHaveProperty(simpleHash, "Mensaje simple sin contexto");
   });
 
   it("should wrap translations under topLevelKey when specified", async () => {
@@ -199,7 +242,8 @@ describe("convertPoToJson", () => {
     });
 
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
-    expect(writtenContent).toMatch(/{\n    "a1b2c3d4e5"/); // 4 spaces
+    const welcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
+    expect(writtenContent).toMatch(new RegExp(`{\\n    "${welcomeHash}"`)); // 4 spaces
   });
 
   it("should skip untranslated entries with warning", async () => {
@@ -208,10 +252,11 @@ describe("convertPoToJson", () => {
       output: "/test/output.json",
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: x9y8z7w6v5");
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: navigation");
 
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
-    expect(writtenContent).not.toMatch(/"x9y8z7w6v5"/);
+    const untranslatedHash = stableHashWithContext("Untranslated Text", "navigation", 10);
+    expect(writtenContent).not.toContain(`"${untranslatedHash}"`);
   });
 
   it("should create output directory if it doesn't exist", async () => {
@@ -240,7 +285,7 @@ describe("convertPoToJson", () => {
     ).rejects.toThrow("Input file not found: /test/nonexistent.po");
   });
 
-  it("should use hex hash keys as JSON keys", async () => {
+  it("should generate hash keys based on msgid and msgctxt", async () => {
     await convertPoToJson({
       input: "/test/input.po",
       output: "/test/output.json",
@@ -249,14 +294,23 @@ describe("convertPoToJson", () => {
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
     const parsedJson = JSON.parse(writtenContent);
 
-    // Should have hex hash keys as direct properties
-    expect(parsedJson).toHaveProperty("a1b2c3d4e5", "¡Bienvenido de vuelta!");
-    expect(parsedJson).toHaveProperty("f6g7h8i9j0", "Iniciar Sesión");
-    expect(parsedJson).toHaveProperty("k1l2m3n4o5", "¿Olvidaste tu contraseña?");
-    expect(parsedJson).toHaveProperty("p6q7r8s9t0", "Correo inválido: {{email}}");
+    // Calculate expected hashes from msgid + msgctxt
+    const welcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
+    const signInHash = stableHashWithContext("Sign In", "authentication", 10);
+    const forgotPasswordHash = stableHashWithContext("Forgot Password?", "authentication", 10);
+    const validationHash = stableHashWithContext("Invalid email: {{email}}", "forms", 10);
+    const simpleHash = stableHashWithContext("Simple message without context", undefined, 10);
+
+    // Should have generated hash keys as direct properties
+    expect(parsedJson).toHaveProperty(welcomeHash, "¡Bienvenido de vuelta!");
+    expect(parsedJson).toHaveProperty(signInHash, "Iniciar Sesión");
+    expect(parsedJson).toHaveProperty(forgotPasswordHash, "¿Olvidaste tu contraseña?");
+    expect(parsedJson).toHaveProperty(validationHash, "Correo inválido: {{email}}");
+    expect(parsedJson).toHaveProperty(simpleHash, "Mensaje simple sin contexto");
 
     // Should not have untranslated entries
-    expect(parsedJson).not.toHaveProperty("x9y8z7w6v5");
+    const untranslatedHash = stableHashWithContext("Untranslated Text", "navigation", 10);
+    expect(parsedJson).not.toHaveProperty(untranslatedHash);
   });
 });
 
@@ -305,8 +359,13 @@ describe("convertMultiplePoToJson", () => {
     // Check the JSON content separately
     const esContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
     const frContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[1][1] as string;
-    expect(esContent).toContain('"a1b2c3d4e5": "¡Bienvenido de vuelta!"');
-    expect(frContent).toContain('"a1b2c3d4e5": "Bienvenue de retour!"');
+
+    // Both should have the same hash for "Welcome Back!" but different contexts
+    const esWelcomeHash = stableHashWithContext("Welcome Back!", "authentication", 10);
+    const frWelcomeHash = stableHashWithContext("Welcome Back!", "user-dashboard", 10);
+
+    expect(esContent).toContain(`"${esWelcomeHash}": "¡Bienvenido de vuelta!"`);
+    expect(frContent).toContain(`"${frWelcomeHash}": "Bienvenue de retour!"`);
   });
 
   it("should create output directory for batch conversion", async () => {
@@ -355,5 +414,234 @@ describe("convertMultiplePoToJson", () => {
 
     // Should log error for broken file
     expect(mockConsole.error).toHaveBeenCalledWith("❌ Error converting /test/broken.po:", expect.any(Error));
+  });
+});
+
+describe("Translation Context Hash Generation", () => {
+  beforeEach(() => {
+    // Reset all mocks
+    jest.clearAllMocks();
+
+    // Mock console methods
+    console.log = mockConsole.log;
+    console.warn = mockConsole.warn;
+    console.error = mockConsole.error;
+
+    // Setup fs mocks with default behavior
+    mockedFs.existsSync.mockReturnValue(true);
+    mockedFs.writeFileSync.mockImplementation(() => {});
+    mockedFs.mkdirSync.mockImplementation(() => "");
+  });
+
+  afterEach(() => {
+    // Restore original console methods
+    console.log = originalConsole.log;
+    console.warn = originalConsole.warn;
+    console.error = originalConsole.error;
+  });
+
+  it("should generate different hashes for same text with different contexts", async () => {
+    const testPoContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+
+msgctxt "button"
+msgid "Close"
+msgstr "Cerrar"
+
+msgctxt "dialog"
+msgid "Close"
+msgstr "Cerrar"
+
+msgctxt "file-menu"
+msgid "Close"
+msgstr "Cerrar"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(testPoContent));
+
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+    });
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Calculate expected hashes - same text, different contexts
+    const buttonHash = stableHashWithContext("Close", "button", 10);
+    const dialogHash = stableHashWithContext("Close", "dialog", 10);
+    const fileMenuHash = stableHashWithContext("Close", "file-menu", 10);
+
+    // All should be different hashes despite same English text
+    expect(buttonHash).not.toBe(dialogHash);
+    expect(buttonHash).not.toBe(fileMenuHash);
+    expect(dialogHash).not.toBe(fileMenuHash);
+
+    // All should be present in the JSON
+    expect(parsedJson).toHaveProperty(buttonHash, "Cerrar");
+    expect(parsedJson).toHaveProperty(dialogHash, "Cerrar");
+    expect(parsedJson).toHaveProperty(fileMenuHash, "Cerrar");
+  });
+
+  it("should handle entries with and without context in the same file", async () => {
+    const testPoContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+
+msgctxt "navigation"
+msgid "Home"
+msgstr "Inicio"
+
+msgid "About"
+msgstr "Acerca de"
+
+msgctxt "user-menu"
+msgid "Profile"
+msgstr "Perfil"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(testPoContent));
+
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+    });
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Calculate expected hashes
+    const homeHash = stableHashWithContext("Home", "navigation", 10);
+    const aboutHash = stableHashWithContext("About", undefined, 10); // No context
+    const profileHash = stableHashWithContext("Profile", "user-menu", 10);
+
+    expect(parsedJson).toHaveProperty(homeHash, "Inicio");
+    expect(parsedJson).toHaveProperty(aboutHash, "Acerca de");
+    expect(parsedJson).toHaveProperty(profileHash, "Perfil");
+  });
+
+  it("should handle complex translation contexts", async () => {
+    const testPoContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+
+msgctxt "user-settings.privacy.notifications"
+msgid "Email notifications"
+msgstr "Notificaciones por email"
+
+msgctxt "admin-panel/user-management"
+msgid "Delete user"
+msgstr "Eliminar usuario"
+
+msgctxt "feature-flags.experimental.beta-features"
+msgid "Enable beta features"
+msgstr "Habilitar características beta"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(testPoContent));
+
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+    });
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Calculate expected hashes with complex contexts
+    const emailHash = stableHashWithContext("Email notifications", "user-settings.privacy.notifications", 10);
+    const deleteHash = stableHashWithContext("Delete user", "admin-panel/user-management", 10);
+    const betaHash = stableHashWithContext("Enable beta features", "feature-flags.experimental.beta-features", 10);
+
+    expect(parsedJson).toHaveProperty(emailHash, "Notificaciones por email");
+    expect(parsedJson).toHaveProperty(deleteHash, "Eliminar usuario");
+    expect(parsedJson).toHaveProperty(betaHash, "Habilitar características beta");
+  });
+
+  it("should consistently generate the same hash for same source + context", async () => {
+    const testPoContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+
+msgctxt "authentication"
+msgid "Login"
+msgstr "Iniciar sesión"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(testPoContent));
+
+    // Convert multiple times
+    await convertPoToJson({
+      input: "/test/input1.po",
+      output: "/test/output1.json",
+    });
+
+    await convertPoToJson({
+      input: "/test/input2.po",
+      output: "/test/output2.json",
+    });
+
+    const content1 = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const content2 = (mockedFs.writeFileSync as jest.Mock).mock.calls[1][1] as string;
+
+    // Should produce identical results
+    expect(content1).toBe(content2);
+
+    const json1 = JSON.parse(content1);
+    const json2 = JSON.parse(content2);
+
+    expect(json1).toEqual(json2);
+  });
+
+  it("should demonstrate context-based disambiguation in realistic scenario", async () => {
+    // Real-world scenario: Same word in different contexts
+    const testPoContent = `msgid ""
+msgstr ""
+"Project-Id-Version: test-app 1.0\\n"
+
+msgctxt "file-menu"
+msgid "Save"
+msgstr "Guardar"
+
+msgctxt "progress-indicator"
+msgid "Save"
+msgstr "Ahorro"
+
+msgctxt "video-game"
+msgid "Save"
+msgstr "Guardado"
+
+msgctxt "banking"
+msgid "Save"
+msgstr "Ahorrar"
+`;
+
+    mockedFs.readFileSync.mockReturnValue(Buffer.from(testPoContent));
+
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+    });
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1] as string;
+    const parsedJson = JSON.parse(writtenContent);
+
+    // Each context should get different hash despite same English word
+    const fileMenuHash = stableHashWithContext("Save", "file-menu", 10);
+    const progressHash = stableHashWithContext("Save", "progress-indicator", 10);
+    const gameHash = stableHashWithContext("Save", "video-game", 10);
+    const bankingHash = stableHashWithContext("Save", "banking", 10);
+
+    // All hashes should be different
+    const allHashes = [fileMenuHash, progressHash, gameHash, bankingHash];
+    const uniqueHashes = new Set(allHashes);
+    expect(uniqueHashes.size).toBe(4);
+
+    // Each should have correct translation
+    expect(parsedJson).toHaveProperty(fileMenuHash, "Guardar");
+    expect(parsedJson).toHaveProperty(progressHash, "Ahorro");
+    expect(parsedJson).toHaveProperty(gameHash, "Guardado");
+    expect(parsedJson).toHaveProperty(bankingHash, "Ahorrar");
   });
 });
