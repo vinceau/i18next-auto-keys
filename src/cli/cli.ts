@@ -27,8 +27,8 @@ program
     try {
       await extractKeysAndGeneratePotFile({
         source: options.source,
-        output: config.potTemplatePath ?? options.output,
-        projectId: config.projectId ?? options.projectId,
+        output: options.output ?? config.potTemplatePath,
+        projectId: options.projectId ?? config.projectId,
         include: options.include,
         exclude: options.exclude,
         tsconfig: options.tsconfig,
@@ -49,7 +49,7 @@ program
   .action(async (options) => {
     try {
       await updatePoFiles({
-        template: config.potTemplatePath ?? options.template,
+        template: options.template ?? config.potTemplatePath,
         poFiles: options.poFiles,
         backup: options.backup,
       });
@@ -73,8 +73,8 @@ program
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
   .action(async (options) => {
     try {
-      const indent = config.jsonIndentSpaces ?? parseInt(options.indent?.toString() || "2", 10);
-      const topLevelKey = config.topLevelKey ?? options.topLevelKey;
+      const indent = options.indent ? parseInt(options.indent.toString(), 10) : config.jsonIndentSpaces;
+      const topLevelKey = options.topLevelKey ?? config.topLevelKey;
 
       if (options.batch) {
         await convertMultiplePoToJson({
