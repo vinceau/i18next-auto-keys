@@ -33,7 +33,9 @@ export class I18nextAutoKeyEmitPlugin {
     // add the config file as a build dependency so changes trigger rebuilds:
     const cfgFile = this.configuration.file;
     if (cfgFile) {
-      compiler.hooks.thisCompilation.tap("I18nextAutokeyConfig", (compilation) => compilation.fileDependencies.add(cfgFile));
+      compiler.hooks.thisCompilation.tap("I18nextAutokeyConfig", (compilation) =>
+        compilation.fileDependencies.add(cfgFile)
+      );
     }
 
     compiler.hooks.thisCompilation.tap(pluginName, (compilation) => {

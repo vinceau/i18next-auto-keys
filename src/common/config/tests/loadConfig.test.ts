@@ -4,15 +4,15 @@ import { loadConfig } from "../loadConfig";
 
 // Mock the package.json import
 jest.mock("../../../../package.json", () => ({
-  name: "i18next-auto-keys"
+  name: "i18next-auto-keys",
 }));
 
 // Mock cosmiconfig to use our memory filesystem
 const mockSearch = jest.fn();
 jest.mock("cosmiconfig", () => ({
   cosmiconfigSync: jest.fn(() => ({
-    search: mockSearch
-  }))
+    search: mockSearch,
+  })),
 }));
 
 describe("loadConfig", () => {
@@ -42,7 +42,7 @@ describe("loadConfig", () => {
         topLevelKey: undefined,
         projectId: "app 1.0",
         jsonIndentSpaces: 2,
-      }
+      },
     });
   });
 
@@ -54,12 +54,12 @@ describe("loadConfig", () => {
       potTemplatePath: "locales/template.pot",
       projectId: "my-app v2.0",
       jsonIndentSpaces: 4,
-      topLevelKey: "messages"
+      topLevelKey: "messages",
     };
 
     mockSearch.mockReturnValue({
       filepath: configPath,
-      config: mockConfig
+      config: mockConfig,
     });
 
     const result = loadConfig("/test/project");
@@ -73,20 +73,20 @@ describe("loadConfig", () => {
         topLevelKey: "messages",
         projectId: "my-app v2.0",
         jsonIndentSpaces: 4,
-      }
+      },
     });
   });
 
   test("should merge partial configuration with defaults", () => {
     const mockConfig = {
       hashLength: 15,
-      argMode: "indexed"
+      argMode: "indexed",
       // Other values should use defaults
     };
 
     mockSearch.mockReturnValue({
       filepath: "/test/project/i18next-auto-keys.config.js",
-      config: mockConfig
+      config: mockConfig,
     });
 
     const result = loadConfig("/test/project");
@@ -103,12 +103,12 @@ describe("loadConfig", () => {
 
   test("should throw error for invalid hashLength", () => {
     const mockConfig = {
-      hashLength: 5 // Too small, min is 10
+      hashLength: 5, // Too small, min is 10
     };
 
     mockSearch.mockReturnValue({
       filepath: "/test/project/package.json",
-      config: mockConfig
+      config: mockConfig,
     });
 
     expect(() => loadConfig("/test/project")).toThrow();
@@ -116,12 +116,12 @@ describe("loadConfig", () => {
 
   test("should throw error for invalid argMode", () => {
     const mockConfig = {
-      argMode: "invalid" // Must be "indexed" or "named"
+      argMode: "invalid", // Must be "indexed" or "named"
     };
 
     mockSearch.mockReturnValue({
-      filepath: "/test/project/package.json", 
-      config: mockConfig
+      filepath: "/test/project/package.json",
+      config: mockConfig,
     });
 
     expect(() => loadConfig("/test/project")).toThrow();
@@ -129,12 +129,12 @@ describe("loadConfig", () => {
 
   test("should throw error for negative jsonIndentSpaces", () => {
     const mockConfig = {
-      jsonIndentSpaces: -1 // Must be >= 0
+      jsonIndentSpaces: -1, // Must be >= 0
     };
 
     mockSearch.mockReturnValue({
       filepath: "/test/project/package.json",
-      config: mockConfig
+      config: mockConfig,
     });
 
     expect(() => loadConfig("/test/project")).toThrow();
@@ -143,7 +143,7 @@ describe("loadConfig", () => {
   test("should handle empty configuration object", () => {
     mockSearch.mockReturnValue({
       filepath: "/test/project/.i18next-auto-keysrc",
-      config: {}
+      config: {},
     });
 
     const result = loadConfig("/test/project");
@@ -160,37 +160,33 @@ describe("loadConfig", () => {
 
   test("should normalize relative potTemplatePath to absolute path", () => {
     const mockConfig = {
-      potTemplatePath: "custom/path/messages.pot"
+      potTemplatePath: "custom/path/messages.pot",
     };
 
     mockSearch.mockReturnValue({
       filepath: "/test/project/package.json",
-      config: mockConfig
+      config: mockConfig,
     });
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.potTemplatePath).toBe(
-      path.resolve("/test/project", "custom/path/messages.pot")
-    );
+    expect(result.config.potTemplatePath).toBe(path.resolve("/test/project", "custom/path/messages.pot"));
   });
 
   test("should handle absolute potTemplatePath", () => {
     const absolutePath = "/absolute/path/to/messages.pot";
     const mockConfig = {
-      potTemplatePath: absolutePath
+      potTemplatePath: absolutePath,
     };
 
     mockSearch.mockReturnValue({
-      filepath: "/test/project/package.json", 
-      config: mockConfig
+      filepath: "/test/project/package.json",
+      config: mockConfig,
     });
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.potTemplatePath).toBe(
-      path.resolve("/test/project", absolutePath)
-    );
+    expect(result.config.potTemplatePath).toBe(path.resolve("/test/project", absolutePath));
   });
 
   test("should use process.cwd() as default when no cwd provided", () => {
@@ -200,8 +196,6 @@ describe("loadConfig", () => {
     const result = loadConfig();
 
     expect(mockSearch).toHaveBeenCalledWith(currentDir);
-    expect(result.config.potTemplatePath).toBe(
-      path.resolve(currentDir, "i18n/messages.pot")
-    );
+    expect(result.config.potTemplatePath).toBe(path.resolve(currentDir, "i18n/messages.pot"));
   });
 });

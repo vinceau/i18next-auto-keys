@@ -15,4 +15,10 @@ module.exports.i18nStore = i18nStore;
 module.exports.loadConfig = loadConfig;
 
 // Also provide TypeScript-friendly named exports for better DX
-export { i18nextAutoKeyLoader, I18nextAutoKeyEmitPlugin, createI18nextAutoKeyTransformerFactory, i18nStore, loadConfig };
+export {
+  i18nextAutoKeyLoader,
+  I18nextAutoKeyEmitPlugin,
+  createI18nextAutoKeyTransformerFactory,
+  i18nStore,
+  loadConfig,
+};

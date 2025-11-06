@@ -48,7 +48,7 @@ export function i18nextAutoKeyLoader(
     ...loaderOptions,
     // Prioritize loader options over config defaults, but use config if no loader option is provided
     argMode: loaderOptions.argMode ?? config.argMode,
-  }
+  };
 
   this.cacheable && this.cacheable(true);
 
