@@ -118,14 +118,12 @@ module.exports = {
       {
         test: /\.messages\.(ts|tsx)$/, // Only process message files
         exclude: /node_modules/,
-        use: [
-          {
-            loader: 'i18next-auto-keys',
-            options: {
-              setDefaultValue: process.env.NODE_ENV === 'development', // For HMR support
-            }
+        use: {
+          loader: 'i18next-auto-keys',
+          options: {
+            setDefaultValue: process.env.NODE_ENV === 'development', // For HMR support
           }
-        ]
+        }
       }
     ]
   },
