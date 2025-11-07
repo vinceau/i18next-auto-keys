@@ -118,6 +118,7 @@ module.exports = {
       {
         test: /\.messages\.(ts|tsx)$/, // Only process message files
         exclude: /node_modules/,
+        enforce: 'pre', // Ensure this runs before actual TS -> JS compilation
         use: {
           loader: 'i18next-auto-keys',
           options: {
