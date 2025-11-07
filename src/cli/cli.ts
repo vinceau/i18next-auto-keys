@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { extractKeysAndGeneratePotFile } from "./extract/extract";
-import { updatePoFiles } from "./update/update";
+import { syncPoFiles } from "./sync/sync";
 import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
 import { loadConfig } from "@/index";
 
@@ -39,22 +39,23 @@ program
     }
   });
 
-// Update PO files command
+// Sync PO files command
 program
-  .command("update")
-  .description("Update .po files with new strings from PO template")
-  .requiredOption("-p, --po-files <patterns...>", "PO file patterns to update")
+  .command("sync")
+  .alias("update") // Backwards compatibility
+  .description("Sync .po files with new strings from PO template")
+  .requiredOption("-p, --po-files <patterns...>", "PO file patterns to sync")
   .option("-t, --template <path>", "PO template file path")
-  .option("-b, --backup", "Create backup files before updating")
+  .option("-b, --backup", "Create backup files before syncing")
   .action(async (options) => {
     try {
-      await updatePoFiles({
+      await syncPoFiles({
         template: options.template ?? config.poTemplatePath,
         poFiles: options.poFiles,
         backup: options.backup,
       });
     } catch (error) {
-      console.error("❌ Error updating PO files:", error);
+      console.error("❌ Error syncing PO files:", error);
       process.exit(1);
     }
   });

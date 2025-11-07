@@ -2,20 +2,20 @@ import fs from "fs";
 import { sync as globSync } from "glob";
 import { loadGettextParser } from "../loadGettextParser";
 
-export type UpdatePoOptions = {
+export type SyncPoOptions = {
   template: string;
   poFiles: string[];
   backup?: boolean;
 };
 
 /**
- * Updates existing .po files with new strings from a PO template.
+ * Syncs existing .po files with new strings from a PO template.
  * Preserves existing translations and adds new entries.
  */
-export async function updatePoFiles(options: UpdatePoOptions): Promise<void> {
+export async function syncPoFiles(options: SyncPoOptions): Promise<void> {
   const { template, poFiles, backup = false } = options;
 
-  console.log(`🔄 Updating .po files from template: ${template}`);
+  console.log(`🔄 Syncing .po files from template: ${template}`);
 
   // Check if template exists
   if (!fs.existsSync(template)) {
@@ -31,23 +31,23 @@ export async function updatePoFiles(options: UpdatePoOptions): Promise<void> {
 
   // Remove duplicates
   const uniquePoFiles = [...new Set(allPoFiles)];
-  console.log(`📁 Found ${uniquePoFiles.length} .po files to update`);
+  console.log(`📁 Found ${uniquePoFiles.length} .po files to sync`);
 
   if (uniquePoFiles.length === 0) {
     console.warn("⚠️  No .po files found matching the patterns");
     return;
   }
 
-  // Update each .po file
+  // Sync each .po file
   for (const poFile of uniquePoFiles) {
     try {
       await msgmergeJs(poFile, template, poFile, backup);
     } catch (error) {
-      console.error(`❌ Error updating ${poFile}:`, error);
+      console.error(`❌ Error syncing ${poFile}:`, error);
     }
   }
 
-  console.log(`✅ Updated ${uniquePoFiles.length} .po files`);
+  console.log(`✅ Synced ${uniquePoFiles.length} .po files`);
 }
 
 /**
