@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import fs from "fs";
-import { updatePoFiles } from "../update";
+import { syncPoFiles } from "../sync";
 
 // Mock console to avoid spam during tests
 const mockConsole = {
@@ -95,7 +95,7 @@ jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
 
-describe("updatePoFiles", () => {
+describe("syncPoFiles", () => {
   const testTemplate = "/test/messages.pot";
   const testPoFiles = ["/test/locales/*.po"];
 
@@ -124,8 +124,8 @@ describe("updatePoFiles", () => {
     console.error = originalConsole.error;
   });
 
-  it("should update .po files from template", async () => {
-    await updatePoFiles({
+  it("should sync .po files from template", async () => {
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
     });
@@ -136,7 +136,7 @@ describe("updatePoFiles", () => {
   });
 
   it("should create backup files when requested", async () => {
-    await updatePoFiles({
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
       backup: true,
@@ -150,7 +150,7 @@ describe("updatePoFiles", () => {
     mockedFs.existsSync.mockReturnValue(false);
 
     await expect(
-      updatePoFiles({
+      syncPoFiles({
         template: testTemplate,
         poFiles: testPoFiles,
       })
@@ -160,7 +160,7 @@ describe("updatePoFiles", () => {
   it("should warn when no .po files found", async () => {
     mockGlob.sync.mockReturnValue([]);
 
-    await updatePoFiles({
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
     });
@@ -178,16 +178,16 @@ describe("updatePoFiles", () => {
       return Buffer.from("mock content");
     });
 
-    await updatePoFiles({
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
     });
 
-    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error updating"), expect.any(Error));
+    expect(mockConsole.error).toHaveBeenCalledWith(expect.stringContaining("❌ Error syncing"), expect.any(Error));
   });
 
   it("should preserve existing translations and add new ones", async () => {
-    await updatePoFiles({
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
     });
@@ -208,12 +208,12 @@ describe("updatePoFiles", () => {
       "/test/locales/fr.po",
     ]);
 
-    await updatePoFiles({
+    await syncPoFiles({
       template: testTemplate,
       poFiles: testPoFiles,
     });
 
-    // Should only update each file once despite duplicates
+    // Should only sync each file once despite duplicates
     expect(mockedFs.writeFileSync).toHaveBeenCalledTimes(2);
   });
 
@@ -282,7 +282,7 @@ describe("updatePoFiles", () => {
         }
       });
 
-      await updatePoFiles({
+      await syncPoFiles({
         template: testTemplate,
         poFiles: testPoFiles,
       });
@@ -292,7 +292,7 @@ describe("updatePoFiles", () => {
         expect.stringContaining("🗑️  Removing obsolete translation: old123")
       );
 
-      // Should still write the updated file (but without obsolete entries)
+      // Should still write the synced file (but without obsolete entries)
       expect(mockedFs.writeFileSync).toHaveBeenCalledWith("/test/locales/es.po", expect.any(Buffer));
     } finally {
       // Restore original implementations
