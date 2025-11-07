@@ -3,63 +3,7 @@ import * as path from "path";
 import { tmpdir } from "os";
 import { showTranslationStatus } from "../status";
 
-// Mock gettext-parser with realistic PO parsing for status command tests
-const mockGettextParser = {
-  po: {
-    parse: jest.fn((buffer: Buffer) => {
-      const content = buffer.toString();
-
-      // Parse the basic structure and extract translations
-      const catalog = {
-        charset: "utf-8",
-        headers: {
-          "project-id-version": "test-app 1.0",
-          "content-type": "text/plain; charset=UTF-8",
-        } as any,
-        translations: {
-          "": {} as any, // Default context
-        } as any,
-      };
-
-      // Extract language from headers if available
-      const languageMatch = content.match(/"Language:\s*([^\\]+)\\n"/);
-      if (languageMatch) {
-        catalog.headers.language = languageMatch[1];
-      }
-
-      // Parse msgid/msgstr pairs (with optional msgctxt)
-      const msgEntryRegex = /(?:msgctxt\s+"([^"]+)"\s+)?msgid\s+"([^"]+)"\s+msgstr\s+"([^"]*)"/g;
-      let match;
-
-      while ((match = msgEntryRegex.exec(content)) !== null) {
-        const [, msgctxt, msgid, msgstr] = match;
-
-        // Skip empty msgid (header entry)
-        if (!msgid) continue;
-
-        const contextKey = msgctxt || "";
-
-        // Ensure context exists
-        if (!catalog.translations[contextKey]) {
-          catalog.translations[contextKey] = {};
-        }
-
-        catalog.translations[contextKey][msgid] = {
-          msgid,
-          msgctxt,
-          msgstr: [msgstr || ""],
-          comments: {},
-        };
-      }
-
-      return catalog;
-    }),
-  },
-};
-
-jest.mock("../../loadGettextParser", () => ({
-  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
-}));
+// loadGettextParser is automatically mocked by Jest setup - no need for custom mock here
 
 describe("status command", () => {
   let tempDir: string;

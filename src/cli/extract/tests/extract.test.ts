@@ -33,70 +33,73 @@ jest.mock("glob", () => ({
 const glob = require("glob");
 const mockGlob = glob;
 
-// Mock gettext-parser with realistic POT content
-const mockGettextParser = {
-  po: {
-    compile: jest.fn((catalog: any) => {
-      // Generate realistic POT content based on the catalog
-      const projectId = catalog.headers["project-id-version"] || "app 1.0";
-      const generator = catalog.headers["x-generator"] || "i18next-auto-keys CLI";
+// loadGettextParser is automatically mocked by Jest setup
 
-      let potContent = `# POT file
+// However, extract tests need specific compile behavior, so we'll override the compile method
+import { mockGettextParser } from "../../__mocks__/loadGettextParser";
+
+// Import the mocked loadGettextParser to get the actual mock instance being used
+const { loadGettextParser } = require("../../loadGettextParser");
+
+// Override compile method for extract-specific behavior
+beforeAll(async () => {
+  const parser = await loadGettextParser();
+  (parser.po.compile as jest.Mock).mockImplementation((catalog: any) => {
+    // Generate realistic POT content based on the catalog
+    const projectId = catalog.headers["project-id-version"] || "app 1.0";
+    const generator = catalog.headers["x-generator"] || "i18next-auto-keys CLI";
+
+    let potContent = `# POT file
 msgid ""
 msgstr ""
 "Project-Id-Version: ${projectId}\\n"
 "Content-Type: text/plain; charset=UTF-8\\n"
-"x-generator: ${generator}\\n"
+"X-Generator: ${generator}\\n"
 
 `;
 
-      // Add entries from all contexts in the catalog
-      if (catalog.translations) {
-        for (const [contextKey, contextEntries] of Object.entries(catalog.translations)) {
-          for (const [msgid, entry] of Object.entries(contextEntries as any)) {
-            if (msgid !== "") {
-              // Skip header entry
-              const entryData = entry as any;
+    // Add entries from all contexts in the catalog
+    if (catalog.translations) {
+      for (const [contextKey, contextEntries] of Object.entries(catalog.translations)) {
+        for (const [msgid, entry] of Object.entries(contextEntries as any)) {
+          if (msgid !== "") {
+            // Skip header entry
+            const entryData = entry as any;
 
-              // Add reference comments if present
-              if (entryData.comments?.reference) {
-                const refLines = entryData.comments.reference.split("\n");
-                for (const line of refLines) {
-                  potContent += `#: ${line}\n`;
+            // Add reference comments if present
+            if (entryData.comments?.reference) {
+              const refLines = entryData.comments.reference.split("\n");
+              for (const line of refLines) {
+                potContent += `#: ${line}\n`;
+              }
+            }
+
+            // Add extracted comments if present
+            if (entryData.comments?.extracted) {
+              const extractedLines = entryData.comments.extracted.split("\n");
+              for (const line of extractedLines) {
+                if (line.trim()) {
+                  potContent += `#. ${line}\n`;
                 }
               }
+            }
 
-              // Add extracted comments if present
-              if (entryData.comments?.extracted) {
-                const extractedLines = entryData.comments.extracted.split("\n");
-                for (const line of extractedLines) {
-                  if (line.trim()) {
-                    potContent += `#. ${line}\n`;
-                  }
-                }
-              }
-
-              // Only include msgctxt if it exists and is not undefined and not empty
-              if (entryData.msgctxt && entryData.msgctxt !== "undefined" && entryData.msgctxt !== "") {
-                potContent += `msgctxt "${entryData.msgctxt}"\n`;
-              }
-              potContent += `msgid "${msgid}"
+            // Only include msgctxt if it exists and is not undefined and not empty
+            if (entryData.msgctxt && entryData.msgctxt !== "undefined" && entryData.msgctxt !== "") {
+              potContent += `msgctxt "${entryData.msgctxt}"\n`;
+            }
+            potContent += `msgid "${msgid}"
 msgstr ""
 
 `;
-            }
           }
         }
       }
+    }
 
-      return Buffer.from(potContent, "utf8");
-    }),
-  },
-};
-
-jest.mock("../../loadGettextParser", () => ({
-  loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
-}));
+    return Buffer.from(potContent, "utf8");
+  });
+});
 
 describe("extractKeysAndGeneratePotFile", () => {
   const testSourceDir = "/test/src";
@@ -169,7 +172,7 @@ describe("extractKeysAndGeneratePotFile", () => {
 
     // Should contain project header
     expect(potContent).toContain("Project-Id-Version: test-app 1.0");
-    expect(potContent).toContain("x-generator: i18next-auto-keys CLI");
+    expect(potContent).toContain("X-Generator: i18next-auto-keys CLI");
 
     // Should contain the extracted messages
     expect(potContent).toContain("Hello, world!");

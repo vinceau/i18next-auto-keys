@@ -27,7 +27,8 @@ jest.mock("glob", () => ({
 const glob = require("glob");
 const mockGlob = glob;
 
-// Mock gettext-parser with realistic PO parsing and compilation
+// Sync tests need very specific mock behavior, so we use a custom mock
+// instead of the shared one to avoid complex edge case handling
 const mockGettextParser = {
   po: {
     parse: jest.fn((buffer: Buffer) => {
@@ -91,6 +92,7 @@ const mockGettextParser = {
   },
 };
 
+// Override the automatic mock with our specific one for sync tests
 jest.mock("../../loadGettextParser", () => ({
   loadGettextParser: jest.fn(() => Promise.resolve(mockGettextParser)),
 }));
