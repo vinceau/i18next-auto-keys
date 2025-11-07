@@ -2,9 +2,11 @@
 
 The `i18next-auto-keys` package includes CLI tools for working with translations independently of your webpack build process:
 
-1. **Extract Messages and Keys** - Extract translation keys from source code and generate a POT template file
-2. **Update PO Files** - Merge new strings from POT template into existing .po files
+1. **Extract Messages and Keys** - Extract translation keys from source code and generate a PO template file
+2. **Update PO Files** - Merge new strings from PO template into existing .po files
 3. **PO to JSON conversion** - Convert translated .po files to i18next JSON format
+
+A PO (portable object) file contains translation strings and is made up of many entries, containing the original untranslated string and its corresponding translation. POT (portable object template) files are similar but serve as templates for creating new PO files. 
 
 ## Configuration Integration
 
@@ -13,16 +15,16 @@ CLI tools automatically load project configuration from your config file (see ma
 ## Installation
 
 ```bash
-npm install i18next-auto-keys
+npm install i18next-auto-keys gettext-parser
 # or
-yarn add i18next-auto-keys
+yarn add i18next-auto-keys gettext-parser
 ```
 
 ## Usage and Translation Workflow
 
 Here's a complete translation workflow using all three CLI commands:
 
-1. **Extract keys from source code** (with config file providing defaults):
+1. **Extract keys from source code to generate POT** (with config file providing defaults):
    ```bash
    # With config file - output path comes from config
    npx i18next-auto-keys extract --include "**/*.messages.ts"
@@ -64,7 +66,7 @@ Here's a complete translation workflow using all three CLI commands:
 #### Extract Messages and Keys (`extract`)
 
 - `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
-- `--output, -o` (optional): Output path for the POT file (defaults to `potTemplatePath` from config)
+- `--output, -o` (optional): Output path for the POT file (defaults to `poTemplatePath` from config)
 - `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config)
 - `--source, -s`: Source directory to scan for translation keys (default: current directory)
 - `--exclude, -e`: File patterns to exclude (default: ["node_modules/**", "dist/**", "build/**"])
@@ -72,13 +74,13 @@ Here's a complete translation workflow using all three CLI commands:
 
 **Translation Context Support:**
 - Extracts `@translationContext` from JSDoc comments for message disambiguation
-- Generates `msgctxt` fields in POT files using actual context (not hash values)
+- Generates `msgctxt` fields in PO files using actual context (not hash values)
 - Organizes messages by context for better translator experience
 
 #### Update PO Files (`update`)
 
 - `--po-files, -p` (required): PO file patterns to update
-- `--template, -t` (optional): POT template file path (defaults to `potTemplatePath` from config)
+- `--template, -t` (optional): PO template file path (defaults to `poTemplatePath` from config)
 - `--backup, -b`: Create backup files before updating
 
 #### PO to JSON Conversion (`convert`)

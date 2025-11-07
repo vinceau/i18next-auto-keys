@@ -39,7 +39,7 @@ describe("loadConfig", () => {
     expect(result).toEqual({
       file: undefined,
       config: {
-        potTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+        poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
         hashLength: 10,
         argMode: "named",
         topLevelKey: undefined,
@@ -54,7 +54,7 @@ describe("loadConfig", () => {
     const mockConfig = {
       hashLength: 12,
       argMode: "indexed",
-      potTemplatePath: "locales/template.pot",
+      poTemplatePath: "locales/template.pot",
       projectId: "my-app v2.0",
       jsonIndentSpaces: 4,
       topLevelKey: "messages",
@@ -70,7 +70,7 @@ describe("loadConfig", () => {
     expect(result).toEqual({
       file: configPath,
       config: {
-        potTemplatePath: path.resolve("/test/project", "locales/template.pot"),
+        poTemplatePath: path.resolve("/test/project", "locales/template.pot"),
         hashLength: 12,
         argMode: "indexed",
         topLevelKey: "messages",
@@ -95,7 +95,7 @@ describe("loadConfig", () => {
     const result = loadConfig("/test/project");
 
     expect(result.config).toEqual({
-      potTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+      poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
       hashLength: 15,
       argMode: "indexed",
       topLevelKey: undefined,
@@ -152,7 +152,7 @@ describe("loadConfig", () => {
     const result = loadConfig("/test/project");
 
     expect(result.config).toEqual({
-      potTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+      poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
       hashLength: 10,
       argMode: "named",
       topLevelKey: undefined,
@@ -161,9 +161,9 @@ describe("loadConfig", () => {
     });
   });
 
-  test("should normalize relative potTemplatePath to absolute path", () => {
+  test("should normalize relative poTemplatePath to absolute path", () => {
     const mockConfig = {
-      potTemplatePath: "custom/path/messages.pot",
+      poTemplatePath: "custom/path/messages.pot",
     };
 
     mockSearch.mockReturnValue({
@@ -173,13 +173,13 @@ describe("loadConfig", () => {
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.potTemplatePath).toBe(path.resolve("/test/project", "custom/path/messages.pot"));
+    expect(result.config.poTemplatePath).toBe(path.resolve("/test/project", "custom/path/messages.pot"));
   });
 
-  test("should handle absolute potTemplatePath", () => {
+  test("should handle absolute poTemplatePath", () => {
     const absolutePath = "/absolute/path/to/messages.pot";
     const mockConfig = {
-      potTemplatePath: absolutePath,
+      poTemplatePath: absolutePath,
     };
 
     mockSearch.mockReturnValue({
@@ -189,7 +189,7 @@ describe("loadConfig", () => {
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.potTemplatePath).toBe(path.resolve("/test/project", absolutePath));
+    expect(result.config.poTemplatePath).toBe(path.resolve("/test/project", absolutePath));
   });
 
   test("should use process.cwd() as default when no cwd provided", () => {
@@ -199,6 +199,6 @@ describe("loadConfig", () => {
     const result = loadConfig();
 
     expect(mockSearch).toHaveBeenCalledWith(currentDir);
-    expect(result.config.potTemplatePath).toBe(path.resolve(currentDir, "i18n/messages.pot"));
+    expect(result.config.poTemplatePath).toBe(path.resolve(currentDir, "i18n/messages.pot"));
   });
 });

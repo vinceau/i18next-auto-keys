@@ -44,7 +44,7 @@ describe("Configuration System Simplified E2E Tests", () => {
 
       expect(result.file).toBeUndefined();
       expect(result.config).toEqual({
-        potTemplatePath: path.resolve(testWorkspace, "i18n/messages.pot"),
+        poTemplatePath: path.resolve(testWorkspace, "i18n/messages.pot"),
         hashLength: 10,
         argMode: "named",
         topLevelKey: undefined,
@@ -90,7 +90,7 @@ describe("Configuration System Simplified E2E Tests", () => {
       const config = {
         hashLength: 20,
         argMode: "indexed",
-        potTemplatePath: "custom/path/messages.pot",
+        poTemplatePath: "custom/path/messages.pot",
         projectId: "test-project v1.0",
         jsonIndentSpaces: 4,
         topLevelKey: "messages",
@@ -104,7 +104,7 @@ describe("Configuration System Simplified E2E Tests", () => {
       expect(result.config).toEqual({
         hashLength: 20,
         argMode: "indexed",
-        potTemplatePath: path.resolve(testWorkspace, "custom/path/messages.pot"),
+        poTemplatePath: path.resolve(testWorkspace, "custom/path/messages.pot"),
         projectId: "test-project v1.0",
         jsonIndentSpaces: 4,
         topLevelKey: "messages",

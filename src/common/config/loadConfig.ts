@@ -4,7 +4,7 @@ import { cosmiconfigSync } from "cosmiconfig";
 import { z } from "zod";
 
 const I18nSchema = z.object({
-  potTemplatePath: z.string().default("i18n/messages.pot"),
+  poTemplatePath: z.string().default("i18n/messages.pot"),
   hashLength: z.number().int().min(10).default(10),
   argMode: z.enum(["indexed", "named"]).default("named"),
   topLevelKey: z.string().optional(),
@@ -24,6 +24,6 @@ export function loadConfig(cwd = process.cwd()): Configuration {
   const normalize = (p: string) => path.resolve(cwd, p);
   return {
     file: search?.filepath,
-    config: { ...parsed, potTemplatePath: normalize(parsed.potTemplatePath) },
+    config: { ...parsed, poTemplatePath: normalize(parsed.poTemplatePath) },
   };
 }

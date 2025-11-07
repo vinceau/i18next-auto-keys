@@ -2,7 +2,7 @@
 // This provides a simple mock that avoids cosmiconfig issues in test environments
 
 export type I18nConfig = {
-  potTemplatePath: string;
+  poTemplatePath: string;
   hashLength: number;
   argMode: "indexed" | "named";
   topLevelKey?: string;
@@ -18,7 +18,7 @@ export type Configuration = {
 export const loadConfig = jest.fn(
   (): Configuration => ({
     config: {
-      potTemplatePath: "i18n/messages.pot",
+      poTemplatePath: "i18n/messages.pot",
       hashLength: 10,
       argMode: "named",
       projectId: "app 1.0",

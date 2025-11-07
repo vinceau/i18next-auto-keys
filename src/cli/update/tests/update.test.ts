@@ -33,7 +33,7 @@ const mockGettextParser = {
     parse: jest.fn((buffer: Buffer) => {
       const content = buffer.toString();
 
-      // Mock POT template
+      // Mock PO template
       if (content.includes('msgid "Welcome Back!"')) {
         return {
           charset: "utf-8",

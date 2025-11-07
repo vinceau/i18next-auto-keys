@@ -183,7 +183,7 @@ async function generatePot(
       "content-transfer-encoding": "8bit",
       "plural-forms": "nplurals=1; plural=0", // we don't want to use POT format for plural forms
       "x-generator": "i18next-auto-keys CLI",
-      language: "", // empty in POT templates
+      language: "", // empty in PO templates
     },
     translations: { "": {} } as GetTextTranslationRecord,
   };

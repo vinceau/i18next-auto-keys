@@ -27,7 +27,7 @@ program
     try {
       await extractKeysAndGeneratePotFile({
         source: options.source,
-        output: options.output ?? config.potTemplatePath,
+        output: options.output ?? config.poTemplatePath,
         projectId: options.projectId ?? config.projectId,
         include: options.include,
         exclude: options.exclude,
@@ -42,14 +42,14 @@ program
 // Update PO files command
 program
   .command("update")
-  .description("Update .po files with new strings from POT template")
+  .description("Update .po files with new strings from PO template")
   .requiredOption("-p, --po-files <patterns...>", "PO file patterns to update")
-  .option("-t, --template <path>", "POT template file path")
+  .option("-t, --template <path>", "PO template file path")
   .option("-b, --backup", "Create backup files before updating")
   .action(async (options) => {
     try {
       await updatePoFiles({
-        template: options.template ?? config.potTemplatePath,
+        template: options.template ?? config.poTemplatePath,
         poFiles: options.poFiles,
         backup: options.backup,
       });

@@ -9,7 +9,7 @@ export type UpdatePoOptions = {
 };
 
 /**
- * Updates existing .po files with new strings from a POT template.
+ * Updates existing .po files with new strings from a PO template.
  * Preserves existing translations and adds new entries.
  */
 export async function updatePoFiles(options: UpdatePoOptions): Promise<void> {
