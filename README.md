@@ -273,7 +273,7 @@ userSummary: (userName: string, accountType: string, daysSince: number): string 
 ```po
 #. User account summary message
 #. {0} userName: string - The user's display name
-#. {1} accountType: string - Type of account (free, premium, enterprise)  
+#. {1} accountType: string - Type of account (free, premium, enterprise)
 #. {2} daysSince: number - Days since account creation
 msgctxt "user-account-summary"
 msgid "User {userName} has {accountType} account (active for {daysSince, number} days)"
@@ -342,7 +342,7 @@ msgctxt "gaming"
 msgid "Play"
 msgstr ""
 
-#. Play button for music  
+#. Play button for music
 msgctxt "music"
 msgid "Play"
 msgstr ""
@@ -386,6 +386,11 @@ npx i18next-auto-keys sync --template ./i18n/messages.pot --po-files "./i18n/*.p
 **Convert** PO files to JSON:
 ```bash
 npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch
+```
+
+**Status** - Show translation progress for PO files:
+```bash
+npx i18next-auto-keys status --directory ./i18n --verbose
 ```
 
 [Full CLI documentation →](USAGE_CLI.md)
