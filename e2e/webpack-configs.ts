@@ -1,4 +1,4 @@
-import * as path from "path";
+import path from "path";
 import { Configuration } from "webpack";
 const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
 

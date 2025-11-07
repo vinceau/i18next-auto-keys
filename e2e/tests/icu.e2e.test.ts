@@ -11,8 +11,8 @@
  * - Select statements: {status, select, online {Online} offline {Offline}}
  */
 
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 import webpack, { Configuration } from "webpack";
 import { promisify } from "util";
 import { createWebpackConfig } from "../webpack-configs";

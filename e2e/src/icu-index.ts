@@ -1,8 +1,8 @@
 // ICU testing entry point
 import i18next from "i18next";
 import ICU from "i18next-icu";
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 import { ReplayBrowserMessages } from "./replay-browser.messages";
 
 // Flag to track if i18next has been initialized

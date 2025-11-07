@@ -1,6 +1,6 @@
 // Main entry point for e2e testing
-import * as fs from "fs";
-import * as path from "path";
+import fs from "fs";
+import path from "path";
 import { AuthMessages } from "./auth.messages";
 import { UIMessages } from "./ui.messages";
 import { ContextMessages } from "./context.messages";
