@@ -12,7 +12,7 @@
 - 🌐 **ICU format support** - Advanced pluralization and formatting
 - 📦 **Webpack integration** - Simple loader and plugin setup
 - 🔧 **TypeScript support** - Full AST transformation
-- 🛠️ **CLI tools** - Extract, update, and convert translation files
+- 🛠️ **CLI tools** - Extract, sync, and convert translation files
 
 ## 🎯 Why this over other i18next libraries?
 
@@ -378,9 +378,9 @@ Use in development only to keep production bundles small.
 npx i18next-auto-keys extract --include "**/*.messages.ts" --output ./i18n/messages.pot
 ```
 
-**Update** existing PO files with new strings:
+**Sync** existing PO files with new strings:
 ```bash
-npx i18next-auto-keys update --template ./i18n/messages.pot --po-files "./i18n/*.po" --backup
+npx i18next-auto-keys sync --template ./i18n/messages.pot --po-files "./i18n/*.po" --backup
 ```
 
 **Convert** PO files to JSON:

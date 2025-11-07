@@ -3,7 +3,7 @@
 The `i18next-auto-keys` package includes CLI tools for working with translations independently of your webpack build process:
 
 1. **Extract Messages and Keys** - Extract translation keys from source code and generate a PO template file
-2. **Update PO Files** - Merge new strings from PO template into existing .po files
+2. **Sync PO Files** - Merge new strings from PO template into existing .po files
 3. **PO to JSON conversion** - Convert translated .po files to i18next JSON format
 
 A PO (portable object) file contains translation strings and is made up of many entries, containing the original untranslated string and its corresponding translation. POT (portable object template) files are similar but serve as templates for creating new PO files. 
@@ -35,13 +35,13 @@ Here's a complete translation workflow using all three CLI commands:
 
 2. **Send POT file to translators** who will create language-specific .po files (e.g., es.po, fr.po, de.po)
 
-3. **Update existing .po files with new strings** (when you add new translations):
+3. **Sync existing .po files with new strings** (when you add new translations):
    ```bash
    # With config file - template path comes from config
-   npx i18next-auto-keys update --po-files "./i18n/*.po"
+   npx i18next-auto-keys sync --po-files "./i18n/*.po"
    
    # Or override config defaults
-   npx i18next-auto-keys update --template ./custom/template.pot --po-files "./i18n/*.po"
+   npx i18next-auto-keys sync --template ./custom/template.pot --po-files "./i18n/*.po"
    ```
 
 4. **Convert translated .po files to JSON** (with config defaults):
@@ -77,11 +77,13 @@ Here's a complete translation workflow using all three CLI commands:
 - Generates `msgctxt` fields in PO files using actual context (not hash values)
 - Organizes messages by context for better translator experience
 
-#### Update PO Files (`update`)
+#### Sync PO Files (`sync` or `update`)
 
-- `--po-files, -p` (required): PO file patterns to update
+> **Note:** The `update` command is still supported as an alias for backwards compatibility.
+
+- `--po-files, -p` (required): PO file patterns to sync
 - `--template, -t` (optional): PO template file path (defaults to `poTemplatePath` from config)
-- `--backup, -b`: Create backup files before updating
+- `--backup, -b`: Create backup files before syncing
 
 #### PO to JSON Conversion (`convert`)
 
@@ -99,7 +101,7 @@ Add to your `package.json` (leveraging config file defaults):
 {
   "scripts": {
     "i18n:extract": "i18next-auto-keys extract --include \"**/*.messages.ts\"",
-    "i18n:update": "i18next-auto-keys update --po-files \"./i18n/*.po\"",
+    "i18n:sync": "i18next-auto-keys sync --po-files \"./i18n/*.po\"",
     "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch"
   }
 }
