@@ -3,6 +3,7 @@ import { Command } from "commander";
 import { extractKeysAndGeneratePotFile } from "./extract/extract";
 import { syncPoFiles } from "./sync/sync";
 import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
+import { showTranslationStatus } from "./status/status";
 import { loadConfig } from "@/index";
 
 const { config } = loadConfig();
@@ -94,6 +95,24 @@ program
       }
     } catch (error) {
       console.error("❌ Error converting .po to JSON:", error);
+      process.exit(1);
+    }
+  });
+
+// Status command
+program
+  .command("status")
+  .description("Show translation progress for .po files in a directory")
+  .requiredOption("-d, --directory <path>", "Directory containing .po files to analyze")
+  .option("-v, --verbose", "Show detailed information for each file")
+  .action(async (options) => {
+    try {
+      await showTranslationStatus({
+        directory: options.directory,
+        verbose: options.verbose,
+      });
+    } catch (error) {
+      console.error("❌ Error analyzing translation status:", error);
       process.exit(1);
     }
   });
