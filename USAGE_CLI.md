@@ -5,8 +5,9 @@ The `i18next-auto-keys` package includes CLI tools for working with translations
 1. **Extract Messages and Keys** - Extract translation keys from source code and generate a PO template file
 2. **Sync PO Files** - Merge new strings from PO template into existing .po files
 3. **PO to JSON conversion** - Convert translated .po files to i18next JSON format
+4. **Translation Status** - Show translation progress for .po files in a directory
 
-A PO (portable object) file contains translation strings and is made up of many entries, containing the original untranslated string and its corresponding translation. POT (portable object template) files are similar but serve as templates for creating new PO files. 
+A PO (portable object) file contains translation strings and is made up of many entries, containing the original untranslated string and its corresponding translation. POT (portable object template) files are similar but serve as templates for creating new PO files.
 
 ## Configuration Integration
 
@@ -28,7 +29,7 @@ Here's a complete translation workflow using all three CLI commands:
    ```bash
    # With config file - output path comes from config
    npx i18next-auto-keys extract --include "**/*.messages.ts"
-   
+
    # Or override config defaults
    npx i18next-auto-keys extract --include "**/*.messages.ts" --output ./custom/path.pot
    ```
@@ -39,26 +40,35 @@ Here's a complete translation workflow using all three CLI commands:
    ```bash
    # With config file - template path comes from config
    npx i18next-auto-keys sync --po-files "./i18n/*.po"
-   
+
    # Or override config defaults
    npx i18next-auto-keys sync --template ./custom/template.pot --po-files "./i18n/*.po"
    ```
 
-4. **Convert translated .po files to JSON** (with config defaults):
+4. **Check translation progress** (optional):
+   ```bash
+   # View translation status for all languages
+   npx i18next-auto-keys status --directory ./i18n
+
+   # Verbose mode shows detailed information
+   npx i18next-auto-keys status --directory ./i18n --verbose
+   ```
+
+5. **Convert translated .po files to JSON** (with config defaults):
    ```bash
    # Convert all .po files at once (uses config for top-level-key and indent)
    npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch
-   
+
    # Override config defaults
    npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch --indent 4 --top-level-key translations
-   
+
    # This creates:
    # ./public/locales/es.json
-   # ./public/locales/fr.json  
+   # ./public/locales/fr.json
    # ./public/locales/de.json
    ```
 
-5. **Use JSON files with i18next** in your application
+6. **Use JSON files with i18next** in your application
 
 
 ### Command Line Options
@@ -93,6 +103,29 @@ Here's a complete translation workflow using all three CLI commands:
 - `--indent` (optional): JSON indentation spaces (defaults to `jsonIndentSpaces` from config)
 - `--batch`: Batch mode: treat input as glob pattern and output as directory
 
+#### Translation Status (`status`)
+
+- `--directory, -d` (required): Directory containing .po files to analyze
+- `--verbose, -v` (optional): Show detailed information for each file including file names and remaining translation counts
+
+**Example output:**
+```
+📊 Analyzing translation status in: ./i18n
+📁 Found 3 .po file(s)
+
+Translation Progress Summary
+══════════════════════════════════════════════════
+✅ es           [████████████████████] 100%
+    5/5 strings translated
+🟡 fr           [████████████░░░░░░░░] 60%
+    3/5 strings translated
+🔶 de           [████░░░░░░░░░░░░░░░░] 20%
+    1/5 strings translated
+──────────────────────────────────────────────────
+📈 Overall: 9/15 strings (60%)
+📚 Languages: 3
+```
+
 ### Package.json Scripts
 
 Add to your `package.json` (leveraging config file defaults):
@@ -102,7 +135,8 @@ Add to your `package.json` (leveraging config file defaults):
   "scripts": {
     "i18n:extract": "i18next-auto-keys extract --include \"**/*.messages.ts\"",
     "i18n:sync": "i18next-auto-keys sync --po-files \"./i18n/*.po\"",
-    "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch"
+    "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch",
+    "i18n:status": "i18next-auto-keys status --directory ./i18n --verbose"
   }
 }
 ```
