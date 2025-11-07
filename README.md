@@ -6,26 +6,37 @@
 
 **Automatic translation key generation for i18next with ICU format** - No more manual key management!
 
-`i18next-auto-keys` is a webpack loader and plugin that automatically extracts string literals from your code and replaces them with `i18next.t()` calls using auto-generated hash keys. Since developers don't need to know the generated keys, this package works best with **ICU message format** and **i18next-icu** plugin for pluralization and advanced formatting, rather than the default i18next key-based pluralization system.
-
 ## ✨ Features
 
-- 🔄 **Automatic key generation** - Hash-based keys generated from source strings
-- 🌐 **ICU format support** - Works seamlessly with i18next-icu for pluralization and formatting
-- 📦 **Webpack integration** - Seamless webpack loader and plugin
-- 🔧 **TypeScript support** - Full TypeScript AST transformation
-- 🛠️ **CLI tools** - Extract keys from files, generate PO template files, and convert PO to JSON
+- 🔄 **Automatic key generation** - No manual key management required
+- 🌐 **ICU format support** - Advanced pluralization and formatting
+- 📦 **Webpack integration** - Simple loader and plugin setup
+- 🔧 **TypeScript support** - Full AST transformation
+- 🛠️ **CLI tools** - Extract, update, and convert translation files
 
-## 💡 Why ICU Format?
+## 🎯 Why this over other i18next libraries?
 
-Since this library generates translation keys automatically, developers don't know the keys beforehand. This makes the default i18next pluralization method (which relies on key suffixes like `_zero`, `_one`, `_other`) impractical. Instead, **ICU message format** with **i18next-icu** provides:
+Traditional i18next libraries like **react-i18next** force you to:
+- **Manually manage translation keys** - tedious and error-prone
+- **Rewrite your entire codebase** to use their APIs (`t('some.key')` everywhere)
+- **Buy into their ecosystem** - change how you write and organize code
 
-- **Inline pluralization**: `{count, plural, one {# item} other {# items}}`
-- **Number formatting**: `{price, number, currency}`
-- **Date formatting**: `{date, date, short}`
+With `i18next-auto-keys`, you:
+- **Keep writing normal TypeScript** - no special APIs to learn
+- **Stay library-agnostic** - developers don't even know what i18n library powers translations
+- **Easy migration** - switch translation systems without touching application code
+
+`i18next-auto-keys` automatically extracts strings from your code and replaces them with `i18next.t()` calls using auto-generated hash keys at build time. This approach works best with **ICU message format** for advanced formatting features.
+
+## 💡 Why ICU format?
+
+Since keys are auto-generated, we can't use i18next's default key-based pluralization (`_zero`, `_one`, etc.). **ICU message format** provides inline formatting:
+
+- **Pluralization**: `{count, plural, one {# item} other {# items}}`
+- **Number/Date formatting**: `{price, number, currency}` • `{date, date, short}`
 - **Conditional text**: `{status, select, online {Connected} offline {Disconnected}}`
 
-For more information, read the [i18next-icu docs](https://www.npmjs.com/package/i18next-icu) and the [ICU formatting docs](https://formatjs.github.io/docs/intl-messageformat/).
+[Learn more about ICU format →](https://formatjs.github.io/docs/intl-messageformat/)
 
 ## 📋 Requirements
 
@@ -40,7 +51,7 @@ npm install --save-dev i18next-auto-keys
 npm install --save i18next i18next-icu
 ```
 
-Optional (for CLI PO conversion):
+Optional (but recommended for CLI PO conversion):
 ```bash
 npm install --save-dev gettext-parser
 ```
@@ -52,20 +63,50 @@ npm install --save-dev gettext-parser
 ```typescript
 // src/components/LoginForm.messages.ts
 export const LoginMessages = {
-  forgotPassword: (): string => "Forgot Password?",
   errorInvalid: (email: string): string => "Invalid email: {email}",
 
   // ICU pluralization examples
   loginAttempts: (count: number): string =>
     "{count, plural, one {# login attempt} other {# login attempts}} remaining",
-
-  // ICU number and date formatting
-  lastLogin: (date: string): string => "Last login: {date, date, medium}",
-  accountAge: (days: number): string => "Account active for {days, number} days",
 };
 ```
 
-### 2. Configure webpack
+### 2. Import and use the Messages
+
+
+Convert this:
+
+```tsx
+// src/components/LoginForm.tsx
+function LoginForm(props) {
+  return (
+    <div>
+      <div>Invalid email: {props.email}</div>
+      <div>
+      {props.loginAttemptsRemaining} login {props.loginAttemptsRemaining === 1 ? "attempt" : "attempts"} remaining
+      </div>
+    </div>
+  );
+}
+```
+
+Into this:
+
+```tsx
+// src/components/LoginForm.tsx
+import { LoginMessages } from "./LoginForm.messages.ts";
+
+function LoginForm(props) {
+  return (
+    <div>
+      <div>{LoginMessages.errorInvalid(props.email)}</div>
+      <div>{LoginMessages.loginAttempts(props.loginAttemptsRemaining)}</div>
+    </div>
+  );
+}
+```
+
+### 3. Configure webpack
 
 ```javascript
 // webpack.config.js
@@ -90,7 +131,7 @@ module.exports = {
   },
   plugins: [
     new I18nextAutoKeyEmitPlugin({
-      jsonOutputPath: 'locales/en.json',
+      jsonOutputPath: 'locales/en.json', // path to your i18next JSON resources
     })
   ]
 };
@@ -105,11 +146,8 @@ The loader automatically transforms your code:
 import i18next from "i18next";
 
 export const LoginMessages = {
-  forgotPassword: (): string => i18next.t("k1l2m3n4o5"),
   errorInvalid: (email: string): string => i18next.t("p6q7r8s9t0", { email }),
   loginAttempts: (count: number): string => i18next.t("u8v9w0x1y2", { count }),
-  lastLogin: (date: string): string => i18next.t("z3a4b5c6d7", { date }),
-  accountAge: (days: number): string => i18next.t("e8f9g0h1i2", { days }),
 };
 ```
 
@@ -118,11 +156,8 @@ And generates translation files:
 ```json
 // dist/locales/en.json
 {
-  "k1l2m3n4o5": "Forgot Password?",
   "p6q7r8s9t0": "Invalid email: {email}",
   "u8v9w0x1y2": "{count, plural, one {# login attempt} other {# login attempts}} remaining",
-  "z3a4b5c6d7": "Last login: {date, date, medium}",
-  "e8f9g0h1i2": "Account active for {days, number} days"
 }
 ```
 
@@ -130,14 +165,7 @@ And generates translation files:
 
 ### Project Configuration File
 
-Create a configuration file to define project-wide settings that will be used consistently across webpack loader, plugin, and CLI tools. Configuration is loaded using [cosmiconfig](https://github.com/davidtheclark/cosmiconfig), supporting multiple formats:
-
-- `i18next-auto-keys.config.js`
-- `.i18next-auto-keysrc.json`
-- `.i18next-auto-keysrc.js`
-- `package.json` (in `"i18next-auto-keys"` field)
-
-**Example configuration:**
+Optional config file for project-wide settings. Supports multiple formats: `i18next-auto-keys.config.js`, `.i18next-auto-keysrc.json`, or `package.json`.
 
 ```javascript
 // i18next-auto-keys.config.js
@@ -205,38 +233,23 @@ export const AuthMessages = {
 };
 ```
 
-### Function Expression Syntax Support
+### Supports Different Function Syntax
 
-`i18next-auto-keys` supports **three different function syntax styles**:
+Supports arrow functions, function expressions, and method shorthand:
 
 ```typescript
 export const Messages = {
-  // 1. Arrow functions (most common)
-  /**
-   * Shows user greeting
-   * @param name The user's display name
-   * @param role The user's role in the system
-   */
-  arrowStyle: (name: string, role: string): string => "Hello {name}, you are a {role}",
+  // Arrow functions
+  arrowStyle: (name: string): string => "Hello {name}",
 
-  // 2. Function expressions
-  /**
-   * Displays item count
-   * @param count Number of items
-   * @param category Item category
-   */
-  functionStyle: function(count: number, category: string): string {
-    return "Found {count} {category} items";
+  // Function expressions
+  functionStyle: function(count: number): string {
+    return "{count, plural, one {# item} other {# items}}";
   },
 
-  // 3. Method shorthand (ES6+)
-  /**
-   * Shows status message
-   * @param status Current connection status
-   * @param timestamp When status was last updated
-   */
-  methodStyle(status: string, timestamp: Date): string {
-    return "Status: {status} (updated {timestamp, date, short})";
+  // Method shorthand
+  methodStyle(status: string): string {
+    return "Status: {status}";
   },
 };
 ```
@@ -274,58 +287,26 @@ msgstr ""
 > **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
 
 ```typescript
-// ❌ WRONG - Don't do this
-export const Messages = {
-  greeting: (name: string): string => `Hello ${name}!`,           // String changes = unstable hash
-  status: (count: number): string => `You have ${count} items`,   // Can't use ICU pluralization
-};
+// ❌ WRONG - Creates unstable hashes
+greeting: (name: string): string => `Hello ${name}!`
 
-// ✅ CORRECT - Use ICU format instead
-export const Messages = {
-  greeting: (name: string): string => "Hello {name}!",          // Stable string + ICU format
-  status: (count: number): string => "You have {count, plural, one {# item} other {# items}}",  // ICU pluralization
-};
+// ✅ CORRECT - Use ICU format
+greeting: (name: string): string => "Hello {name}!"
+status: (count: number): string => "{count, plural, one {# item} other {# items}}"
 ```
 
 ### Parameter Modes
 
-#### Named Mode (Default)
+**Named (Default):** Use parameter names in ICU format
 ```typescript
-// Source with ICU format
-greeting: (name: string, time: string): string => "Hello {name}, good {time}!"
-pluralItems: (count: number): string => "{count, plural, one {# item} other {# items}}"
-
-// Transformed to
-greeting: (name: string, time: string): string => i18next.t("abc123def4", { name, time })
-pluralItems: (count: number): string => i18next.t("xyz789abc1", { count })
-
-// JSON output (ICU format preserved)
-{
-  "abc123def4": "Hello {name}, good {time}!",
-  "xyz789abc1": "{count, plural, one {# item} other {# items}}"
-}
+greeting: (name: string): string => "Hello {name}!"
+// Transforms to: i18next.t("abc123", { name })
 ```
 
-#### Indexed Mode (Shorter - more concise)
-
-This mode makes it easier to differentiate between parameters and translation text. The indexed order is the same as the order of the function parameters.
-
+**Indexed:** Use numbered placeholders
 ```typescript
-// webpack.config.js
-{
-  loader: 'i18next-auto-keys',
-  options: {
-    argMode: 'indexed'
-  }
-}
-
-// Source with ICU format using indexed parameters
-greeting: (name: string, time: string): string => "Hello {0}, good {1}!"
-pluralItems: (count: number): string => "{0, plural, one {# item} other {# items}}"
-
-// Transformed to
-greeting: (name: string, time: string): string => i18next.t("abc123def4", { "0": name, "1": time })
-pluralItems: (count: number): string => i18next.t("xyz789abc1", { "0": count })
+greeting: (name: string): string => "Hello {0}!"
+// Transforms to: i18next.t("abc123", { "0": name })
 ```
 
 ### Excluding Messages from Translation
@@ -333,19 +314,8 @@ pluralItems: (count: number): string => i18next.t("xyz789abc1", { "0": count })
 Use JSDoc comments to exclude specific functions:
 
 ```typescript
-export const Messages = {
-  // This will be translated
-  translate: (): string => "Translate me",
-
-  /** @noTranslate */
-  doNotTranslate: (): string => "Keep as-is",
-
-  /**
-   * @noTranslate
-   * This is a debug message that shouldn't be translated
-   */
-  debugInfo: (): string => "Debug: Component mounted"
-};
+/** @noTranslate */
+debugInfo: (): string => "Debug: Component mounted"
 ```
 
 ### Translation Context for Message Disambiguation
@@ -354,16 +324,10 @@ Use `@translationContext` in JSDoc comments to provide context for identical str
 
 ```typescript
 export const Messages = {
-  /**
-   * Play button for games
-   * @translationContext gaming
-   */
+  /** @translationContext gaming */
   playGame: (): string => "Play",
 
-  /**
-   * Play button for music
-   * @translationContext music
-   */
+  /** @translationContext music */
   playMusic: (): string => "Play",
 };
 ```
@@ -387,7 +351,7 @@ msgstr ""
 
 ### setDefaultValue Option
 
-The `setDefaultValue` option includes the original English strings as fallback values in your i18next calls. When enabled, it transforms:
+Includes original strings as fallback values. Useful for development mode or HMR:
 
 ```typescript
 // Source
@@ -397,53 +361,35 @@ message: (name: string): string => "Hello {name}"
 message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hello {name}", name })
 ```
 
-Typically you should only enable this in development mode to support HMR, or if you don't want to use the emit plugin's generated JSON for your default language.
-
-In production, you should typically use the JSON files generated by the emit plugin rather than embedding default values directly in your code. This keeps your bundle size smaller and allows for easier updates to default translations without redeploying your application.
+Use in development only to keep production bundles small.
 
 
 ## 🏗️ How It Works
 
-1. **AST Transformation**: The loader uses TypeScript's compiler API to parse and transform your code
-2. **String Extraction**: Finds function expressions that return string literals
-3. **Context Extraction**: Extracts `@translationContext` from JSDoc comments for message disambiguation
-4. **Hash Generation**: Creates stable, deterministic hashes from the source strings and context
-5. **Code Transformation**: Replaces string returns with `i18next.t()` calls
-6. **Asset Generation**: The plugin collects all extracted strings and emits translation files
+1. **Parse** - TypeScript AST transformation finds string returns
+2. **Extract** - Generate stable hashes from strings and context
+3. **Transform** - Replace with `i18next.t()` calls
+4. **Emit** - Plugin outputs translation files
 
 
 ## 🛠️ CLI Tools
 
-The package includes CLI tools for translation workflow management:
-
-### Extract Messages and Generate PO Template File
-Extract translation keys from your source code for translators:
-
+**Extract** translation keys from source files:
 ```bash
-# Extract messages keys and generate PO template file
 npx i18next-auto-keys extract --include "**/*.messages.ts" --output ./i18n/messages.pot
 ```
 
-### Update PO Files
-Update existing .po files with new strings from PO template:
-
+**Update** existing PO files with new strings:
 ```bash
-# Update all .po files with new strings
 npx i18next-auto-keys update --template ./i18n/messages.pot --po-files "./i18n/*.po" --backup
 ```
 
-### Convert PO to JSON
-Convert translated .po files to i18next JSON format:
-
+**Convert** PO files to JSON:
 ```bash
-# Convert single file
-npx i18next-auto-keys convert --input ./i18n/es.po --output ./public/locales/es.json
-
-# Batch convert multiple files
 npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch
 ```
 
-For detailed CLI usage and options, see [CLI Documentation](USAGE_CLI.md).
+[Full CLI documentation →](USAGE_CLI.md)
 
 ## 🧪 Development
 
