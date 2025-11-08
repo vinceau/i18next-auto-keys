@@ -32,7 +32,7 @@ describe("loadConfig", () => {
     jest.clearAllMocks();
     mockVolume = new Volume();
 
-    // Reset fs mocks to default behavior (no package.json found)
+    // Reset mocks to default behavior (no package.json found)
     mockFs.existsSync.mockReturnValue(false);
     mockFs.readFileSync.mockImplementation(() => {
       throw new Error("ENOENT: no such file or directory");
@@ -115,7 +115,7 @@ describe("loadConfig", () => {
       hashLength: 15,
       argMode: "indexed",
       topLevelKey: undefined,
-      projectId: "app 1.0", // default
+      projectId: "app 1.0", // fallback when no package.json found
       jsonIndentSpaces: 2, // default
     });
   });
@@ -226,7 +226,7 @@ describe("loadConfig", () => {
         config: {},
       });
 
-      // Mock package.json in the project directory
+      // Mock fs to simulate package.json exists in project directory
       mockFs.existsSync.mockImplementation((filePath: any) => {
         return filePath === "/test/project/package.json";
       });
@@ -252,7 +252,7 @@ describe("loadConfig", () => {
         config: {},
       });
 
-      // No package.json exists (default mock behavior)
+      // No package.json exists (default mock behavior: existsSync returns false)
 
       const result = loadConfig("/test/project");
 
@@ -265,6 +265,7 @@ describe("loadConfig", () => {
         config: {},
       });
 
+      // Mock fs to simulate package.json exists but contains malformed JSON
       mockFs.existsSync.mockImplementation((filePath: any) => {
         return filePath === "/test/project/package.json";
       });
@@ -287,6 +288,7 @@ describe("loadConfig", () => {
         config: {},
       });
 
+      // Mock fs to simulate package.json exists but missing version
       mockFs.existsSync.mockImplementation((filePath: any) => {
         return filePath === "/test/project/package.json";
       });
@@ -312,8 +314,9 @@ describe("loadConfig", () => {
         config: {},
       });
 
-      // package.json exists in parent directory
+      // Mock fs to simulate package.json search upward
       mockFs.existsSync.mockImplementation((filePath: any) => {
+        // No package.json in /test/project/src, but exists in parent /test/project
         return filePath === "/test/project/package.json";
       });
 
@@ -340,7 +343,7 @@ describe("loadConfig", () => {
         },
       });
 
-      // Mock package.json with different values
+      // Mock fs to simulate package.json exists but shouldn't be used
       mockFs.existsSync.mockImplementation((filePath: any) => {
         return filePath === "/test/project/package.json";
       });
@@ -358,6 +361,8 @@ describe("loadConfig", () => {
       const result = loadConfig("/test/project");
 
       expect(result.config.projectId).toBe("custom-project-id");
+      // Should not read package.json when projectId is explicitly configured
+      expect(mockFs.readFileSync).not.toHaveBeenCalled();
     });
   });
 });

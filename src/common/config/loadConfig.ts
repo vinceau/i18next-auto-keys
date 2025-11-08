@@ -5,10 +5,10 @@ import { cosmiconfigSync } from "cosmiconfig";
 import { z } from "zod";
 
 /**
- * Reads the host project's package.json to extract name and version for projectId default.
- * Searches upward from the given directory until package.json is found or reaches filesystem root.
+ * Finds the nearest package.json file by walking up the directory tree.
+ * This is a lightweight, zero-dependency implementation similar to what find-up does.
  */
-function readHostPackageJson(startDir: string): { name?: string; version?: string } | null {
+function findPackageJson(startDir: string): string | null {
   let currentDir = path.resolve(startDir);
   const root = path.parse(currentDir).root;
 
@@ -17,25 +17,45 @@ function readHostPackageJson(startDir: string): { name?: string; version?: strin
 
     try {
       if (fs.existsSync(packageJsonPath)) {
-        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-        return {
-          name: packageJson.name,
-          version: packageJson.version,
-        };
+        return packageJsonPath;
       }
     } catch {
-      // Continue searching upward if parsing fails
+      // Continue searching upward if access fails
     }
 
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
-      // Reached filesystem root
-      break;
+      break; // Reached filesystem root
     }
     currentDir = parentDir;
   }
 
   return null;
+}
+
+/**
+ * Reads and parses the nearest package.json, extracting name and version.
+ * Uses a custom implementation to avoid dependencies on transitive packages.
+ */
+function readHostPackageJson(startDir: string): { name?: string; version?: string } | null {
+  try {
+    const packageJsonPath = findPackageJson(startDir);
+
+    if (!packageJsonPath) {
+      return null;
+    }
+
+    const content = fs.readFileSync(packageJsonPath, "utf8");
+    const packageJson = JSON.parse(content);
+
+    return {
+      name: packageJson.name,
+      version: packageJson.version,
+    };
+  } catch {
+    // Invalid JSON, read error, or filesystem error
+    return null;
+  }
 }
 
 /**
@@ -86,7 +106,7 @@ export function loadConfig(cwd = process.cwd()): Configuration {
     config: {
       ...parsed,
       projectId,
-      poOutputDirectory: normalize(parsed.poOutputDirectory)
+      poOutputDirectory: normalize(parsed.poOutputDirectory),
     },
   };
 }
