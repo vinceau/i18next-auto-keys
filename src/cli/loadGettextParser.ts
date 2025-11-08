@@ -1,6 +1,6 @@
 // Support CJS (v7-) and ESM default export (v8+)
 import type { PoParser } from "gettext-parser";
-export type PoApi = { po?: PoParser };
+export type PoApi = { po: PoParser };
 
 let gettextParserModule: PoApi | undefined;
 let loadPromise: Promise<PoApi | undefined> | undefined;
@@ -10,7 +10,7 @@ const dynamicImport: (s: string) => Promise<any> =
   // eslint-disable-next-line no-new-func
   new Function("s", "return import(s)") as any;
 
-export async function loadGettextParser(): Promise<PoApi | undefined> {
+async function maybeLoadGettextParser(): Promise<PoApi | undefined> {
   if (gettextParserModule) return gettextParserModule;
   if (loadPromise) return loadPromise;
 
@@ -31,4 +31,12 @@ export async function loadGettextParser(): Promise<PoApi | undefined> {
 
   gettextParserModule = await loadPromise;
   return gettextParserModule;
+}
+
+export async function loadGettextParser(): Promise<PoApi> {
+  const parser = await maybeLoadGettextParser();
+  if (!parser) {
+    throw new Error("gettext-parser is required to parse and compile .po files. Install it with: npm install gettext-parser");
+  }
+  return parser;
 }

@@ -164,9 +164,6 @@ async function generatePot(
   projectId: string
 ): Promise<void> {
   const parser = await loadGettextParser();
-  if (!parser?.po?.compile) {
-    throw new Error("gettext-parser is required to generate POT files. Install it with: npm install gettext-parser");
-  }
 
   // Ensure output directory exists
   const outputDir = path.dirname(outputPath);

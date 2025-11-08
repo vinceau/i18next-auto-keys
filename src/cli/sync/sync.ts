@@ -56,9 +56,6 @@ export async function syncPoFiles(options: SyncPoOptions): Promise<void> {
  */
 async function msgmergeJs(oldPoPath: string, newPotPath: string, outPath: string, backup: boolean = false) {
   const gettextParser = await loadGettextParser();
-  if (!gettextParser?.po?.parse) {
-    throw new Error("gettext-parser is required to parse .po files. Install it with: npm install gettext-parser");
-  }
 
   // Create backup if requested
   if (backup && fs.existsSync(oldPoPath)) {

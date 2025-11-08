@@ -33,9 +33,6 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
 
   // Load gettext parser
   const parser = await loadGettextParser();
-  if (!parser?.po?.parse) {
-    throw new Error("gettext-parser is required to parse .po files. Install it with: npm install gettext-parser");
-  }
 
   // Read and parse .po file
   const poBuffer = fs.readFileSync(input);
