@@ -36,7 +36,9 @@ async function maybeLoadGettextParser(): Promise<PoApi | undefined> {
 export async function loadGettextParser(): Promise<PoApi> {
   const parser = await maybeLoadGettextParser();
   if (!parser) {
-    throw new Error("gettext-parser is required to parse and compile .po files. Install it with: npm install gettext-parser");
+    throw new Error(
+      "gettext-parser is required to parse and compile .po files. Install it with: npm install gettext-parser"
+    );
   }
   return parser;
 }
