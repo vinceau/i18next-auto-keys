@@ -1,5 +1,6 @@
 import path from "path";
 import { Volume } from "memfs";
+import fs from "fs";
 
 // Unmock loadConfig for this test file so we test the real implementation
 jest.unmock("../loadConfig");
@@ -10,6 +11,9 @@ jest.mock("../../../../package.json", () => ({
   name: "i18next-auto-keys",
 }));
 
+// Mock fs for testing package.json reading
+jest.mock("fs");
+
 // Mock cosmiconfig to use our memory filesystem
 const mockSearch = jest.fn();
 jest.mock("cosmiconfig", () => ({
@@ -18,6 +22,8 @@ jest.mock("cosmiconfig", () => ({
   })),
 }));
 
+const mockFs = fs as jest.Mocked<typeof fs>;
+
 describe("loadConfig", () => {
   const originalCwd = process.cwd();
   let mockVolume: Volume;
@@ -25,6 +31,12 @@ describe("loadConfig", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockVolume = new Volume();
+
+    // Reset mocks to default behavior (no package.json found)
+    mockFs.existsSync.mockReturnValue(false);
+    mockFs.readFileSync.mockImplementation(() => {
+      throw new Error("ENOENT: no such file or directory");
+    });
   });
 
   afterEach(() => {
@@ -39,7 +51,8 @@ describe("loadConfig", () => {
     expect(result).toEqual({
       file: undefined,
       config: {
-        poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+        poTemplateName: "messages.pot",
+        poOutputDirectory: path.resolve("/test/project", "i18n"),
         hashLength: 10,
         argMode: "named",
         topLevelKey: undefined,
@@ -54,7 +67,8 @@ describe("loadConfig", () => {
     const mockConfig = {
       hashLength: 12,
       argMode: "indexed",
-      poTemplatePath: "locales/template.pot",
+      poTemplateName: "template.pot",
+      poOutputDirectory: "locales",
       projectId: "my-app v2.0",
       jsonIndentSpaces: 4,
       topLevelKey: "messages",
@@ -70,7 +84,8 @@ describe("loadConfig", () => {
     expect(result).toEqual({
       file: configPath,
       config: {
-        poTemplatePath: path.resolve("/test/project", "locales/template.pot"),
+        poTemplateName: "template.pot",
+        poOutputDirectory: path.resolve("/test/project", "locales"),
         hashLength: 12,
         argMode: "indexed",
         topLevelKey: "messages",
@@ -95,11 +110,12 @@ describe("loadConfig", () => {
     const result = loadConfig("/test/project");
 
     expect(result.config).toEqual({
-      poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+      poTemplateName: "messages.pot",
+      poOutputDirectory: path.resolve("/test/project", "i18n"),
       hashLength: 15,
       argMode: "indexed",
       topLevelKey: undefined,
-      projectId: "app 1.0", // default
+      projectId: "app 1.0", // fallback when no package.json found
       jsonIndentSpaces: 2, // default
     });
   });
@@ -152,7 +168,8 @@ describe("loadConfig", () => {
     const result = loadConfig("/test/project");
 
     expect(result.config).toEqual({
-      poTemplatePath: path.resolve("/test/project", "i18n/messages.pot"),
+      poTemplateName: "messages.pot",
+      poOutputDirectory: path.resolve("/test/project", "i18n"),
       hashLength: 10,
       argMode: "named",
       topLevelKey: undefined,
@@ -161,9 +178,9 @@ describe("loadConfig", () => {
     });
   });
 
-  test("should normalize relative poTemplatePath to absolute path", () => {
+  test("should normalize relative poOutputDirectory to absolute path", () => {
     const mockConfig = {
-      poTemplatePath: "custom/path/messages.pot",
+      poOutputDirectory: "custom/path",
     };
 
     mockSearch.mockReturnValue({
@@ -173,13 +190,13 @@ describe("loadConfig", () => {
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.poTemplatePath).toBe(path.resolve("/test/project", "custom/path/messages.pot"));
+    expect(result.config.poOutputDirectory).toBe(path.resolve("/test/project", "custom/path"));
   });
 
-  test("should handle absolute poTemplatePath", () => {
-    const absolutePath = "/absolute/path/to/messages.pot";
+  test("should handle absolute poOutputDirectory", () => {
+    const absolutePath = "/absolute/path";
     const mockConfig = {
-      poTemplatePath: absolutePath,
+      poOutputDirectory: absolutePath,
     };
 
     mockSearch.mockReturnValue({
@@ -189,7 +206,7 @@ describe("loadConfig", () => {
 
     const result = loadConfig("/test/project");
 
-    expect(result.config.poTemplatePath).toBe(path.resolve("/test/project", absolutePath));
+    expect(result.config.poOutputDirectory).toBe(path.resolve("/test/project", absolutePath));
   });
 
   test("should use process.cwd() as default when no cwd provided", () => {
@@ -199,6 +216,153 @@ describe("loadConfig", () => {
     const result = loadConfig();
 
     expect(mockSearch).toHaveBeenCalledWith(currentDir);
-    expect(result.config.poTemplatePath).toBe(path.resolve(currentDir, "i18n/messages.pot"));
+    expect(result.config.poOutputDirectory).toBe(path.resolve(currentDir, "i18n"));
+  });
+
+  describe("package.json based projectId defaults", () => {
+    test("should use host project's package.json for default projectId", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // Mock fs to simulate package.json exists in project directory
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "my-awesome-app",
+            version: "2.1.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("my-awesome-app 2.1.0");
+    });
+
+    test("should fallback to 'app 1.0' when no package.json found", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // No package.json exists (default mock behavior: existsSync returns false)
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should fallback to 'app 1.0' when package.json is malformed", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // Mock fs to simulate package.json exists but contains malformed JSON
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return "{ invalid json";
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should fallback to 'app 1.0' when package.json missing name or version", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // Mock fs to simulate package.json exists but missing version
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "my-app",
+            // version missing
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should search upward for package.json", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/src/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // Mock fs to simulate package.json search upward
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        // No package.json in /test/project/src, but exists in parent /test/project
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "parent-project",
+            version: "1.0.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project/src");
+
+      expect(result.config.projectId).toBe("parent-project 1.0.0");
+    });
+
+    test("should not override explicitly configured projectId", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {
+          projectId: "custom-project-id",
+        },
+      });
+
+      // Mock fs to simulate package.json exists but shouldn't be used
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "some-other-app",
+            version: "3.0.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("custom-project-id");
+      // Should not read package.json when projectId is explicitly configured
+      expect(mockFs.readFileSync).not.toHaveBeenCalled();
+    });
   });
 });

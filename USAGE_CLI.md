@@ -76,8 +76,8 @@ Here's a complete translation workflow using all three CLI commands:
 #### Extract Messages and Keys (`extract`)
 
 - `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
-- `--output, -o` (optional): Output path for the POT file (defaults to `poTemplatePath` from config)
-- `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config)
+- `--output, -o` (optional): Output path for the POT file (defaults to `poOutputDirectory` and `poTemplateName` from config)
+- `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config, which defaults to package.json name and version if available, fallback: 'app 1.0')
 - `--source, -s`: Source directory to scan for translation keys (default: current directory)
 - `--exclude, -e`: File patterns to exclude (default: ["node_modules/**", "dist/**", "build/**"])
 - `--tsconfig, -t`: Path to tsconfig.json file (auto-detected if not specified)
@@ -92,7 +92,7 @@ Here's a complete translation workflow using all three CLI commands:
 > **Note:** The `update` command is still supported as an alias for backwards compatibility.
 
 - `--po-files, -p` (required): PO file patterns to sync
-- `--template, -t` (optional): PO template file path (defaults to `poTemplatePath` from config)
+- `--template, -t` (optional): PO template file path (defaults to `poOutputDirectory` and `poTemplateName` from config)
 - `--backup, -b`: Create backup files before syncing
 
 #### PO to JSON Conversion (`convert`)

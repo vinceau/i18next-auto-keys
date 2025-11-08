@@ -1,14 +1,7 @@
 // Mock implementation of loadConfig for Jest tests
 // This provides a simple mock that avoids cosmiconfig issues in test environments
 
-export type I18nConfig = {
-  poTemplatePath: string;
-  hashLength: number;
-  argMode: "indexed" | "named";
-  topLevelKey?: string;
-  projectId?: string;
-  jsonIndentSpaces: number;
-};
+import type { I18nConfig } from "../loadConfig";
 
 export type Configuration = {
   config: I18nConfig;
@@ -18,7 +11,8 @@ export type Configuration = {
 export const loadConfig = jest.fn(
   (): Configuration => ({
     config: {
-      poTemplatePath: "i18n/messages.pot",
+      poTemplateName: "messages.pot",
+      poOutputDirectory: "i18n",
       hashLength: 10,
       argMode: "named",
       projectId: "app 1.0",

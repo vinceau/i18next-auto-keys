@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import path from "path";
 import { Command } from "commander";
 import { extractKeysAndGeneratePotFile } from "./extract/extract";
 import { syncPoFiles } from "./sync/sync";
@@ -21,14 +22,15 @@ program
   .requiredOption("-i, --include <patterns...>", "File patterns to include")
   .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
   .option("-o, --output <path>", "Output path for the POT file")
-  .option("-p, --project-id <id>", "Project ID for POT header", "app 1.0")
+  .option("-p, --project-id <id>", "Project ID for POT header (defaults to package.json name and version, fallback: 'app 1.0')")
   .option("-e, --exclude <patterns...>", "File patterns to exclude", ["node_modules/**", "dist/**", "build/**"])
   .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
   .action(async (options) => {
     try {
+      const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
       await extractKeysAndGeneratePotFile({
         source: options.source,
-        output: options.output ?? config.poTemplatePath,
+        output: options.output ?? poTemplatePath,
         projectId: options.projectId ?? config.projectId,
         include: options.include,
         exclude: options.exclude,
@@ -50,9 +52,11 @@ program
   .option("-b, --backup", "Create backup files before syncing")
   .action(async (options) => {
     try {
+      const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
+      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
       await syncPoFiles({
-        template: options.template ?? config.poTemplatePath,
-        poFiles: options.poFiles,
+        template: options.template ?? poTemplatePath,
+        poFiles: options.poFiles ?? poFilesGlob,
         backup: options.backup,
       });
     } catch (error) {
@@ -65,11 +69,11 @@ program
 program
   .command("convert")
   .description("Convert .po files to i18next compatible JSON format")
-  .requiredOption("-i, --input <path>", "Input .po file path or glob pattern for multiple files")
   .requiredOption(
     "-o, --output <path>",
     "Output JSON file path (for single file) or output directory (for multiple files)"
   )
+  .option("-i, --input <path>", "Input .po file path or glob pattern for multiple files")
   .option("-t, --top-level-key <key>", "Wrap translations under a top-level key (matches emit plugin)")
   .option("--indent <number>", "JSON indentation spaces", "2")
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
@@ -77,10 +81,11 @@ program
     try {
       const indent = options.indent ? parseInt(options.indent.toString(), 10) : config.jsonIndentSpaces;
       const topLevelKey = options.topLevelKey ?? config.topLevelKey;
+      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
 
       if (options.batch) {
         await convertMultiplePoToJson({
-          pattern: options.input,
+          pattern: options.input ?? poFilesGlob,
           outputDir: options.output,
           topLevelKey,
           indent,

@@ -169,11 +169,12 @@ Optional config file for project-wide settings. Supports multiple formats: `i18n
 ```javascript
 // i18next-auto-keys.config.js
 module.exports = {
-  poTemplatePath: "locales/messages.pot",
+  poOutputDirectory: "locales",
+  poTemplateName: "messages.pot",
   hashLength: 12,
   argMode: "named",
   topLevelKey: "common",
-  projectId: "my-app v2.1.0",
+  projectId: "my-app v2.1.0", // Optional: defaults to package.json name + version
   jsonIndentSpaces: 2,
 };
 ```
@@ -182,11 +183,12 @@ module.exports = {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `poTemplatePath` | `string` | `"i18n/messages.pot"` | Default path for PO template files |
+| `poOutputDirectory` | `string` | `"i18n"` | Directory where PO template files are output |
+| `poTemplateName` | `string` | `"messages.pot"` | Name of the PO template file |
 | `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
 | `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
 | `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
-| `projectId` | `string` | `"app 1.0"` | Project ID for PO file headers |
+| `projectId` | `string` | `package.json name + version` (fallback: `"app 1.0"`) | Project ID for PO file headers |
 | `jsonIndentSpaces` | `number` | `2` | JSON indentation spaces for output files |
 
 ### Webpack Loader Options
