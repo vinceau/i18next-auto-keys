@@ -28,7 +28,7 @@ describe("Configuration System Simplified E2E Tests", () => {
   });
 
   beforeEach(() => {
-    // Clear any config files before each test
+    // Clear any config files and subdirectories before each test
     const configFiles = [".i18next-auto-keysrc.json", "package.json"];
     configFiles.forEach((file) => {
       const filePath = path.join(testWorkspace, file);
@@ -36,22 +36,81 @@ describe("Configuration System Simplified E2E Tests", () => {
         fs.unlinkSync(filePath);
       }
     });
+
+    // Clean up any subdirectories created by tests
+    const subDirs = ["isolated", "src"];
+    subDirs.forEach((dir) => {
+      const dirPath = path.join(testWorkspace, dir);
+      if (fs.existsSync(dirPath)) {
+        fs.rmSync(dirPath, { recursive: true, force: true });
+      }
+    });
   });
 
   describe("Default Configuration", () => {
-    test("should use default configuration when no config file exists", () => {
-      const result = loadConfig(testWorkspace);
+    test("should use fallback projectId when no package.json exists", () => {
+      // Ensure no package.json exists in test workspace or parent directories
+      // by testing in a deeply nested temporary directory
+      const isolatedTestDir = path.join(testWorkspace, "isolated", "deep", "nested");
+      fs.mkdirSync(isolatedTestDir, { recursive: true });
+
+      const result = loadConfig(isolatedTestDir);
 
       expect(result.file).toBeUndefined();
+      expect(result.config).toEqual({
+        poTemplateName: "messages.pot",
+        poOutputDirectory: path.resolve(isolatedTestDir, "i18n"),
+        hashLength: 10,
+        argMode: "named",
+        topLevelKey: undefined,
+        projectId: "app 1.0", // Should fallback to default
+        jsonIndentSpaces: 2,
+      });
+    });
+
+    test("should use package.json for projectId when found", () => {
+      // Create a package.json in the test workspace
+      const packageJsonContent = {
+        name: "test-e2e-project",
+        version: "2.5.0",
+        description: "Test project for e2e testing",
+      };
+
+      const packageJsonPath = path.join(testWorkspace, "package.json");
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJsonContent, null, 2));
+
+      const result = loadConfig(testWorkspace);
+
+      expect(result.file).toBeUndefined(); // No i18next-auto-keys config file
       expect(result.config).toEqual({
         poTemplateName: "messages.pot",
         poOutputDirectory: path.resolve(testWorkspace, "i18n"),
         hashLength: 10,
         argMode: "named",
         topLevelKey: undefined,
-        projectId: "app 1.0",
+        projectId: "test-e2e-project 2.5.0", // Should use package.json values
         jsonIndentSpaces: 2,
       });
+    });
+
+    test("should search upward for package.json", () => {
+      // Create package.json in parent directory
+      const packageJsonContent = {
+        name: "parent-e2e-project",
+        version: "1.2.3",
+      };
+
+      const packageJsonPath = path.join(testWorkspace, "package.json");
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJsonContent, null, 2));
+
+      // Test from a subdirectory
+      const subDir = path.join(testWorkspace, "src", "components");
+      fs.mkdirSync(subDir, { recursive: true });
+
+      const result = loadConfig(subDir);
+
+      expect(result.file).toBeUndefined();
+      expect(result.config.projectId).toBe("parent-e2e-project 1.2.3");
     });
   });
 
@@ -134,6 +193,29 @@ describe("Configuration System Simplified E2E Tests", () => {
       expect(result.file).toBe(packageJsonPath);
       expect(result.config.hashLength).toBe(16);
       expect(result.config.argMode).toBe("indexed");
+      // Should still use package.json name/version for projectId when no explicit projectId in config
+      expect(result.config.projectId).toBe("test-project 1.0.0");
+    });
+
+    test("should override package.json projectId when explicitly configured", () => {
+      const packageJsonContent = {
+        name: "background-project",
+        version: "9.9.9",
+        "i18next-auto-keys": {
+          hashLength: 12,
+          projectId: "custom-override-project v1.5",
+        },
+      };
+
+      const packageJsonPath = path.join(testWorkspace, "package.json");
+      fs.writeFileSync(packageJsonPath, JSON.stringify(packageJsonContent, null, 2));
+
+      const result = loadConfig(testWorkspace);
+
+      expect(result.file).toBe(packageJsonPath);
+      expect(result.config.hashLength).toBe(12);
+      // Should use explicitly configured projectId, not package name/version
+      expect(result.config.projectId).toBe("custom-override-project v1.5");
     });
   });
 
