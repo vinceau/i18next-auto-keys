@@ -47,13 +47,14 @@ program
   .command("sync")
   .alias("update") // Backwards compatibility
   .description("Sync .po files with new strings from PO template")
-  .requiredOption("-p, --po-files <patterns...>", "PO file patterns to sync")
+  .option("-p, --po-files <patterns...>", "PO file patterns to sync")
   .option("-t, --template <path>", "PO template file path")
   .option("-b, --backup", "Create backup files before syncing")
   .action(async (options) => {
     try {
       const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
-      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
+      const poFilesGlob = [path.join(config.poOutputDirectory, "*.po")];
+
       await syncPoFiles({
         template: options.template ?? poTemplatePath,
         poFiles: options.poFiles ?? poFilesGlob,
