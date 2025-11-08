@@ -22,7 +22,7 @@ program
   .requiredOption("-i, --include <patterns...>", "File patterns to include")
   .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
   .option("-o, --output <path>", "Output path for the POT file")
-  .option("-p, --project-id <id>", "Project ID for POT header", "app 1.0")
+  .option("-p, --project-id <id>", "Project ID for POT header (defaults to package.json name and version, fallback: 'app 1.0')")
   .option("-e, --exclude <patterns...>", "File patterns to exclude", ["node_modules/**", "dist/**", "build/**"])
   .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
   .action(async (options) => {

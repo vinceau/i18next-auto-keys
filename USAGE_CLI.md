@@ -77,7 +77,7 @@ Here's a complete translation workflow using all three CLI commands:
 
 - `--include, -i` (required): File patterns to include (e.g., "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx")
 - `--output, -o` (optional): Output path for the POT file (defaults to `poOutputDirectory` and `poTemplateName` from config)
-- `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config)
+- `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config, which defaults to package.json name and version if available, fallback: 'app 1.0')
 - `--source, -s`: Source directory to scan for translation keys (default: current directory)
 - `--exclude, -e`: File patterns to exclude (default: ["node_modules/**", "dist/**", "build/**"])
 - `--tsconfig, -t`: Path to tsconfig.json file (auto-detected if not specified)

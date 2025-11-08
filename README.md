@@ -174,7 +174,7 @@ module.exports = {
   hashLength: 12,
   argMode: "named",
   topLevelKey: "common",
-  projectId: "my-app v2.1.0",
+  projectId: "my-app v2.1.0", // Optional: defaults to package.json name + version
   jsonIndentSpaces: 2,
 };
 ```
@@ -188,7 +188,7 @@ module.exports = {
 | `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
 | `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
 | `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
-| `projectId` | `string` | `"app 1.0"` | Project ID for PO file headers |
+| `projectId` | `string` | `package.json name + version` (fallback: `"app 1.0"`) | Project ID for PO file headers |
 | `jsonIndentSpaces` | `number` | `2` | JSON indentation spaces for output files |
 
 ### Webpack Loader Options
