@@ -37,6 +37,20 @@
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"e2e/**/*.ts\""
   },
+  "dependencies": {
+    "commander": "^12.1.0",
+    "cosmiconfig": "^9.0.0",
+    "glob": "^11.0.0",
+    "schema-utils": "^4.3.3",
+    "zod": "^4.1.12"
+  },
+  "optionalDependencies": {
+    "gettext-parser": "^8.0.0"
+   },
+  "peerDependencies": {
+    "webpack": "^5",
+    "typescript": "^5"
+  },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",
     "@types/glob": "^8.1.0",
@@ -57,13 +71,6 @@
     "unionfs": "^4",
     "webpack": "^5",
     "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {
-    "commander": "^12.1.0",
-    "cosmiconfig": "^9.0.0",
-    "glob": "^11.0.0",
-    "schema-utils": "^4.3.3",
-    "zod": "^4.1.12"
   },
   "engines": {
     "node": ">=16.0.0"
