@@ -42,7 +42,7 @@ Since keys are auto-generated, we can't use i18next's default key-based pluraliz
 
 - Node.js 16+
 - Webpack 5+
-- TypeScript 4+ (We use a Typescript transformer)
+- TypeScript 5+ (We use a Typescript transformer)
 
 ## 📦 Installation
 
