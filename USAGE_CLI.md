@@ -87,11 +87,9 @@ Here's a complete translation workflow using all three CLI commands:
 - Generates `msgctxt` fields in PO files using actual context (not hash values)
 - Organizes messages by context for better translator experience
 
-#### Sync PO Files (`sync` or `update`)
+#### Sync PO Files (`sync`)
 
-> **Note:** The `update` command is still supported as an alias for backwards compatibility.
-
-- `--po-files, -p` (required): PO file patterns to sync
+- `--po-files, -p` (optional): PO file patterns to sync (defaults to all `*.po` files in the `poOutputDirectory`)
 - `--template, -t` (optional): PO template file path (defaults to `poOutputDirectory` and `poTemplateName` from config)
 - `--backup, -b`: Create backup files before syncing
 

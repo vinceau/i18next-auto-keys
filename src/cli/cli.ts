@@ -45,7 +45,6 @@ program
 // Sync PO files command
 program
   .command("sync")
-  .alias("update") // Backwards compatibility
   .description("Sync .po files with new strings from PO template")
   .option("-p, --po-files <patterns...>", "PO file patterns to sync")
   .option("-t, --template <path>", "PO template file path")
