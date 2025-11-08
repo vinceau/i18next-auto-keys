@@ -1,5 +1,6 @@
 import path from "path";
 import { Volume } from "memfs";
+import fs from "fs";
 
 // Unmock loadConfig for this test file so we test the real implementation
 jest.unmock("../loadConfig");
@@ -10,6 +11,9 @@ jest.mock("../../../../package.json", () => ({
   name: "i18next-auto-keys",
 }));
 
+// Mock fs for testing package.json reading
+jest.mock("fs");
+
 // Mock cosmiconfig to use our memory filesystem
 const mockSearch = jest.fn();
 jest.mock("cosmiconfig", () => ({
@@ -18,6 +22,8 @@ jest.mock("cosmiconfig", () => ({
   })),
 }));
 
+const mockFs = fs as jest.Mocked<typeof fs>;
+
 describe("loadConfig", () => {
   const originalCwd = process.cwd();
   let mockVolume: Volume;
@@ -25,6 +31,12 @@ describe("loadConfig", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockVolume = new Volume();
+
+    // Reset fs mocks to default behavior (no package.json found)
+    mockFs.existsSync.mockReturnValue(false);
+    mockFs.readFileSync.mockImplementation(() => {
+      throw new Error("ENOENT: no such file or directory");
+    });
   });
 
   afterEach(() => {
@@ -205,5 +217,147 @@ describe("loadConfig", () => {
 
     expect(mockSearch).toHaveBeenCalledWith(currentDir);
     expect(result.config.poOutputDirectory).toBe(path.resolve(currentDir, "i18n"));
+  });
+
+  describe("package.json based projectId defaults", () => {
+    test("should use host project's package.json for default projectId", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // Mock package.json in the project directory
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "my-awesome-app",
+            version: "2.1.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("my-awesome-app 2.1.0");
+    });
+
+    test("should fallback to 'app 1.0' when no package.json found", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // No package.json exists (default mock behavior)
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should fallback to 'app 1.0' when package.json is malformed", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return "{ invalid json";
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should fallback to 'app 1.0' when package.json missing name or version", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "my-app",
+            // version missing
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("app 1.0");
+    });
+
+    test("should search upward for package.json", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/src/.i18next-auto-keysrc",
+        config: {},
+      });
+
+      // package.json exists in parent directory
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "parent-project",
+            version: "1.0.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project/src");
+
+      expect(result.config.projectId).toBe("parent-project 1.0.0");
+    });
+
+    test("should not override explicitly configured projectId", () => {
+      mockSearch.mockReturnValue({
+        filepath: "/test/project/.i18next-auto-keysrc",
+        config: {
+          projectId: "custom-project-id",
+        },
+      });
+
+      // Mock package.json with different values
+      mockFs.existsSync.mockImplementation((filePath: any) => {
+        return filePath === "/test/project/package.json";
+      });
+
+      mockFs.readFileSync.mockImplementation((filePath: any) => {
+        if (filePath === "/test/project/package.json") {
+          return JSON.stringify({
+            name: "some-other-app",
+            version: "3.0.0",
+          });
+        }
+        throw new Error("ENOENT: no such file or directory");
+      });
+
+      const result = loadConfig("/test/project");
+
+      expect(result.config.projectId).toBe("custom-project-id");
+    });
   });
 });
