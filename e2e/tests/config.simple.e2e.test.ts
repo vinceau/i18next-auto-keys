@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { loadConfig } from "../../dist/index";
 
 /**
@@ -49,23 +50,31 @@ describe("Configuration System Simplified E2E Tests", () => {
 
   describe("Default Configuration", () => {
     test("should use fallback projectId when no package.json exists", () => {
-      // Ensure no package.json exists in test workspace or parent directories
-      // by testing in a deeply nested temporary directory
-      const isolatedTestDir = path.join(testWorkspace, "isolated", "deep", "nested");
+      // Create a truly isolated test directory outside the project structure
+      // to avoid finding any parent package.json files
+      const tempDir = os.tmpdir();
+      const isolatedTestDir = path.join(tempDir, "i18next-auto-keys-test", "isolated", "deep", "nested");
+
+      // Create the isolated directory
       fs.mkdirSync(isolatedTestDir, { recursive: true });
 
-      const result = loadConfig(isolatedTestDir);
+      try {
+        const result = loadConfig(isolatedTestDir);
 
-      expect(result.file).toBeUndefined();
-      expect(result.config).toEqual({
-        poTemplateName: "messages.pot",
-        poOutputDirectory: path.resolve(isolatedTestDir, "i18n"),
-        hashLength: 10,
-        argMode: "named",
-        topLevelKey: undefined,
-        projectId: "app 1.0", // Should fallback to default
-        jsonIndentSpaces: 2,
-      });
+        expect(result.file).toBeUndefined();
+        expect(result.config).toEqual({
+          poTemplateName: "messages.pot",
+          poOutputDirectory: path.resolve(isolatedTestDir, "i18n"),
+          hashLength: 10,
+          argMode: "named",
+          topLevelKey: undefined,
+          projectId: "app 1.0", // Should fallback to default
+          jsonIndentSpaces: 2,
+        });
+      } finally {
+        // Clean up the isolated test directory
+        fs.rmSync(path.join(tempDir, "i18next-auto-keys-test"), { recursive: true, force: true });
+      }
     });
 
     test("should use package.json for projectId when found", () => {
