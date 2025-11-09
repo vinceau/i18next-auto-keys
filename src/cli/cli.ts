@@ -8,33 +8,33 @@ import { showTranslationStatus } from "./status/status";
 import { loadConfig } from "@/index";
 
 // CLI Option Types - properly typed interfaces instead of relying on 'any'
-interface ExtractOptions {
+type ExtractOptions = {
   include: string[];
   source?: string;
   output?: string;
   projectId?: string;
   exclude: string[];
   tsconfig?: string;
-}
+};
 
-interface SyncOptions {
+type SyncOptions = {
   poFiles?: string[];
   template?: string;
   backup?: boolean;
-}
+};
 
-interface ConvertOptions {
+type ConvertOptions = {
   output: string;
   input?: string;
   topLevelKey?: string;
   indent?: string;
   batch?: boolean;
-}
+};
 
-interface StatusOptions {
+type StatusOptions = {
   directory: string;
   verbose?: boolean;
-}
+};
 
 const { config } = loadConfig();
 
@@ -124,7 +124,9 @@ program
         });
       } else {
         if (!options.input) {
-          throw new Error("Input file path is required when not using batch mode. Use -i/--input option or add --batch flag.");
+          throw new Error(
+            "Input file path is required when not using batch mode. Use -i/--input option or add --batch flag."
+          );
         }
         await convertPoToJson({
           input: options.input,
