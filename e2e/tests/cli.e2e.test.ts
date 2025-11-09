@@ -443,6 +443,17 @@ msgstr "Ein Fehler ist aufgetreten"
 
       expect(result.exitCode).not.toBe(0);
     });
+
+    it("should output 0 in percent-only mode when no .po files are found", async () => {
+      // Create an empty directory with no .po files
+      const emptyDir = path.join(testDir, "empty-locales");
+      fs.mkdirSync(emptyDir, { recursive: true });
+
+      const result = await runCliCommand(["status", "--directory", emptyDir, "--percent-only"]);
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout.trim()).toBe("0");
+    });
   });
 
   describe("general CLI behavior", () => {

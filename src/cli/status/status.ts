@@ -38,7 +38,9 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
   const poFiles = globSync(pattern, { absolute: true });
 
   if (poFiles.length === 0) {
-    if (!percentOnly) {
+    if (percentOnly) {
+      console.log(0);
+    } else {
       console.warn("⚠️  No .po files found in the specified directory");
     }
     return;
