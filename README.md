@@ -4,14 +4,14 @@
 [![Build Status](https://github.com/vinceau/i18next-auto-keys/workflows/build/badge.svg)](https://github.com/vinceau/i18next-auto-keys/actions?workflow=build)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Automatic translation key generation for i18next with ICU format** - No more manual key management!
+**Automatic translation key generation for i18next** - No more manual key management!
 
 ## ✨ Features
 
 - 🔄 **Automatic key generation** - No manual key management required
+- 📍 **Colocated translations** - Text strings live next to the components that use them
 - 📦 **Framework agnostic** - Works with React, Vue, Angular, or vanilla JS
 - 🔒 **Typesafe by default** - Full TypeScript support with AST transformation
-- 📍 **Colocated translations** - Text strings live next to the components that use them
 
 ## 🎯 Why this over other i18next libraries?
 
@@ -22,22 +22,11 @@ Traditional i18next libraries like **react-i18next** force you to:
 - **Separate translations from code** - hunt through `.json` files to find text strings
 
 With `i18next-auto-keys`, you:
-- **Automatic key generation** - stable hash-based keys at build time
 - **Keep writing normal TypeScript** - no special APIs to learn
 - **Stay library-agnostic** - developers don't even know what i18n library powers translations
 - **Easy migration** - switch translation systems with minimal changes to application code
 
 `i18next-auto-keys` automatically extracts strings from your code and replaces them with `i18next.t()` calls using auto-generated hash keys at build time.
-
-## How do plurals work if the translation key is not known?
-
-Since keys are auto-generated, we can't use i18next's default key-based pluralization (`_zero`, `_one`, etc.). Instead we use the **ICU message format** which handles plurals and inline formatting:
-
-- **Pluralization**: `{count, plural, one {# item} other {# items}}`
-- **Number/Date formatting**: `{price, number, currency}` • `{date, date, short}`
-- **Conditional text**: `{status, select, online {Connected} offline {Disconnected}}`
-
-[Learn more about ICU format →](https://formatjs.github.io/docs/intl-messageformat/)
 
 ## 📋 Requirements
 
@@ -49,12 +38,16 @@ Since keys are auto-generated, we can't use i18next's default key-based pluraliz
 
 ```bash
 npm install --save-dev i18next-auto-keys
+
+# Your project will also need these dependencies if you don't already have them
 npm install --save i18next i18next-icu
 ```
 
 ## 🚀 Quick Start
 
-### 1. Write your code with ICU format
+### 1. Write your messages in regular Typescript
+
+You should use the [ICU format](https://formatjs.github.io/docs/intl-messageformat/) for plurals and formatting.
 
 ```typescript
 // src/components/LoginForm.messages.ts
@@ -132,7 +125,7 @@ module.exports = {
 };
 ```
 
-### 3. Generated output
+### 4. Profit!
 
 The loader automatically transforms your code:
 
@@ -156,63 +149,37 @@ And generates translation files:
 }
 ```
 
-## ⚙️ Configuration
+## 🎯 Usage Patterns
 
-### Project Configuration File
+### Pluralization
 
-Optional config file for project-wide settings. Supports multiple formats: `i18next-auto-keys.config.js`, `.i18next-auto-keysrc.json`, or `package.json`.
+Since keys are auto-generated, we can't use i18next's default key-based pluralization (`_zero`, `_one`, etc.). Instead we use the **ICU message format** which handles plurals and inline formatting:
 
-```javascript
-// i18next-auto-keys.config.js
-module.exports = {
-  poOutputDirectory: "locales",
-  poTemplateName: "messages.pot",
-  hashLength: 12,
-  argMode: "named",
-  topLevelKey: "common",
-  projectId: "my-app v2.1.0", // Optional: defaults to package.json name + version
-  jsonIndentSpaces: 2,
-};
+- **Pluralization**: `{count, plural, one {# item} other {# items}}`
+- **Number/Date formatting**: `{price, number, currency}` • `{date, date, short}`
+- **Conditional text**: `{status, select, online {Connected} offline {Disconnected}}`
+
+[Learn more about ICU format →](https://formatjs.github.io/docs/intl-messageformat/)
+
+
+### Parameter Handling
+
+> [!WARNING]
+> **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
+
+```typescript
+// ❌ WRONG - Creates unstable hashes
+greeting: (name: string): string => `Hello ${name}!`
+
+// ✅ CORRECT - Use ICU format
+greeting: (name: string): string => "Hello {name}!"
+status: (count: number): string => "{count, plural, one {# item} other {# items}}"
 ```
 
-**Configuration Options:**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `poOutputDirectory` | `string` | `"i18n"` | Directory where PO template files are output |
-| `poTemplateName` | `string` | `"messages.pot"` | Name of the PO template file |
-| `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
-| `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
-| `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
-| `projectId` | `string` | `package.json name + version` (fallback: `"app 1.0"`) | Project ID for PO file headers |
-| `jsonIndentSpaces` | `number` | `2` | JSON indentation spaces for output files |
-
-### Webpack Loader Options
-
-These options override configuration file settings when specified:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `include` | `RegExp \| RegExp[]` | `*` | Pattern(s) to match files for processing |
-| `hashLength` | `number` | From config | Length of generated hash keys (minimum 10) |
-| `argMode` | `'indexed' \| 'named'` | From config | How to pass parameters to `i18next.t()` |
-| `sourcemap` | `boolean` | `false` | Generate source maps |
-| `setDefaultValue` | `boolean` | `false` | Include original strings as `defaultValue` in i18next calls |
-
-### Webpack Plugin Options
-
-These options override configuration file settings when specified:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `jsonOutputPath` | `string` | **Required** | Path for JSON translation file |
-| `topLevelKey` | `string` | From config | Wrap translations under a top-level key |
-
-## 🎯 Usage Patterns
 
 ### Message Files Organization
 
-Create dedicated message files with ICU format for better organization:
+Create dedicated message files for better organization:
 
 ```typescript
 // src/pages/auth/auth.messages.ts
@@ -276,20 +243,6 @@ userSummary: (userName: string, accountType: string, daysSince: number): string 
 msgctxt "user-account-summary"
 msgid "User {userName} has {accountType} account (active for {daysSince, number} days)"
 msgstr ""
-```
-
-### ICU Format Parameter Handling
-
-> [!WARNING]
-> **Do NOT use JavaScript string interpolation (`${}`) in your message functions!**
-
-```typescript
-// ❌ WRONG - Creates unstable hashes
-greeting: (name: string): string => `Hello ${name}!`
-
-// ✅ CORRECT - Use ICU format
-greeting: (name: string): string => "Hello {name}!"
-status: (count: number): string => "{count, plural, one {# item} other {# items}}"
 ```
 
 ### Parameter Modes
@@ -358,15 +311,7 @@ message: (name: string): string => "Hello {name}"
 message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hello {name}", name })
 ```
 
-Use in development only to keep production bundles small.
-
-
-## 🏗️ How It Works
-
-1. **Parse** - TypeScript AST transformation finds string returns
-2. **Extract** - Generate stable hashes from strings and context
-3. **Transform** - Replace with `i18next.t()` calls
-4. **Emit** - Plugin outputs translation files
+Use in development to keep production bundles small, or if you don't want to load your default language from a JSON resource.
 
 
 ## 🛠️ CLI Tools
@@ -388,14 +333,64 @@ npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --
 
 **Status** - Show translation progress for PO files:
 ```bash
-# Show detailed status (uses config poOutputDirectory by default)
-npx i18next-auto-keys status --verbose
-
-# Get only the percentage for scripts/CI
-npx i18next-auto-keys status --percent-only
+npx i18next-auto-keys status
 ```
 
 [Full CLI documentation →](USAGE_CLI.md)
+
+
+## ⚙️ Configuration
+
+### Project Configuration File
+
+Optional config file for project-wide settings. Supports multiple formats: `i18next-auto-keys.config.js`, `.i18next-auto-keysrc.json`, or `package.json`.
+
+```javascript
+// i18next-auto-keys.config.js
+module.exports = {
+  poOutputDirectory: "locales",
+  poTemplateName: "messages.pot",
+  hashLength: 12,
+  argMode: "named",
+  topLevelKey: "common",
+  projectId: "my-app v2.1.0", // Optional: defaults to package.json name + version
+  jsonIndentSpaces: 2,
+};
+```
+
+**Configuration Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `poOutputDirectory` | `string` | `"i18n"` | Directory where PO template files are output |
+| `poTemplateName` | `string` | `"messages.pot"` | Name of the PO template file |
+| `hashLength` | `number` | `10` | Length of generated hash keys (minimum 10) |
+| `argMode` | `'indexed' \| 'named'` | `'named'` | How to pass parameters to `i18next.t()` |
+| `topLevelKey` | `string` | `undefined` | Wrap translations under a top-level key |
+| `projectId` | `string` | `package.json name + version` (fallback: `"app 1.0"`) | Project ID for PO file headers |
+| `jsonIndentSpaces` | `number` | `2` | JSON indentation spaces for output files |
+
+### Webpack Loader Options
+
+These options override configuration file settings when specified:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `include` | `RegExp \| RegExp[]` | `*` | Pattern(s) to match files for processing |
+| `hashLength` | `number` | From config | Length of generated hash keys (minimum 10) |
+| `argMode` | `'indexed' \| 'named'` | From config | How to pass parameters to `i18next.t()` |
+| `sourcemap` | `boolean` | `false` | Generate source maps |
+| `setDefaultValue` | `boolean` | `false` | Include original strings as `defaultValue` in i18next calls |
+
+### Webpack Plugin Options
+
+These options override configuration file settings when specified:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `jsonOutputPath` | `string` | **Required** | Path for JSON translation file |
+| `topLevelKey` | `string` | From config | Wrap translations under a top-level key |
+
 
 ## 🧪 Development
 
