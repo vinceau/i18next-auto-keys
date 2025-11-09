@@ -107,4 +107,145 @@ msgstr "Test translated"
 
     consoleLogSpy.mockRestore();
   });
+
+  it("should output only percentage in percent-only mode", async () => {
+    // Create a sample .po file with 50% translation progress
+    const samplePoContent = `# Translation file for French
+msgid ""
+msgstr ""
+"Language: fr\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+
+#: src/component.ts:10
+msgid "Hello"
+msgstr "Bonjour"
+
+#: src/component.ts:20
+msgid "World"
+msgstr ""
+`;
+
+    const poFilePath = path.join(tempDir, "fr.po");
+    fs.writeFileSync(poFilePath, samplePoContent);
+
+    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+
+    await showTranslationStatus({ directory: tempDir, percentOnly: true });
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(consoleLogSpy).toHaveBeenCalledWith(50); // 1 out of 2 strings translated = 50%
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it("should output 0 in percent-only mode when no translations exist", async () => {
+    // Create a sample .po file with no translations
+    const samplePoContent = `# Translation file for Spanish
+msgid ""
+msgstr ""
+"Language: es\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+
+#: src/component.ts:10
+msgid "Hello"
+msgstr ""
+
+#: src/component.ts:20
+msgid "World"
+msgstr ""
+`;
+
+    const poFilePath = path.join(tempDir, "es.po");
+    fs.writeFileSync(poFilePath, samplePoContent);
+
+    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+
+    await showTranslationStatus({ directory: tempDir, percentOnly: true });
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(consoleLogSpy).toHaveBeenCalledWith(0); // 0 out of 2 strings translated = 0%
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it("should output 100 in percent-only mode when all translations exist", async () => {
+    // Create a sample .po file with 100% translation progress
+    const samplePoContent = `# Translation file for German
+msgid ""
+msgstr ""
+"Language: de\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+
+#: src/component.ts:10
+msgid "Hello"
+msgstr "Hallo"
+
+#: src/component.ts:20
+msgid "World"
+msgstr "Welt"
+`;
+
+    const poFilePath = path.join(tempDir, "de.po");
+    fs.writeFileSync(poFilePath, samplePoContent);
+
+    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+
+    await showTranslationStatus({ directory: tempDir, percentOnly: true });
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(consoleLogSpy).toHaveBeenCalledWith(100); // 2 out of 2 strings translated = 100%
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it("should calculate overall percentage across multiple files in percent-only mode", async () => {
+    // Create first .po file with 100% progress (2/2)
+    const frPoContent = `msgid ""
+msgstr ""
+"Language: fr\\n"
+
+msgid "Hello"
+msgstr "Bonjour"
+
+msgid "World"
+msgstr "Monde"
+`;
+
+    // Create second .po file with 0% progress (0/2)
+    const esPoContent = `msgid ""
+msgstr ""
+"Language: es\\n"
+
+msgid "Hello"
+msgstr ""
+
+msgid "World"
+msgstr ""
+`;
+
+    fs.writeFileSync(path.join(tempDir, "fr.po"), frPoContent);
+    fs.writeFileSync(path.join(tempDir, "es.po"), esPoContent);
+
+    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+
+    await showTranslationStatus({ directory: tempDir, percentOnly: true });
+
+    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
+    expect(consoleLogSpy).toHaveBeenCalledWith(50); // 2 out of 4 total strings translated = 50%
+
+    consoleLogSpy.mockRestore();
+  });
+
+  it("should not output warning messages in percent-only mode when no po files found", async () => {
+    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+
+    await showTranslationStatus({ directory: tempDir, percentOnly: true });
+
+    expect(consoleLogSpy).not.toHaveBeenCalled();
+    expect(consoleWarnSpy).not.toHaveBeenCalled();
+
+    consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+  });
 });
