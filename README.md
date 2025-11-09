@@ -51,11 +51,6 @@ npm install --save-dev i18next-auto-keys
 npm install --save i18next i18next-icu
 ```
 
-Optional (but recommended for CLI PO conversion):
-```bash
-npm install --save-dev gettext-parser
-```
-
 ## 🚀 Quick Start
 
 ### 1. Write your code with ICU format

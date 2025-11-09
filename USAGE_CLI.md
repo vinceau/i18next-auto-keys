@@ -16,9 +16,9 @@ CLI tools automatically load project configuration from your config file (see ma
 ## Installation
 
 ```bash
-npm install --save-dev i18next-auto-keys gettext-parser
+npm install --save-dev i18next-auto-keys
 # or
-yarn add -D i18next-auto-keys gettext-parser
+yarn add -D i18next-auto-keys
 ```
 
 ## Usage and Translation Workflow
