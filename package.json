@@ -1,6 +1,6 @@
 {
   "name": "i18next-auto-keys",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -46,7 +46,7 @@
   },
   "optionalDependencies": {
     "gettext-parser": "^8.0.0"
-   },
+  },
   "peerDependencies": {
     "webpack": "^5",
     "typescript": "^5"
