@@ -29,9 +29,9 @@ With `i18next-auto-keys`, you:
 
 `i18next-auto-keys` automatically extracts strings from your code and replaces them with `i18next.t()` calls using auto-generated hash keys at build time.
 
-## 💡 Why ICU format?
+## How do plurals work if the translation key is not known?
 
-Since keys are auto-generated, we can't use i18next's default key-based pluralization (`_zero`, `_one`, etc.). **ICU message format** provides inline formatting:
+Since keys are auto-generated, we can't use i18next's default key-based pluralization (`_zero`, `_one`, etc.). Instead we use the **ICU message format** which handles plurals and inline formatting:
 
 - **Pluralization**: `{count, plural, one {# item} other {# items}}`
 - **Number/Date formatting**: `{price, number, currency}` • `{date, date, short}`
