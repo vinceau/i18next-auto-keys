@@ -429,11 +429,11 @@ msgstr "Ein Fehler ist aufgetreten"
       expect(result.stdout.length).toBeGreaterThan(100);
     });
 
-    it("should fail with missing required directory option", async () => {
+    it("should fail when default directory doesn't exist", async () => {
       const result = await runCliCommand(["status"], { expectError: true });
 
       expect(result.exitCode).not.toBe(0);
-      expect(result.stderr).toContain("required option");
+      expect(result.stderr).toContain("Directory not found");
     });
 
     it("should handle non-existent directory gracefully", async () => {
