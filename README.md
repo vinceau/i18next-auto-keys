@@ -392,7 +392,11 @@ npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --
 
 **Status** - Show translation progress for PO files:
 ```bash
-npx i18next-auto-keys status --directory ./i18n --verbose
+# Show detailed status (uses config poOutputDirectory by default)
+npx i18next-auto-keys status --verbose
+
+# Get only the percentage for scripts/CI
+npx i18next-auto-keys status --percent-only
 ```
 
 [Full CLI documentation →](USAGE_CLI.md)
