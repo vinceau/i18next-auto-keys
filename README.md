@@ -9,10 +9,9 @@
 ## ✨ Features
 
 - 🔄 **Automatic key generation** - No manual key management required
-- 🌐 **ICU format support** - Advanced pluralization and formatting
-- 📦 **Webpack integration** - Simple loader and plugin setup
-- 🔧 **TypeScript support** - Full AST transformation
-- 🛠️ **CLI tools** - Extract, sync, and convert translation files
+- 📦 **Framework agnostic** - Works with React, Vue, Angular, or vanilla JS
+- 🔒 **Typesafe by default** - Full TypeScript support with AST transformation
+- 📍 **Colocated translations** - Text strings live next to the components that use them
 
 ## 🎯 Why this over other i18next libraries?
 
@@ -20,13 +19,15 @@ Traditional i18next libraries like **react-i18next** force you to:
 - **Manually manage translation keys** - tedious and error-prone
 - **Rewrite your entire codebase** to use their APIs (`t('some.key')` everywhere)
 - **Buy into their ecosystem** - change how you write and organize code
+- **Separate translations from code** - hunt through `.json` files to find text strings
 
 With `i18next-auto-keys`, you:
+- **Automatic key generation** - stable hash-based keys at build time
 - **Keep writing normal TypeScript** - no special APIs to learn
 - **Stay library-agnostic** - developers don't even know what i18n library powers translations
-- **Easy migration** - switch translation systems without touching application code
+- **Easy migration** - switch translation systems with minimal changes to application code
 
-`i18next-auto-keys` automatically extracts strings from your code and replaces them with `i18next.t()` calls using auto-generated hash keys at build time. This approach works best with **ICU message format** for advanced formatting features.
+`i18next-auto-keys` automatically extracts strings from your code and replaces them with `i18next.t()` calls using auto-generated hash keys at build time.
 
 ## 💡 Why ICU format?
 
