@@ -236,14 +236,13 @@ msgstr ""
     consoleLogSpy.mockRestore();
   });
 
-  it("should output 0 in percent-only mode when no po files found", async () => {
+  it("should not output warning messages in percent-only mode when no po files found", async () => {
     const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
     const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
 
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
-    expect(consoleLogSpy).toHaveBeenCalledTimes(1);
-    expect(consoleLogSpy).toHaveBeenCalledWith(0);
+    expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(consoleWarnSpy).not.toHaveBeenCalled();
 
     consoleLogSpy.mockRestore();
