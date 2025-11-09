@@ -2,7 +2,7 @@ import path from "path";
 import { Configuration } from "webpack";
 const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
 
-interface WebpackConfigOptions {
+type WebpackConfigOptions = {
   configName?: string;
   mode?: "development" | "production" | "none";
   include?: RegExp;
@@ -17,7 +17,7 @@ interface WebpackConfigOptions {
   argMode?: "indexed" | "named";
   resolveAlias?: Record<string, string>;
   entry?: string;
-}
+};
 
 /**
  * Factory function to create different webpack configurations for testing
