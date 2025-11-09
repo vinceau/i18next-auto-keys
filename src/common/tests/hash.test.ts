@@ -260,24 +260,24 @@ describe("Hash Functions", () => {
         expect(hashNormalized2).not.toBe(hashNotNormalized2);
       });
 
-      it("defaults to normalization enabled when normalize option is not specified", () => {
+      it("defaults to normalization disabled when normalize option is not specified", () => {
         const text1 = "Hello world";
         const text2 = "Hello   world";
 
-        // Default behavior (normalize should be true by default)
+        // Default behavior (normalize should be false by default)
         const hashDefault1 = stableHash(text1);
         const hashDefault2 = stableHash(text2);
 
-        // Explicit normalization enabled
-        const hashExplicit1 = stableHash(text1, { normalize: true });
-        const hashExplicit2 = stableHash(text2, { normalize: true });
+        // Explicit normalization disabled
+        const hashExplicit1 = stableHash(text1, { normalize: false });
+        const hashExplicit2 = stableHash(text2, { normalize: false });
 
-        // Default should match explicit normalize: true
+        // Default should match explicit normalize: false
         expect(hashDefault1).toBe(hashExplicit1);
         expect(hashDefault2).toBe(hashExplicit2);
 
-        // Both should be the same due to normalization
-        expect(hashDefault1).toBe(hashDefault2);
+        // Both should be different without normalization
+        expect(hashDefault1).not.toBe(hashDefault2);
       });
 
       it("works correctly with context and normalization", () => {

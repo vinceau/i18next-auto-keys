@@ -13,7 +13,7 @@ export function stableHash(
   text: string,
   options: { context?: string; normalize?: boolean; hashLength?: number } = {}
 ): string {
-  const { context = "", normalize = true, hashLength = 10 } = options;
+  const { context = "", normalize = false, hashLength = 10 } = options;
   const normalizedText = normalize ? normalizeForHash(text) : text;
   const textToHash = context && context.length > 0 ? `${normalizedText}::${context}` : normalizedText;
   const h = createHash("sha1").update(textToHash, "utf8").digest("hex");
