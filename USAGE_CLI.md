@@ -47,11 +47,17 @@ Here's a complete translation workflow using all three CLI commands:
 
 4. **Check translation progress** (optional):
    ```bash
-   # View translation status for all languages
+   # View translation status for all languages (uses config poOutputDirectory)
+   npx i18next-auto-keys status
+
+   # Or specify a custom directory
    npx i18next-auto-keys status --directory ./i18n
 
    # Verbose mode shows detailed information
-   npx i18next-auto-keys status --directory ./i18n --verbose
+   npx i18next-auto-keys status --verbose
+
+   # Get only the percentage for scripts/CI
+   npx i18next-auto-keys status --percent-only
    ```
 
 5. **Convert translated .po files to JSON** (with config defaults):
@@ -103,8 +109,9 @@ Here's a complete translation workflow using all three CLI commands:
 
 #### Translation Status (`status`)
 
-- `--directory, -d` (required): Directory containing .po files to analyze
+- `--directory, -d` (optional): Directory containing .po files to analyze (defaults to `poOutputDirectory` from config)
 - `--verbose, -v` (optional): Show detailed information for each file including file names and remaining translation counts
+- `--percent-only` (optional): Output only the overall progress percentage as an integer (0-100) to stdout
 
 **Example output:**
 ```
@@ -124,6 +131,24 @@ Translation Progress Summary
 📚 Languages: 3
 ```
 
+**Percent-only mode for CI/CD:**
+```bash
+# Get just the percentage for scripts or CI checks
+npx i18next-auto-keys status --percent-only
+# Output: 85
+
+# Use with yarn (silent mode recommended to avoid extra output)
+yarn --silent run i18next-auto-keys status --percent-only
+# Output: 85
+
+# Example CI usage
+TRANSLATION_PERCENT=$(npx i18next-auto-keys status --percent-only)
+if [ $TRANSLATION_PERCENT -lt 80 ]; then
+  echo "Translation coverage too low: ${TRANSLATION_PERCENT}%"
+  exit 1
+fi
+```
+
 ### Package.json Scripts
 
 Add to your `package.json` (leveraging config file defaults):
@@ -134,7 +159,8 @@ Add to your `package.json` (leveraging config file defaults):
     "i18n:extract": "i18next-auto-keys extract --include \"**/*.messages.ts\"",
     "i18n:sync": "i18next-auto-keys sync --po-files \"./i18n/*.po\"",
     "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch",
-    "i18n:status": "i18next-auto-keys status --directory ./i18n --verbose"
+    "i18n:status": "i18next-auto-keys status --verbose",
+    "i18n:status-percent": "i18next-auto-keys status --percent-only"
   }
 }
 ```

@@ -34,6 +34,7 @@ type ConvertOptions = {
 type StatusOptions = {
   directory: string;
   verbose?: boolean;
+  percentOnly?: boolean;
 };
 
 const { config } = loadConfig();
@@ -145,13 +146,15 @@ program
 program
   .command("status")
   .description("Show translation progress for .po files in a directory")
-  .requiredOption("-d, --directory <path>", "Directory containing .po files to analyze")
+  .option("-d, --directory <path>", "Directory containing .po files to analyze")
   .option("-v, --verbose", "Show detailed information for each file")
+  .option("--percent-only", "Output only the overall progress percentage as an integer (0-100)")
   .action(async (options: StatusOptions) => {
     try {
       await showTranslationStatus({
-        directory: options.directory,
+        directory: options.directory ?? config.poOutputDirectory,
         verbose: options.verbose,
+        percentOnly: options.percentOnly,
       });
     } catch (error) {
       console.error("❌ Error analyzing translation status:", error);

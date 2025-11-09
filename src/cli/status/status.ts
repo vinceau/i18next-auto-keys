@@ -6,6 +6,7 @@ import { loadGettextParser } from "../loadGettextParser";
 export type StatusOptions = {
   directory: string;
   verbose?: boolean;
+  percentOnly?: boolean;
 };
 
 export type LanguageStatus = {
@@ -21,9 +22,11 @@ export type LanguageStatus = {
  * Analyzes .po files in a directory and shows translation progress for each language.
  */
 export async function showTranslationStatus(options: StatusOptions): Promise<void> {
-  const { directory, verbose = false } = options;
+  const { directory, verbose = false, percentOnly = false } = options;
 
-  console.log(`📊 Analyzing translation status in: ${directory}`);
+  if (!percentOnly) {
+    console.log(`📊 Analyzing translation status in: ${directory}`);
+  }
 
   // Check if directory exists
   if (!fs.existsSync(directory)) {
@@ -35,11 +38,15 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
   const poFiles = globSync(pattern, { absolute: true });
 
   if (poFiles.length === 0) {
-    console.warn("⚠️  No .po files found in the specified directory");
+    if (!percentOnly) {
+      console.warn("⚠️  No .po files found in the specified directory");
+    }
     return;
   }
 
-  console.log(`📁 Found ${poFiles.length} .po file(s)\n`);
+  if (!percentOnly) {
+    console.log(`📁 Found ${poFiles.length} .po file(s)\n`);
+  }
 
   // Analyze each .po file
   const results: LanguageStatus[] = [];
@@ -49,7 +56,9 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
       const status = await analyzePoFile(poFile);
       results.push(status);
     } catch (error) {
-      console.error(`❌ Error analyzing ${poFile}:`, error);
+      if (!percentOnly) {
+        console.error(`❌ Error analyzing ${poFile}:`, error);
+      }
     }
   }
 
@@ -61,8 +70,22 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
     return a.language.localeCompare(b.language);
   });
 
-  // Display results
-  displayResults(results, verbose);
+  if (percentOnly) {
+    // Calculate overall progress and output only the percentage
+    const totals = results.reduce(
+      (acc, curr) => ({
+        total: acc.total + curr.total,
+        translated: acc.translated + curr.translated,
+      }),
+      { total: 0, translated: 0 }
+    );
+
+    const overallProgress = totals.total > 0 ? Math.round((totals.translated / totals.total) * 100) : 0;
+    console.log(overallProgress);
+  } else {
+    // Display results
+    displayResults(results, verbose);
+  }
 }
 
 async function analyzePoFile(filePath: string): Promise<LanguageStatus> {
