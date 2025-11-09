@@ -160,7 +160,6 @@ Add to your `package.json` (leveraging config file defaults):
     "i18n:sync": "i18next-auto-keys sync --po-files \"./i18n/*.po\"",
     "i18n:convert": "i18next-auto-keys convert --input \"./i18n/*.po\" --output ./public/locales --batch",
     "i18n:status": "i18next-auto-keys status --verbose",
-    "i18n:status-percent": "i18next-auto-keys status --percent-only"
   }
 }
 ```
