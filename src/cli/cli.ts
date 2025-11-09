@@ -7,6 +7,35 @@ import { convertPoToJson, convertMultiplePoToJson } from "./convert/convert";
 import { showTranslationStatus } from "./status/status";
 import { loadConfig } from "@/index";
 
+// CLI Option Types - properly typed interfaces instead of relying on 'any'
+type ExtractOptions = {
+  include: string[];
+  source?: string;
+  output?: string;
+  projectId?: string;
+  exclude: string[];
+  tsconfig?: string;
+};
+
+type SyncOptions = {
+  poFiles?: string[];
+  template?: string;
+  backup?: boolean;
+};
+
+type ConvertOptions = {
+  output: string;
+  input?: string;
+  topLevelKey?: string;
+  indent?: string;
+  batch?: boolean;
+};
+
+type StatusOptions = {
+  directory: string;
+  verbose?: boolean;
+};
+
 const { config } = loadConfig();
 
 const program = new Command();
@@ -22,10 +51,13 @@ program
   .requiredOption("-i, --include <patterns...>", "File patterns to include")
   .option("-s, --source <path>", "Source directory to scan for translation keys (default: current directory)")
   .option("-o, --output <path>", "Output path for the POT file")
-  .option("-p, --project-id <id>", "Project ID for POT header (defaults to package.json name and version, fallback: 'app 1.0')")
+  .option(
+    "-p, --project-id <id>",
+    "Project ID for POT header (defaults to package.json name and version, fallback: 'app 1.0')"
+  )
   .option("-e, --exclude <patterns...>", "File patterns to exclude", ["node_modules/**", "dist/**", "build/**"])
   .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
-  .action(async (options) => {
+  .action(async (options: ExtractOptions) => {
     try {
       const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
       await extractKeysAndGeneratePotFile({
@@ -49,14 +81,14 @@ program
   .option("-p, --po-files <patterns...>", "PO file patterns to sync")
   .option("-t, --template <path>", "PO template file path")
   .option("-b, --backup", "Create backup files before syncing")
-  .action(async (options) => {
+  .action(async (options: SyncOptions) => {
     try {
       const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
-      const poFilesGlob = [path.join(config.poOutputDirectory, "*.po")];
+      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
 
       await syncPoFiles({
         template: options.template ?? poTemplatePath,
-        poFiles: options.poFiles ?? poFilesGlob,
+        poFiles: options.poFiles ?? [poFilesGlob],
         backup: options.backup,
       });
     } catch (error) {
@@ -77,7 +109,7 @@ program
   .option("-t, --top-level-key <key>", "Wrap translations under a top-level key (matches emit plugin)")
   .option("--indent <number>", "JSON indentation spaces", "2")
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
-  .action(async (options) => {
+  .action(async (options: ConvertOptions) => {
     try {
       const indent = options.indent ? parseInt(options.indent.toString(), 10) : config.jsonIndentSpaces;
       const topLevelKey = options.topLevelKey ?? config.topLevelKey;
@@ -91,6 +123,11 @@ program
           indent,
         });
       } else {
+        if (!options.input) {
+          throw new Error(
+            "Input file path is required when not using batch mode. Use -i/--input option or add --batch flag."
+          );
+        }
         await convertPoToJson({
           input: options.input,
           output: options.output,
@@ -110,7 +147,7 @@ program
   .description("Show translation progress for .po files in a directory")
   .requiredOption("-d, --directory <path>", "Directory containing .po files to analyze")
   .option("-v, --verbose", "Show detailed information for each file")
-  .action(async (options) => {
+  .action(async (options: StatusOptions) => {
     try {
       await showTranslationStatus({
         directory: options.directory,
