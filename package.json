@@ -13,15 +13,6 @@
     "dist/cli.js"
   ],
   "description": "Automatic translation key generation for i18next",
-  "keywords": [
-    "i18next",
-    "translation",
-    "keys",
-    "generator",
-    "webpack",
-    "loader",
-    "transformer"
-  ],
   "author": "Vincent Au",
   "license": "MIT",
   "scripts": {
@@ -74,5 +65,13 @@
   },
   "engines": {
     "node": ">=16.0.0"
-  }
+  },
+  "repository": "vinceau/i18next-auto-keys",
+  "keywords": [
+    "i18next",
+    "translation",
+    "webpack",
+    "loader",
+    "transformer"
+  ]
 }
