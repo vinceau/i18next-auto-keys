@@ -313,6 +313,48 @@ message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hell
 
 Use in development to keep production bundles small, or if you don't want to load your default language from a JSON resource.
 
+### Debug Mode
+
+Wrap transformed strings with `~~` markers to easily identify which strings are using the translation system in your running application.
+
+This is particularly useful when gradually migrating an existing codebase to use i18next-auto-keys. The wrapped strings will be visually distinct, making it easy to spot which strings have been migrated vs which are still hardcoded. It also helps developers consider the spacial requirements of other languages, especially more verbose languages which might require more space.
+
+**Configuration:**
+
+```javascript
+// webpack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.messages\.(ts|tsx)$/,
+        use: {
+          loader: 'i18next-auto-keys',
+          options: {
+            debug: process.env.NODE_ENV === 'development',
+          }
+        }
+      }
+    ]
+  }
+};
+```
+
+**Example transformation:**
+
+```typescript
+// Source
+greeting: (): string => "Hello world"
+
+// Transformed in development with debug: true
+greeting: (): string => `~~${i18next.t("abc123def4")}~~`
+
+// Result in browser: "~~Hello world~~"
+```
+
+**Safety Note:**
+Debug mode is **automatically disabled** when `NODE_ENV=production`, even if you accidentally set `debug: true`. This prevents debug markers from appearing in production builds.
+
 
 ## 🛠️ CLI Tools
 
@@ -381,6 +423,7 @@ These options override configuration file settings when specified:
 | `argMode` | `'indexed' \| 'named'` | From config | How to pass parameters to `i18next.t()` |
 | `sourcemap` | `boolean` | `false` | Generate source maps |
 | `setDefaultValue` | `boolean` | `false` | Include original strings as `defaultValue` in i18next calls |
+| `debug` | `boolean` | `false` | Wrap transformed strings with `~~` markers for visual debugging |
 
 ### Webpack Plugin Options
 

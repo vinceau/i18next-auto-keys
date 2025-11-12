@@ -10,6 +10,7 @@ export type I18nextAutoKeyLoaderOptions = {
   include: RegExp | RegExp[];
   argMode?: "indexed" | "named";
   setDefaultValue?: boolean;
+  debug?: boolean;
 };
 
 const schema = {
@@ -21,6 +22,7 @@ const schema = {
     },
     argMode: { type: "string", enum: ["indexed", "named"] },
     setDefaultValue: { type: "boolean" },
+    debug: { type: "boolean" },
   },
   additionalProperties: false,
 };
@@ -71,6 +73,7 @@ export function i18nextAutoKeyLoader(
     hashLength: config.hashLength, // This needs to be the same as the config so don't override it with options
     argMode: options.argMode,
     setDefaultValue: options.setDefaultValue,
+    debug: options.debug,
   });
 
   const transformationResult = ts.transform(sourceFile, [transformer]);

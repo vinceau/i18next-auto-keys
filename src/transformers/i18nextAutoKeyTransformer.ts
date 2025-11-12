@@ -10,6 +10,8 @@ export type I18nextAutoKeyTransformerOptions = {
   argMode?: "indexed" | "named";
   /** Whether to include the original string as defaultValue in i18next.t calls */
   setDefaultValue?: boolean;
+  /** Wrap transformed strings with "~~" markers for visual debugging in development */
+  debug?: boolean;
 };
 
 /** Global store for tracking seen strings and their hashes.
@@ -304,7 +306,11 @@ export function createI18nextAutoKeyTransformerFactory(
     hashLength = 10,
     argMode = "named", // Default to named to better support default i18next usage
     setDefaultValue = false,
+    debug = false,
   } = options;
+
+  // Safety: Never enable debug mode in production, even if explicitly set
+  const debugEnabled = debug && process.env.NODE_ENV !== "production";
 
   return (context: ts.TransformationContext) => {
     const f = context.factory;
@@ -314,7 +320,7 @@ export function createI18nextAutoKeyTransformerFactory(
       argsExpr?: ts.Expression,
       originalString?: string,
       originalNode?: ts.Node
-    ): ts.CallExpression => {
+    ): ts.Expression => {
       const i18nextIdent = f.createIdentifier("i18next");
       const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
       const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
@@ -358,6 +364,19 @@ export function createI18nextAutoKeyTransformerFactory(
         ts.setTextRange(call, originalNode);
         ts.setTextRange(tAccess, originalNode);
       }
+
+      // If debug mode is enabled, wrap the call in a template expression with ~~ markers
+      // e.g., `~~${i18next.t("hash")}~~`
+      if (debugEnabled) {
+        const templateExpression = f.createTemplateExpression(f.createTemplateHead("~~"), [
+          f.createTemplateSpan(call, f.createTemplateTail("~~")),
+        ]);
+        if (originalNode) {
+          ts.setTextRange(templateExpression, originalNode);
+        }
+        return templateExpression;
+      }
+
       return call;
     };
 
