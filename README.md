@@ -313,11 +313,11 @@ message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hell
 
 Use in development to keep production bundles small, or if you don't want to load your default language from a JSON resource.
 
-### debug Option
+### Debug Mode
 
-**Visual debugging for migration tracking** - Wrap transformed strings with `~~` markers to easily identify which strings are using the translation system in your running application.
+Wrap transformed strings with `~~` markers to easily identify which strings are using the translation system in your running application.
 
-This is particularly useful when gradually migrating an existing codebase to use i18next-auto-keys. The wrapped strings will be visually distinct in your browser, making it easy to spot which strings have been migrated vs which are still hardcoded.
+This is particularly useful when gradually migrating an existing codebase to use i18next-auto-keys. The wrapped strings will be visually distinct, making it easy to spot which strings have been migrated vs which are still hardcoded. It also helps developers consider the spacial requirements of other languages, especially more verbose languages which might require more space.
 
 **Configuration:**
 
@@ -352,21 +352,8 @@ greeting: (): string => `~~${i18next.t("abc123def4")}~~`
 // Result in browser: "~~Hello world~~"
 ```
 
-**Benefits:**
-- **Migration tracking**: Visually see which parts of your UI are migrated
-- **QA testing**: Testers can easily identify translated vs hardcoded text
-- **Development debugging**: Quickly spot missing translations
-- **Production safety**: Automatically disabled in production (even if explicitly set)
-- Combine with `setDefaultValue` for maximum development convenience
-
 **Safety Note:**
 Debug mode is **automatically disabled** when `NODE_ENV=production`, even if you accidentally set `debug: true`. This prevents debug markers from appearing in production builds.
-
-**Tips:**
-- Enable only in development mode (check `process.env.NODE_ENV`)
-- Great for incremental migration of large codebases
-- The `~~` markers are distinctive and won't appear in normal text
-- No need to worry about accidentally enabling in production - it's protected!
 
 
 ## 🛠️ CLI Tools
