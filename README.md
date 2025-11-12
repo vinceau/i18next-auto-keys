@@ -313,6 +313,57 @@ message: (name: string): string => i18next.t("abc123def4", { defaultValue: "Hell
 
 Use in development to keep production bundles small, or if you don't want to load your default language from a JSON resource.
 
+### debug Option
+
+**Visual debugging for migration tracking** - Wrap transformed strings with `~~` markers to easily identify which strings are using the translation system in your running application.
+
+This is particularly useful when gradually migrating an existing codebase to use i18next-auto-keys. The wrapped strings will be visually distinct in your browser, making it easy to spot which strings have been migrated vs which are still hardcoded.
+
+**Configuration:**
+
+```javascript
+// webpack.config.js
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.messages\.(ts|tsx)$/,
+        use: {
+          loader: 'i18next-auto-keys',
+          options: {
+            debug: process.env.NODE_ENV === 'development',
+          }
+        }
+      }
+    ]
+  }
+};
+```
+
+**Example transformation:**
+
+```typescript
+// Source
+greeting: (): string => "Hello world"
+
+// Transformed in development with debug: true
+greeting: (): string => `~~${i18next.t("abc123def4")}~~`
+
+// Result in browser: "~~Hello world~~"
+```
+
+**Benefits:**
+- **Migration tracking**: Visually see which parts of your UI are migrated
+- **QA testing**: Testers can easily identify translated vs hardcoded text
+- **Development debugging**: Quickly spot missing translations
+- Only enable in development mode to avoid affecting production
+- Combine with `setDefaultValue` for maximum development convenience
+
+**Tips:**
+- Enable only in development mode (check `process.env.NODE_ENV`)
+- Great for incremental migration of large codebases
+- The `~~` markers are distinctive and won't appear in normal text
+
 
 ## 🛠️ CLI Tools
 
@@ -381,6 +432,7 @@ These options override configuration file settings when specified:
 | `argMode` | `'indexed' \| 'named'` | From config | How to pass parameters to `i18next.t()` |
 | `sourcemap` | `boolean` | `false` | Generate source maps |
 | `setDefaultValue` | `boolean` | `false` | Include original strings as `defaultValue` in i18next calls |
+| `debug` | `boolean` | `false` | Wrap transformed strings with `~~` markers for visual debugging |
 
 ### Webpack Plugin Options
 

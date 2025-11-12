@@ -814,3 +814,155 @@ describe("Translation Context (@translationContext)", () => {
     // For now, let's verify that the functions are transformed correctly, even without context inheritance
   });
 });
+
+describe("debug option", () => {
+  beforeEach(() => {
+    i18nStore.clear();
+  });
+
+  it("wraps transformed strings with ~~ markers when debug is enabled", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello world",
+  welcome: (name: string): string => "Welcome {name}",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+    });
+
+    // Check that the strings are wrapped with ~~ markers using template literals
+    const greetingHash = stableHash("Hello world", { hashLength: 10 });
+    const welcomeHash = stableHash("Welcome {name}", { hashLength: 10 });
+
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${greetingHash}")}~~\``);
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${welcomeHash}"`);
+    expect(transformedCode).toContain('import i18next from "i18next"');
+  });
+
+  it("does not wrap strings when debug is disabled", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: false,
+    });
+
+    const greetingHash = stableHash("Hello", { hashLength: 10 });
+    // Should use normal i18next.t call, not wrapped in template literal
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${greetingHash}")`);
+    expect(transformedCode).not.toContain("\`~~");
+  });
+
+  it("does not wrap strings when debug is not set", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      // debug not set
+    });
+
+    const greetingHash = stableHash("Hello", { hashLength: 10 });
+    // Should use normal i18next.t call, not wrapped in template literal
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${greetingHash}")`);
+    expect(transformedCode).not.toContain("\`~~");
+  });
+
+  it("combines debug with setDefaultValue option", () => {
+    const input = `export const Message = {
+  welcome: (): string => "Welcome back",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+      setDefaultValue: true,
+    });
+
+    const welcomeHash = stableHash("Welcome back", { hashLength: 10 });
+    // Should have both wrapper and defaultValue
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${welcomeHash}"`);
+    expect(transformedCode).toContain('defaultValue: "Welcome back"');
+  });
+
+  it("combines debug with parameters in named mode", () => {
+    const input = `export const Message = {
+  greeting: (name: string, age: number): string => "Hello {name}, you are {age}",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+      argMode: "named",
+    });
+
+    const greetingHash = stableHash("Hello {name}, you are {age}", { hashLength: 10 });
+    // Should wrap the i18next.t call that includes parameters
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${greetingHash}"`);
+    expect(transformedCode).toMatch(/name.*age/s);
+  });
+
+  it("combines debug with parameters in indexed mode", () => {
+    const input = `export const Message = {
+  greeting: (name: string): string => "Hello {0}",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+      argMode: "indexed",
+    });
+
+    const greetingHash = stableHash("Hello {0}", { hashLength: 10 });
+    // Should wrap the i18next.t call with indexed parameters
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${greetingHash}"`);
+    expect(transformedCode).toMatch(new RegExp(`"0":\\s*name`));
+  });
+
+  it("works with function expressions", () => {
+    const input = `export const Message = {
+  error: function(): string { return "An error occurred"; },
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+    });
+
+    const errorHash = stableHash("An error occurred", { hashLength: 10 });
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${errorHash}")}~~\``);
+  });
+
+  it("does not wrap strings with @noTranslate tag", () => {
+    const input = `export const Message = {
+  /** @noTranslate */
+  debug: (): string => "Debug message",
+
+  normal: (): string => "Normal message",
+};`;
+
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: true,
+    });
+
+    // @noTranslate should remain unchanged (no wrapper, no transformation)
+    expect(transformedCode).toContain('debug: (): string => "Debug message"');
+
+    // Normal should be wrapped
+    const normalHash = stableHash("Normal message", { hashLength: 10 });
+    expect(transformedCode).toContain(`\`~~\${i18next.t("${normalHash}")}~~\``);
+  });
+});
