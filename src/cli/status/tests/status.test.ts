@@ -7,13 +7,31 @@ import { showTranslationStatus } from "../status";
 
 describe("status command", () => {
   let tempDir: string;
+  let consoleLogSpy: jest.SpyInstance;
+  let consoleWarnSpy: jest.SpyInstance;
+  let consoleErrorSpy: jest.SpyInstance;
 
   beforeEach(() => {
     // Create a temporary directory for test files
     tempDir = fs.mkdtempSync(path.join(tmpdir(), "i18n-status-test-"));
+
+    // Mock all console methods to prevent output during tests
+    consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
+    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
+    consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+
+    // Clear any previous mock call history
+    consoleLogSpy.mockClear();
+    consoleWarnSpy.mockClear();
+    consoleErrorSpy.mockClear();
   });
 
   afterEach(() => {
+    // Restore all console mocks
+    consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+
     // Clean up temporary directory
     if (fs.existsSync(tempDir)) {
       fs.rmSync(tempDir, { recursive: true, force: true });
@@ -21,12 +39,9 @@ describe("status command", () => {
   });
 
   it("should handle directory with no .po files", async () => {
-    const consoleSpy = jest.spyOn(console, "warn").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir });
 
-    expect(consoleSpy).toHaveBeenCalledWith("⚠️  No .po files found in the specified directory");
-    consoleSpy.mockRestore();
+    expect(consoleWarnSpy).toHaveBeenCalledWith("⚠️  No .po files found in the specified directory");
   });
 
   it("should throw error for non-existent directory", async () => {
@@ -66,8 +81,6 @@ msgstr ""
     const poFilePath = path.join(tempDir, "fr.po");
     fs.writeFileSync(poFilePath, samplePoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir });
 
     // Verify that console.log was called (indicating the command ran)
@@ -77,8 +90,6 @@ msgstr ""
     const logCalls = consoleLogSpy.mock.calls.map((call) => call.join(" "));
     const hasProgressOutput = logCalls.some((call) => call.includes("fr"));
     expect(hasProgressOutput).toBe(true);
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should handle verbose mode", async () => {
@@ -94,8 +105,6 @@ msgstr "Test translated"
     const poFilePath = path.join(tempDir, "en.po");
     fs.writeFileSync(poFilePath, samplePoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, verbose: true });
 
     expect(consoleLogSpy).toHaveBeenCalled();
@@ -104,8 +113,6 @@ msgstr "Test translated"
     const logCalls = consoleLogSpy.mock.calls.map((call) => call.join(" "));
     const hasFileInfo = logCalls.some((call) => call.includes("File:"));
     expect(hasFileInfo).toBe(true);
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should output only percentage in percent-only mode", async () => {
@@ -128,14 +135,10 @@ msgstr ""
     const poFilePath = path.join(tempDir, "fr.po");
     fs.writeFileSync(poFilePath, samplePoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     expect(consoleLogSpy).toHaveBeenCalledWith(50); // 1 out of 2 strings translated = 50%
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should output 0 in percent-only mode when no translations exist", async () => {
@@ -158,14 +161,10 @@ msgstr ""
     const poFilePath = path.join(tempDir, "es.po");
     fs.writeFileSync(poFilePath, samplePoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     expect(consoleLogSpy).toHaveBeenCalledWith(0); // 0 out of 2 strings translated = 0%
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should output 100 in percent-only mode when all translations exist", async () => {
@@ -188,14 +187,10 @@ msgstr "Welt"
     const poFilePath = path.join(tempDir, "de.po");
     fs.writeFileSync(poFilePath, samplePoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     expect(consoleLogSpy).toHaveBeenCalledWith(100); // 2 out of 2 strings translated = 100%
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should calculate overall percentage across multiple files in percent-only mode", async () => {
@@ -226,26 +221,16 @@ msgstr ""
     fs.writeFileSync(path.join(tempDir, "fr.po"), frPoContent);
     fs.writeFileSync(path.join(tempDir, "es.po"), esPoContent);
 
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
     expect(consoleLogSpy).toHaveBeenCalledTimes(1);
     expect(consoleLogSpy).toHaveBeenCalledWith(50); // 2 out of 4 total strings translated = 50%
-
-    consoleLogSpy.mockRestore();
   });
 
   it("should not output warning messages in percent-only mode when no po files found", async () => {
-    const consoleLogSpy = jest.spyOn(console, "log").mockImplementation();
-    const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
-
     await showTranslationStatus({ directory: tempDir, percentOnly: true });
 
     expect(consoleLogSpy).not.toHaveBeenCalled();
     expect(consoleWarnSpy).not.toHaveBeenCalled();
-
-    consoleLogSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
   });
 });
