@@ -356,13 +356,17 @@ greeting: (): string => `~~${i18next.t("abc123def4")}~~`
 - **Migration tracking**: Visually see which parts of your UI are migrated
 - **QA testing**: Testers can easily identify translated vs hardcoded text
 - **Development debugging**: Quickly spot missing translations
-- Only enable in development mode to avoid affecting production
+- **Production safety**: Automatically disabled in production (even if explicitly set)
 - Combine with `setDefaultValue` for maximum development convenience
+
+**Safety Note:**
+Debug mode is **automatically disabled** when `NODE_ENV=production`, even if you accidentally set `debug: true`. This prevents debug markers from appearing in production builds.
 
 **Tips:**
 - Enable only in development mode (check `process.env.NODE_ENV`)
 - Great for incremental migration of large codebases
 - The `~~` markers are distinctive and won't appear in normal text
+- No need to worry about accidentally enabling in production - it's protected!
 
 
 ## 🛠️ CLI Tools
