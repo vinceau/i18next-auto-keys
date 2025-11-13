@@ -29,6 +29,7 @@ type ConvertOptions = {
   topLevelKey?: string;
   indent?: string;
   batch?: boolean;
+  verbose?: boolean;
 };
 
 type StatusOptions = {
@@ -110,6 +111,7 @@ program
   .option("-t, --top-level-key <key>", "Wrap translations under a top-level key (matches emit plugin)")
   .option("--indent <number>", "JSON indentation spaces", "2")
   .option("--batch", "Batch mode: treat input as glob pattern and output as directory")
+  .option("-v, --verbose", "Show detailed information including skipped untranslated entries")
   .action(async (options: ConvertOptions) => {
     try {
       const indent = options.indent ? parseInt(options.indent.toString(), 10) : config.jsonIndentSpaces;
@@ -122,6 +124,7 @@ program
           outputDir: options.output,
           topLevelKey,
           indent,
+          verbose: options.verbose,
         });
       } else {
         if (!options.input) {
@@ -134,6 +137,7 @@ program
           output: options.output,
           topLevelKey,
           indent,
+          verbose: options.verbose,
         });
       }
     } catch (error) {

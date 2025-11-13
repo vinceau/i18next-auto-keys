@@ -113,8 +113,9 @@ export async function convertMultiplePoToJson(options: {
   outputDir: string;
   topLevelKey?: string;
   indent?: number;
+  verbose?: boolean;
 }): Promise<void> {
-  const { pattern, outputDir, topLevelKey, indent = 2 } = options;
+  const { pattern, outputDir, topLevelKey, indent = 2, verbose } = options;
 
   console.log(`🔍 Scanning for .po files using pattern: ${pattern}`);
 
@@ -143,6 +144,7 @@ export async function convertMultiplePoToJson(options: {
         output: jsonFile,
         topLevelKey,
         indent,
+        verbose,
       });
     } catch (error) {
       console.error(`❌ Error converting ${poFile}:`, error);
