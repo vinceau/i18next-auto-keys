@@ -218,13 +218,29 @@ msgstr "M Translation"
     expect(parsedJson[mHash]).toBe("M Translation");
   });
 
-  it("should skip untranslated entries with warning", async () => {
+  it("should skip untranslated entries without warning by default", async () => {
     await convertPoToJson({
       input: "/test/input.po",
       output: "/test/output.json",
     });
 
-    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: navigation");
+    // Should NOT show warning when verbose is not set
+    expect(mockConsole.warn).not.toHaveBeenCalled();
+
+    const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
+    const untranslatedHash = stableHash("Untranslated Text", { context: "navigation", hashLength: 10 });
+    expect(writtenContent).not.toContain(`"${untranslatedHash}"`);
+  });
+
+  it("should skip untranslated entries with warning when verbose is enabled", async () => {
+    await convertPoToJson({
+      input: "/test/input.po",
+      output: "/test/output.json",
+      verbose: true,
+    });
+
+    // Should show warning when verbose is enabled
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: [navigation] Untranslated Text");
 
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
     const untranslatedHash = stableHash("Untranslated Text", { context: "navigation", hashLength: 10 });

@@ -68,6 +68,9 @@ Here's a complete translation workflow using all three CLI commands:
    # Override config defaults
    npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch --indent 4 --top-level-key translations
 
+   # Show verbose output including skipped untranslated entries
+   npx i18next-auto-keys convert --input "./i18n/*.po" --output ./public/locales --batch --verbose
+
    # This creates:
    # ./public/locales/es.json
    # ./public/locales/fr.json
@@ -106,6 +109,7 @@ Here's a complete translation workflow using all three CLI commands:
 - `--top-level-key, -t` (optional): Wrap translations under a top-level key (defaults to `topLevelKey` from config)
 - `--indent` (optional): JSON indentation spaces (defaults to `jsonIndentSpaces` from config)
 - `--batch`: Batch mode: treat input as glob pattern and output as directory
+- `--verbose, -v` (optional): Show detailed information including skipped untranslated entries
 
 #### Translation Status (`status`)
 

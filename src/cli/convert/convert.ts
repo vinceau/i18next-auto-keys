@@ -4,11 +4,14 @@ import { sync as globSync } from "glob";
 import { loadGettextParser } from "../loadGettextParser";
 import { stableHash, loadConfig } from "@/index";
 
+const MAX_LENGTH = 60;
+
 export type ConvertPoOptions = {
   input: string;
   output: string;
   topLevelKey?: string;
   indent?: number;
+  verbose?: boolean;
 };
 
 /**
@@ -18,7 +21,7 @@ export type ConvertPoOptions = {
  * where msgctxt contains the i18next key path and msgid contains the source text.
  */
 export async function convertPoToJson(options: ConvertPoOptions): Promise<void> {
-  const { input, output, topLevelKey, indent = 2 } = options;
+  const { input, output, topLevelKey, verbose, indent = 2 } = options;
 
   // Load config to get hash length
   const { config } = loadConfig();
@@ -41,6 +44,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
   // Extract translations
   const translations: Record<string, string> = {};
   let translationCount = 0;
+  let untranslatedCount = 0;
 
   // Note: gettext-parser structure is translations[msgctxt][msgid] = entryData
   for (const [contextKey, contextEntries] of Object.entries(catalog.translations)) {
@@ -48,12 +52,17 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
       if (msgid === "" || !entryData) continue; // Skip header entry
 
       // We don't care about plural forms, so we take the first msgstr
-      const msgstr = (entryData as any).msgstr[0] || "";
-      const msgctxt = (entryData as any).msgctxt;
+      const msgstr: string = (entryData as any).msgstr[0] || "";
+      const msgctxt: string | undefined = (entryData as any).msgctxt;
 
       // Skip untranslated entries
       if (!msgstr) {
-        console.warn(`⚠️  Skipping untranslated key: ${msgctxt || msgid}`);
+        untranslatedCount++;
+        if (verbose) {
+          const content = msgctxt ? `[${msgctxt}] ${msgid}` : msgid;
+          const identifier = content.length > MAX_LENGTH ? content.slice(0, MAX_LENGTH) + "..." : content;
+          console.warn(`⚠️  Skipping untranslated key: ${identifier}`);
+        }
         continue;
       }
 
@@ -66,7 +75,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
     }
   }
 
-  console.log(`🔑 Processed ${translationCount} translations`);
+  console.log(`🔑 Processed ${translationCount} translations. Skipped ${untranslatedCount} untranslated entries.`);
 
   // Sort translations by key for consistent output (matches emit plugin behavior)
   const sortedTranslations: Record<string, string> = {};
@@ -104,8 +113,9 @@ export async function convertMultiplePoToJson(options: {
   outputDir: string;
   topLevelKey?: string;
   indent?: number;
+  verbose?: boolean;
 }): Promise<void> {
-  const { pattern, outputDir, topLevelKey, indent = 2 } = options;
+  const { pattern, outputDir, topLevelKey, indent = 2, verbose } = options;
 
   console.log(`🔍 Scanning for .po files using pattern: ${pattern}`);
 
@@ -134,6 +144,7 @@ export async function convertMultiplePoToJson(options: {
         output: jsonFile,
         topLevelKey,
         indent,
+        verbose,
       });
     } catch (error) {
       console.error(`❌ Error converting ${poFile}:`, error);
