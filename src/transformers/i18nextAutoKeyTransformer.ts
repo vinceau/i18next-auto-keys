@@ -309,9 +309,6 @@ export function createI18nextAutoKeyTransformerFactory(
     debug = false,
   } = options;
 
-  // Safety: Never enable debug mode in production, even if explicitly set
-  const debugEnabled = debug && process.env.NODE_ENV !== "production";
-
   return (context: ts.TransformationContext) => {
     const f = context.factory;
 
@@ -367,7 +364,7 @@ export function createI18nextAutoKeyTransformerFactory(
 
       // If debug mode is enabled, wrap the call in a template expression with ~~ markers
       // e.g., `~~${i18next.t("hash")}~~`
-      if (debugEnabled) {
+      if (debug) {
         const templateExpression = f.createTemplateExpression(f.createTemplateHead("~~"), [
           f.createTemplateSpan(call, f.createTemplateTail("~~")),
         ]);

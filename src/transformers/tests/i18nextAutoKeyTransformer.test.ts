@@ -966,10 +966,24 @@ describe("debug option", () => {
     expect(transformedCode).toContain(`\`~~\${i18next.t("${normalHash}")}~~\``);
   });
 
-  it("never enables debug mode in production, even if explicitly set", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
+  it("respects debug: false option", () => {
+    const input = `export const Message = {
+  greeting: (): string => "Hello",
+};`;
 
+    const transformedCode = transformTypeScript(input, {
+      onlyMessagesFiles: false,
+      hashLength: 10,
+      debug: false, // Explicitly disabled
+    });
+
+    const greetingHash = stableHash("Hello", { hashLength: 10 });
+    // Should NOT wrap when debug is false
+    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${greetingHash}")`);
+    expect(transformedCode).not.toContain("\`~~");
+  });
+
+  it("respects debug: true option", () => {
     const input = `export const Message = {
   greeting: (): string => "Hello",
 };`;
@@ -980,34 +994,8 @@ describe("debug option", () => {
       debug: true, // Explicitly enabled
     });
 
-    // Restore original NODE_ENV
-    process.env.NODE_ENV = originalEnv;
-
     const greetingHash = stableHash("Hello", { hashLength: 10 });
-    // Should NOT wrap even though debug was set to true
-    expect(transformedCode).toContain(`greeting: (): string => i18next.t("${greetingHash}")`);
-    expect(transformedCode).not.toContain("\`~~");
-  });
-
-  it("allows debug mode in non-production environments", () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-
-    const input = `export const Message = {
-  greeting: (): string => "Hello",
-};`;
-
-    const transformedCode = transformTypeScript(input, {
-      onlyMessagesFiles: false,
-      hashLength: 10,
-      debug: true,
-    });
-
-    // Restore original NODE_ENV
-    process.env.NODE_ENV = originalEnv;
-
-    const greetingHash = stableHash("Hello", { hashLength: 10 });
-    // Should wrap in development
+    // Should wrap when debug is true
     expect(transformedCode).toContain(`\`~~\${i18next.t("${greetingHash}")}~~\``);
   });
 });

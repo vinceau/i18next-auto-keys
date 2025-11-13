@@ -352,9 +352,6 @@ greeting: (): string => `~~${i18next.t("abc123def4")}~~`
 // Result in browser: "~~Hello world~~"
 ```
 
-**Safety Note:**
-Debug mode is **automatically disabled** when `NODE_ENV=production`, even if you accidentally set `debug: true`. This prevents debug markers from appearing in production builds.
-
 
 ## 🛠️ CLI Tools
 
