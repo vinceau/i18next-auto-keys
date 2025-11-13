@@ -59,7 +59,7 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
       if (!msgstr) {
         untranslatedCount++;
         if (verbose) {
-          const content = (msgctxt || msgid);
+          const content = msgctxt || msgid;
           const identifier = content.length > MAX_LENGTH ? content.slice(0, MAX_LENGTH) + "..." : content;
           console.warn(`⚠️  Skipping untranslated key: ${identifier}`);
         }
