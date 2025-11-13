@@ -240,7 +240,7 @@ msgstr "M Translation"
     });
 
     // Should show warning when verbose is enabled
-    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: navigation");
+    expect(mockConsole.warn).toHaveBeenCalledWith("⚠️  Skipping untranslated key: [navigation] Untranslated Text");
 
     const writtenContent = (mockedFs.writeFileSync as jest.Mock).mock.calls[0][1];
     const untranslatedHash = stableHash("Untranslated Text", { context: "navigation", hashLength: 10 });
