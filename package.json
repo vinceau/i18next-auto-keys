@@ -8,7 +8,6 @@
   },
   "files": [
     "dist/index.js",
-    "dist/index.js.map",
     "dist/index.d.ts",
     "dist/cli.js"
   ],
