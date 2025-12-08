@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
+import { normalizeGlobPattern } from "../utils/glob";
 import ts from "typescript";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
@@ -116,7 +117,7 @@ function findSourceFiles(sourceDir: string, include: string[], exclude: string[]
   const files: string[] = [];
 
   for (const pattern of include) {
-    const matches = globSync(pattern, {
+    const matches = globSync(normalizeGlobPattern(pattern), {
       cwd: sourceDir,
       absolute: true,
       ignore: exclude,

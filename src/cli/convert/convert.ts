@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
+import { normalizeGlobPattern } from "../utils/glob";
 import { loadGettextParser } from "../loadGettextParser";
 import { stableHash, loadConfig } from "@/index";
 
@@ -119,11 +120,8 @@ export async function convertMultiplePoToJson(options: {
 
   console.log(`🔍 Scanning for .po files using pattern: ${pattern}`);
 
-  // Normalize pattern for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
-  const normalizedPattern = pattern.replace(/\\/g, "/");
-
-  // Find .po files
-  const poFiles = globSync(normalizedPattern, { absolute: true });
+  // Find .po files (normalize pattern for cross-platform compatibility)
+  const poFiles = globSync(normalizeGlobPattern(pattern), { absolute: true });
   console.log(`📁 Found ${poFiles.length} .po files`);
 
   if (poFiles.length === 0) {

@@ -420,7 +420,7 @@ describe("convertMultiplePoToJson", () => {
       outputDir: "D:\\output",
     });
 
-    // Verify that glob was called with normalized forward slashes
+    // Verify that glob was called with normalized path (using normalizeGlobPattern utility)
     expect(mockGlob.sync).toHaveBeenCalledWith("D:/locales/*.po", { absolute: true });
 
     // Should process both files successfully

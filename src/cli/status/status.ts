@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { globSync } from "glob";
+import { normalizeGlobPattern } from "../utils/glob";
 import { loadGettextParser } from "../loadGettextParser";
 
 export type StatusOptions = {
@@ -33,10 +34,9 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
     throw new Error(`Directory not found: ${directory}`);
   }
 
-  // Find all .po files in the directory
-  // Normalize path for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
-  const pattern = path.join(directory, "**/*.po").replace(/\\/g, "/");
-  const poFiles = globSync(pattern, { absolute: true });
+  // Find all .po files in the directory (normalize pattern for cross-platform compatibility)
+  const pattern = path.join(directory, "**/*.po");
+  const poFiles = globSync(normalizeGlobPattern(pattern), { absolute: true });
 
   if (poFiles.length === 0) {
     if (!percentOnly) {

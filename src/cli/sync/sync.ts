@@ -1,5 +1,6 @@
 import fs from "fs";
 import { sync as globSync } from "glob";
+import { normalizeGlobPattern } from "../utils/glob";
 import { loadGettextParser } from "../loadGettextParser";
 
 export type SyncPoOptions = {
@@ -22,12 +23,10 @@ export async function syncPoFiles(options: SyncPoOptions): Promise<void> {
     throw new Error(`Template file not found: ${template}`);
   }
 
-  // Find all .po files matching the patterns
+  // Find all .po files matching the patterns (normalize for cross-platform compatibility)
   const allPoFiles: string[] = [];
   for (const pattern of poFiles) {
-    // Normalize pattern for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
-    const normalizedPattern = pattern.replace(/\\/g, "/");
-    const matches = globSync(normalizedPattern, { absolute: true });
+    const matches = globSync(normalizeGlobPattern(pattern), { absolute: true });
     allPoFiles.push(...matches);
   }
 

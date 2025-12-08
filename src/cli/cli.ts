@@ -86,8 +86,7 @@ program
   .action(async (options: SyncOptions) => {
     try {
       const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
-      // Normalize path for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
-      const poFilesGlob = path.join(config.poOutputDirectory, "*.po").replace(/\\/g, "/");
+      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
 
       await syncPoFiles({
         template: options.template ?? poTemplatePath,
@@ -117,8 +116,7 @@ program
     try {
       const indent = options.indent ? parseInt(options.indent.toString(), 10) : config.jsonIndentSpaces;
       const topLevelKey = options.topLevelKey ?? config.topLevelKey;
-      // Normalize path for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
-      const poFilesGlob = path.join(config.poOutputDirectory, "*.po").replace(/\\/g, "/");
+      const poFilesGlob = path.join(config.poOutputDirectory, "*.po");
 
       if (options.batch) {
         await convertMultiplePoToJson({
