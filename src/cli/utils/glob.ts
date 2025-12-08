@@ -1,5 +1,3 @@
-import path from "path";
-
 /**
  * Normalizes a glob pattern to use forward slashes for cross-platform compatibility.
  * 
@@ -18,8 +16,7 @@ import path from "path";
  * normalizeGlobPattern("/locales/*.po") // "/locales/*.po"
  */
 export function normalizeGlobPattern(pattern: string): string {
-  return pattern
-    .split(path.sep)
-    .join(path.posix.sep);
-}
-
+    // Always replace backslashes with forward slashes for glob compatibility
+    // This works on all platforms and ensures consistent behavior in tests
+    return pattern.replace(/\\/g, "/");
+  }
