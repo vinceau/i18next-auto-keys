@@ -25,7 +25,9 @@ export async function syncPoFiles(options: SyncPoOptions): Promise<void> {
   // Find all .po files matching the patterns
   const allPoFiles: string[] = [];
   for (const pattern of poFiles) {
-    const matches = globSync(pattern, { absolute: true });
+    // Normalize pattern for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
+    const normalizedPattern = pattern.replace(/\\/g, "/");
+    const matches = globSync(normalizedPattern, { absolute: true });
     allPoFiles.push(...matches);
   }
 

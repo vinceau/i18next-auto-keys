@@ -34,7 +34,8 @@ export async function showTranslationStatus(options: StatusOptions): Promise<voi
   }
 
   // Find all .po files in the directory
-  const pattern = path.join(directory, "**/*.po");
+  // Normalize path for cross-platform glob compatibility (Windows uses backslashes, but glob needs forward slashes)
+  const pattern = path.join(directory, "**/*.po").replace(/\\/g, "/");
   const poFiles = globSync(pattern, { absolute: true });
 
   if (poFiles.length === 0) {
