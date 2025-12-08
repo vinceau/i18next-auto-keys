@@ -403,6 +403,30 @@ describe("convertMultiplePoToJson", () => {
     // Should log error for broken file
     expect(mockConsole.error).toHaveBeenCalledWith("❌ Error converting /test/broken.po:", expect.any(Error));
   });
+
+  it("should handle Windows-style paths with backslashes", async () => {
+    // Simulate a Windows path pattern with backslashes
+    const windowsPattern = "D:\\locales\\*.po";
+    mockGlob.sync.mockReturnValue(["D:/locales/es.po", "D:/locales/fr.po"]);
+
+    (mockedFs.readFileSync as jest.Mock).mockImplementation((filePath: any) => {
+      if (filePath === "D:/locales/es.po") return Buffer.from(samplePoContent);
+      if (filePath === "D:/locales/fr.po") return Buffer.from(samplePoContentSecond);
+      return Buffer.from("");
+    });
+
+    await convertMultiplePoToJson({
+      pattern: windowsPattern,
+      outputDir: "D:\\output",
+    });
+
+    // Verify that glob was called with normalized path (using normalizeGlobPattern utility)
+    expect(mockGlob.sync).toHaveBeenCalledWith("D:/locales/*.po", { absolute: true });
+
+    // Should process both files successfully
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("D:\\output/es.json", expect.any(String), "utf8");
+    expect(mockedFs.writeFileSync).toHaveBeenCalledWith("D:\\output/fr.json", expect.any(String), "utf8");
+  });
 });
 
 describe("Translation Context Hash Generation", () => {

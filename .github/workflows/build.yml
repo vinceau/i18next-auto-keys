@@ -4,8 +4,14 @@ on:
   pull_request:
     branches: "**"
   push:
+    branches:
+      - master
     paths-ignore:
       - "**.md"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -34,7 +40,7 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           npm install
-      - name: Build and Test
+      - name: Build
         run: |
           npm run build
       - name: Test
