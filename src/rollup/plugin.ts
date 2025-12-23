@@ -1,16 +1,8 @@
 // plugins/i18nextAutoKeyRollupPlugin.ts
 import type { Plugin } from "rollup";
-import ts from "typescript";
-import MagicString from "magic-string";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
-import {
-  shouldTransformNode,
-  generateMessageId,
-  recordMessage,
-  extractTranslationContext,
-} from "../transformer/transformHelpers";
-import { stringPool } from "../common/stringPool";
+import { transformMessages } from "../transformer/core";
 
 export type I18nextAutoKeyRollupPluginOptions = {
   /** Pattern(s) to match files for processing. Defaults to /\.messages\.(ts|tsx)$/ */
@@ -114,210 +106,19 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
       if (!matchesInclude(pluginOptions.include, id)) return null;
       if (!id.endsWith(".ts") && !id.endsWith(".tsx")) return null;
 
-      const sf = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, /*setParentNodes*/ true);
-      const s = new MagicString(code);
-      const printer = ts.createPrinter({ removeComments: false });
-      const f = ts.factory;
+      // Use the unified core transformer
+      const result = transformMessages(code, id, {
+        argMode: pluginOptions.argMode,
+        setDefaultValue: pluginOptions.setDefaultValue,
+        debug: pluginOptions.debug,
+        hashLength: config.hashLength,
+      });
 
-      let didRewrite = false;
-      const hadI18nextImport = /\bimport\s+i18next\b/.test(code);
-
-      // Global store for tracking seen strings and their hashes
-      const globalStore: {
-        seen: Map<string, string>;
-        reverse: Map<string, string>;
-      } = {
-        seen: new Map(),
-        reverse: new Map(),
-      };
-
-      function printExpr(expr: ts.Expression): string {
-        return printer.printNode(ts.EmitHint.Unspecified, expr, sf);
-      }
-
-      // Build args expression for i18next.t()
-      function buildArgsExpr(params: readonly ts.ParameterDeclaration[]): ts.Expression | undefined {
-        if (params.length === 0) return undefined;
-
-        if (pluginOptions.argMode === "indexed") {
-          const indexedProps: ts.PropertyAssignment[] = [];
-          params.forEach((p, index) => {
-            if (ts.isIdentifier(p.name)) {
-              const key = f.createStringLiteral(index.toString());
-              const value = f.createIdentifier(p.name.text);
-              indexedProps.push(f.createPropertyAssignment(key, value));
-            }
-          });
-          if (indexedProps.length === 0) return undefined;
-          return f.createObjectLiteralExpression(indexedProps, true);
-        }
-
-        // "named"
-        const namedProps: ts.ShorthandPropertyAssignment[] = [];
-        for (const p of params) {
-          if (ts.isIdentifier(p.name)) {
-            namedProps.push(f.createShorthandPropertyAssignment(p.name));
-          }
-        }
-        if (namedProps.length === 0) return undefined;
-        return f.createObjectLiteralExpression(namedProps, true);
-      }
-
-      // Create i18next.t() call
-      function makeI18nextCall(
-        hashId: string,
-        argsExpr?: ts.Expression,
-        originalString?: string
-      ): ts.Expression {
-        const i18nextIdent = f.createIdentifier("i18next");
-        const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
-        const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
-
-        // If we need to set defaultValue or have other arguments, create an options object
-        if ((pluginOptions.setDefaultValue && originalString) || argsExpr) {
-          let optionsExpr: ts.Expression;
-
-          if (argsExpr && ts.isObjectLiteralExpression(argsExpr)) {
-            const properties = [...argsExpr.properties];
-            if (pluginOptions.setDefaultValue && originalString) {
-              const defaultValueProp = f.createPropertyAssignment(
-                f.createIdentifier("defaultValue"),
-                f.createStringLiteral(originalString)
-              );
-              properties.unshift(defaultValueProp);
-            }
-            optionsExpr = f.createObjectLiteralExpression(properties, true);
-          } else {
-            const properties: ts.ObjectLiteralElementLike[] = [];
-            if (pluginOptions.setDefaultValue && originalString) {
-              properties.push(
-                f.createPropertyAssignment(f.createIdentifier("defaultValue"), f.createStringLiteral(originalString))
-              );
-            }
-            optionsExpr = f.createObjectLiteralExpression(properties, true);
-          }
-
-          callArgs.push(optionsExpr);
-        } else if (argsExpr) {
-          callArgs.push(argsExpr);
-        }
-
-        const call = f.createCallExpression(tAccess, undefined, callArgs);
-
-        // If debug mode is enabled, wrap the call
-        if (pluginOptions.debug) {
-          return f.createTemplateExpression(f.createTemplateHead("~~"), [
-            f.createTemplateSpan(call, f.createTemplateTail("~~")),
-          ]);
-        }
-
-        return call;
-      }
-
-      function visit(node: ts.Node): void {
-        // Handle PropertyAssignment with ArrowFunction/FunctionExpression
-        if (
-          ts.isPropertyAssignment(node) &&
-          (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
-        ) {
-          const fn = node.initializer;
-
-          const original = shouldTransformNode(node, fn, sf);
-          if (original !== null) {
-            // Extract translation context from JSDoc
-            const translationContext = extractTranslationContext(node, fn, sf);
-
-            // Generate unique message ID using shared core logic
-            const id = generateMessageId(original, translationContext, globalStore, config.hashLength);
-
-            // Intern the string after generating the hash
-            const internedOriginal = stringPool.intern(original);
-
-            // Record the message in the i18n store using shared core logic
-            recordMessage(id, internedOriginal, translationContext, sf, node, fn);
-
-            // Build new expression
-            const argsExpr = buildArgsExpr(fn.parameters);
-            const newExpr = makeI18nextCall(id, argsExpr, internedOriginal);
-
-            // Replace the appropriate span
-            if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) {
-              // Arrow function with expression body: () => "string"
-              const bodyStart = fn.body.getStart(sf);
-              const bodyEnd = fn.body.getEnd();
-              s.overwrite(bodyStart, bodyEnd, printExpr(newExpr));
-              didRewrite = true;
-            } else {
-              // Block body: find return statement
-              const body = fn.body;
-              if (body && ts.isBlock(body) && body.statements.length === 1) {
-                const st = body.statements[0];
-                if (ts.isReturnStatement(st) && st.expression) {
-                  const exprStart = st.expression.getStart(sf);
-                  const exprEnd = st.expression.getEnd();
-                  s.overwrite(exprStart, exprEnd, printExpr(newExpr));
-                  didRewrite = true;
-                }
-              }
-            }
-          }
-        }
-
-        // Handle MethodDeclaration
-        if (ts.isMethodDeclaration(node) && node.body) {
-          const original = shouldTransformNode(node, node, sf);
-          if (original !== null) {
-            // Extract translation context from JSDoc
-            const translationContext = extractTranslationContext(node, node, sf);
-
-            // Generate unique message ID using shared core logic
-            const id = generateMessageId(original, translationContext, globalStore, config.hashLength);
-
-            // Intern the string after generating the hash
-            const internedOriginal = stringPool.intern(original);
-
-            // Record the message in the i18n store using shared core logic
-            recordMessage(id, internedOriginal, translationContext, sf, node, node);
-
-            // Build new expression
-            const argsExpr = buildArgsExpr(node.parameters);
-            const newExpr = makeI18nextCall(id, argsExpr, internedOriginal);
-
-            // Replace return expression
-            const body = node.body;
-            if (body && ts.isBlock(body) && body.statements.length === 1) {
-              const st = body.statements[0];
-              if (ts.isReturnStatement(st) && st.expression) {
-                const exprStart = st.expression.getStart(sf);
-                const exprEnd = st.expression.getEnd();
-                s.overwrite(exprStart, exprEnd, printExpr(newExpr));
-                didRewrite = true;
-              }
-            }
-          }
-        }
-
-        ts.forEachChild(node, visit);
-      }
-
-      visit(sf);
-
-      // Inject import if needed
-      if (didRewrite && !hadI18nextImport) {
-        const insertPos = sf.statements.length ? sf.statements[0].getFullStart() : 0;
-        const nl = code.includes("\r\n") ? "\r\n" : "\n";
-        s.appendLeft(insertPos, `import i18next from "i18next";${nl}`);
-      }
-
-      if (!didRewrite) return null;
+      if (!result.didTransform) return null;
 
       return {
-        code: s.toString(),
-        map: s.generateMap({
-          hires: true,
-          includeContent: true,
-          source: id,
-        }),
+        code: result.code,
+        map: result.map,
       };
     },
 
