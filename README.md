@@ -31,7 +31,7 @@ With `i18next-auto-keys`, you:
 
 ## 📋 Requirements
 
-- Node.js 16+
+- Node.js 18+
 - TypeScript 5+ (We use a TypeScript transformer)
 - One of the following bundlers:
   - **Webpack 5+** (Webpack loader + plugin)
