@@ -14,7 +14,7 @@ export type I18nextAutoKeyRollupPluginOptions = {
   /** Wrap transformed strings with "~~" markers for visual debugging in development */
   debug?: boolean;
   /** Path where the runtime JSON should be emitted (e.g. "locales/en.json"). */
-  jsonOutputPath: string;
+  jsonOutputPath?: string;
   /** Optional top level key to wrap translations under. If undefined, translations are placed at root level. */
   topLevelKey?: string;
 };
@@ -123,6 +123,11 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
     },
 
     generateBundle() {
+      if (!pluginOptions.jsonOutputPath) {
+        // If we have no JSON output path, don't emit anything
+        return;
+      }
+
       // Build a stable snapshot of entries
       const entries = Array.from(i18nStore.all().values()).sort((a, b) => a.id.localeCompare(b.id));
 
