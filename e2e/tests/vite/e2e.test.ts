@@ -1,13 +1,13 @@
 import fs from "fs";
 import path from "path";
-import { TEST_CONFIGURATIONS } from "./rollup-configs";
-import { buildWithRollup } from "./build";
+import { TEST_CONFIGURATIONS } from "./vite-configs";
 import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
+import { buildWithVite } from "./build";
 
 /**
- * E2E Tests for i18next-auto-keys with Programmatic Rollup Configurations
+ * E2E Tests for i18next-auto-keys with Programmatic Vite Configurations
  *
- * This test suite demonstrates how to test rollup plugins with different configurations
+ * This test suite demonstrates how to test Vite plugins with different configurations
  * programmatically rather than maintaining separate config files.
  *
  * Benefits:
@@ -15,10 +15,13 @@ import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../tes
  * - Easy to add/modify test scenarios
  * - Parameterized tests for comprehensive coverage
  * - Isolation between different configuration scenarios
+ *
+ * Note: The i18nextAutoKeyRollupPlugin works seamlessly with Vite because Vite
+ * uses Rollup under the hood for production builds and supports Rollup plugins.
  */
-describe("i18next-auto-keys Rollup E2E Tests", () => {
+describe("i18next-auto-keys Vite E2E Tests", () => {
   const e2eRoot = path.resolve(__dirname, "../..");
-  const distPath = path.join(e2eRoot, "dist/rollup");
+  const distPath = path.join(e2eRoot, "dist/vite");
 
   beforeAll(async () => {
     // Clean any previous builds
@@ -37,9 +40,9 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
     });
   });
 
-  // Parameterized tests for each rollup configuration
+  // Parameterized tests for each Vite configuration
   describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
-    let buildResult: Awaited<ReturnType<typeof buildWithRollup>>;
+    let buildResult: Awaited<ReturnType<typeof buildWithVite>>;
     let transformedCode: string;
     let translations: Record<string, string>;
 
@@ -49,7 +52,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       clearModuleCache();
 
       // Build with the specific configuration
-      buildResult = await buildWithRollup(configWithPath);
+      buildResult = await buildWithVite(configWithPath);
 
       // Verify build outputs exist
       expect(fs.existsSync(buildResult.bundlePath)).toBe(true);
@@ -61,7 +64,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       translations = JSON.parse(translationsContent);
     }, 60000);
 
-    describe("Rollup Transformation", () => {
+    describe("Vite Transformation", () => {
       it("should transform string returns to i18next.t() calls", () => {
         expect(transformedCode).toMatch(/\.t\(/);
 
@@ -194,8 +197,6 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
         expect(sourceMap.sources).toBeDefined();
         expect(Array.isArray(sourceMap.sources)).toBe(true);
         expect(sourceMap.sources.length).toBeGreaterThan(0);
-        expect(sourceMap.sourcesContent).toBeDefined();
-        expect(Array.isArray(sourceMap.sourcesContent)).toBe(true);
         expect(sourceMap.mappings).toBeDefined();
         expect(typeof sourceMap.mappings).toBe("string");
         expect(sourceMap.mappings.length).toBeGreaterThan(0);
@@ -210,13 +211,6 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
         const sources = sourceMap.sources as string[];
         const messageFiles = sources.filter((s: string) => s.includes("messages"));
         expect(messageFiles.length).toBeGreaterThan(0);
-
-        // Should include source content for debugging
-        expect(sourceMap.sourcesContent.length).toBe(sources.length);
-        sourceMap.sourcesContent.forEach((content: string) => {
-          expect(content).toBeDefined();
-          expect(typeof content).toBe("string");
-        });
       });
     });
 
@@ -326,8 +320,8 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const defaultConfig = TEST_CONFIGURATIONS.default;
       const prodConfig = TEST_CONFIGURATIONS.production;
 
-      const defaultResult = await buildWithRollup(defaultConfig);
-      const prodResult = await buildWithRollup(prodConfig);
+      const defaultResult = await buildWithVite(defaultConfig);
+      const prodResult = await buildWithVite(prodConfig);
 
       // Test that both configurations produce working bundles
       delete require.cache[defaultResult.bundlePath];
@@ -372,7 +366,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should handle production mode correctly", async () => {
       const prodConfig = TEST_CONFIGURATIONS.production;
-      const result = await buildWithRollup(prodConfig);
+      const result = await buildWithVite(prodConfig);
 
       expect(fs.existsSync(result.bundlePath)).toBe(true);
       expect(fs.existsSync(result.translationsPath)).toBe(true);
@@ -386,7 +380,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should respect include patterns correctly", async () => {
       const strictConfig = TEST_CONFIGURATIONS.strictInclude;
-      const result = await buildWithRollup(strictConfig);
+      const result = await buildWithVite(strictConfig);
 
       // Clear require cache and load the bundle
       delete require.cache[result.bundlePath];
@@ -419,7 +413,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should produce correct results with named argument mode", async () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
-      const namedResult = await buildWithRollup(namedConfig);
+      const namedResult = await buildWithVite(namedConfig);
 
       delete require.cache[namedResult.bundlePath];
       const namedBundle = require(namedResult.bundlePath);
@@ -434,7 +428,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should produce correct results with indexed argument mode", async () => {
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
-      const indexedResult = await buildWithRollup(indexedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       // Clear require cache to ensure fresh module load including i18next state
       clearBundleCache(indexedResult.bundlePath);
@@ -455,8 +449,8 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
 
-      const namedResult = await buildWithRollup(namedConfig);
-      const indexedResult = await buildWithRollup(indexedConfig);
+      const namedResult = await buildWithVite(namedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));

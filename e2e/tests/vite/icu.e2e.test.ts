@@ -1,25 +1,28 @@
-import fs from "fs";
-import path from "path";
-import { createRollupConfig } from "./rollup-configs";
-import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
-import { buildWithRollup } from "./build";
-
 /**
- * ICU E2E Tests for Rollup
+ * ICU E2E Tests for Vite
  *
  * Tests ICU (International Components for Unicode) message formatting
- * with both indexed and named parameter modes.
+ * with both indexed and named parameter modes using Vite as the bundler.
  *
  * This tests integration with i18next-icu for advanced formatting features like:
  * - Pluralization: {count, plural, one {# item} other {# items}}
  * - Number formatting: {value, number, percent}
  * - Date formatting: {date, date, short}
  * - Select statements: {status, select, online {Online} offline {Offline}}
+ *
+ * Note: Vite uses Rollup under the hood, so the i18nextAutoKeyRollupPlugin
+ * works seamlessly with Vite's build process.
  */
+
+import fs from "fs";
+import path from "path";
+import { createViteConfig } from "./vite-configs";
+import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { buildWithVite } from "./build";
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
-  icuNamed: createRollupConfig({
+  icuNamed: createViteConfig({
     configName: "icu-named",
     argMode: "named",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
@@ -28,7 +31,7 @@ const ICU_TEST_CONFIGURATIONS = {
     jsonOutputPath: "locales/icu-named-en.json",
   }),
 
-  icuIndexed: createRollupConfig({
+  icuIndexed: createViteConfig({
     configName: "icu-indexed",
     argMode: "indexed",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
@@ -44,8 +47,8 @@ const ICU_TEST_CONFIGURATIONS = {
   }),
 };
 
-describe("ICU Rollup E2E Tests", () => {
-  const distPath = path.resolve(__dirname, "../../dist/rollup");
+describe("ICU Vite E2E Tests", () => {
+  const distPath = path.resolve(__dirname, "../../dist/vite");
 
   // Helper function to clean up artifacts for a specific configuration
   function cleanConfigArtifacts(configName: string, distPath: string) {
@@ -80,14 +83,14 @@ describe("ICU Rollup E2E Tests", () => {
         // Clear require cache to prevent global state leakage
         clearModuleCache();
 
-        buildResult = await buildWithRollup(configWithPath);
+        buildResult = await buildWithVite(configWithPath);
       }, 60000);
 
       afterAll(() => {
         cleanConfigArtifacts(configName, distPath);
       });
 
-      describe("ICU Rollup Transformation", () => {
+      describe("ICU Vite Transformation", () => {
         it("should transform ICU messages to i18next.t() calls", () => {
           const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
 
@@ -103,11 +106,15 @@ describe("ICU Rollup E2E Tests", () => {
           const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
 
           // Should contain parameter objects for ICU messages with appropriate parameter names
+          // Note: The code may be minified, so we check for the parameter names in the source
           if (configName === "icuNamed") {
-            expect(bundleContent).toMatch(/\{\s*count\s*\}|\{\s*readableBytes\s*\}|\{\s*completed.*total\s*\}/);
+            // Check for parameter names (count, readableBytes, completed, total, etc.)
+            expect(bundleContent).toMatch(/count[:\s,}]/);
+            expect(bundleContent).toMatch(/readableBytes[:\s,}]/);
+            expect(bundleContent).toMatch(/completed[:\s,}]/);
           } else {
-            // For indexed, parameters should still be passed
-            expect(bundleContent).toMatch(/\{\s*0.*\}|\{\s*1.*\}|\{\s*2.*\}/);
+            // For indexed, parameters should still be passed (0, 1, 2, etc.)
+            expect(bundleContent).toMatch(/[{,]\s*0\s*:/);
           }
         });
       });
@@ -271,9 +278,9 @@ describe("ICU Rollup E2E Tests", () => {
 
   describe("ICU Configuration Comparison", () => {
     // Note: True isolation testing with both bundles loaded simultaneously is challenging
-    // in Rollup due to shared JavaScript runtime state. Unlike Webpack's __webpack_require__
-    // system that provides true module isolation, Rollup's flat CommonJS bundles share
-    // global state when loaded in the same Node.js process.
+    // in Vite (which uses Rollup) due to shared JavaScript runtime state. Unlike Webpack's
+    // __webpack_require__ system that provides true module isolation, Rollup's flat CommonJS
+    // bundles share global state when loaded in the same Node.js process.
     //
     // Approaches attempted:
     // 1. VM contexts: Complex due to module initialization and fs access in sandboxed environment
@@ -292,8 +299,8 @@ describe("ICU Rollup E2E Tests", () => {
       const namedConfig = ICU_TEST_CONFIGURATIONS.icuNamed;
       const indexedConfig = ICU_TEST_CONFIGURATIONS.icuIndexed;
 
-      const namedResult = await buildWithRollup(namedConfig);
-      const indexedResult = await buildWithRollup(indexedConfig);
+      const namedResult = await buildWithVite(namedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));
