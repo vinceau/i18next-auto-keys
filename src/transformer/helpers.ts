@@ -3,12 +3,6 @@ import { stableHash } from "../common/hash";
 import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
-export type MessageProcessingResult = {
-  idHash: string;
-  internedOriginal: string;
-  translationContext: string | undefined;
-};
-
 /** Best-effort check for a `@noTranslate` jsdoc/tsdoc tag on this node. */
 export function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
   const TAG = "noTranslate";
