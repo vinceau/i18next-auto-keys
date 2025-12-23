@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { stableHash } from "./hash";
-import { i18nStore, toRelPosix, ParameterMetadata } from "./i18nStore";
-import { stringPool } from "./stringPool";
+import { stableHash } from "../common/hash";
+import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
+import { stringPool } from "../common/stringPool";
 
 export type MessageProcessingResult = {
   idHash: string;

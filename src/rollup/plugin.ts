@@ -9,7 +9,7 @@ import {
   generateMessageId,
   recordMessage,
   extractTranslationContext,
-} from "../common/messageProcessor";
+} from "../transformer/transformHelpers";
 import { stringPool } from "../common/stringPool";
 
 export type I18nextAutoKeyRollupPluginOptions = {

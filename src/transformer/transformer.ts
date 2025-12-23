@@ -10,7 +10,7 @@ import {
   extractParameterMetadata,
   anchorForMessageNode,
   getLeadingComments,
-} from "../common/messageProcessor";
+} from "./transformHelpers";
 import { stringPool } from "../common/stringPool";
 import { i18nStore, toRelPosix } from "../common/i18nStore";
 
