@@ -2,6 +2,13 @@
 
 This directory contains comprehensive tests that verify the complete workflow of i18next-auto-keys, from source transformation to working translations.
 
+## Bundler Support
+
+Tests are provided for three major bundlers:
+- **Webpack** - Full webpack-loader integration
+- **Rollup** - Native Rollup plugin support
+- **Vite** - Works seamlessly via Rollup plugin (Vite uses Rollup internally)
+
 ## Test Coverage
 
 ### Standard Features
@@ -18,22 +25,41 @@ This directory contains comprehensive tests that verify the complete workflow of
   - Date formatting: `{date, date, short}`
   - Select statements: `{status, select, online {Online} offline {Offline}}`
 
-## Test Files
+## Test Structure
 
 ```
 e2e/
-├── src/
-│   ├── auth.messages.ts              # Standard auth messages
-│   ├── auth-indexed.messages.ts      # Indexed parameter version
-│   ├── ui.messages.ts                # UI messages
-│   ├── ui-indexed.messages.ts        # Indexed parameter version
-│   ├── replay-browser.messages.ts    # ICU messages (named)
-│   ├── replay-browser-indexed.messages.ts  # ICU messages (indexed)
-│   ├── index.ts                      # Standard test entry point
-│   └── icu-index.ts                  # ICU test entry point
-└── tests/
-    ├── e2e.test.ts                   # Standard + indexed tests
-    └── icu.e2e.test.ts               # ICU formatting tests
+├── fixtures/
+│   ├── messages/
+│   │   ├── auth.messages.ts              # Standard auth messages
+│   │   ├── auth-indexed.messages.ts      # Indexed parameter version
+│   │   ├── ui.messages.ts                # UI messages
+│   │   ├── ui-indexed.messages.ts        # Indexed parameter version
+│   │   ├── replay-browser.messages.ts    # ICU messages (named)
+│   │   ├── replay-browser-indexed.messages.ts  # ICU messages (indexed)
+│   │   └── context.messages.ts           # Context disambiguation messages
+│   ├── index.ts                          # Standard test entry point
+│   └── icu-index.ts                      # ICU test entry point
+├── tests/
+│   ├── cli/                              # CLI tool tests
+│   │   ├── cli.e2e.test.ts
+│   │   └── config.e2e.test.ts
+│   ├── webpack/                          # Webpack-specific tests
+│   │   ├── webpack-configs.ts
+│   │   ├── e2e.test.ts
+│   │   └── icu.e2e.test.ts
+│   ├── rollup/                           # Rollup-specific tests
+│   │   ├── rollup-configs.ts
+│   │   ├── e2e.test.ts
+│   │   └── icu.e2e.test.ts
+│   └── vite/                             # Vite-specific tests
+│       ├── vite-configs.ts
+│       ├── e2e.test.ts
+│       └── icu.e2e.test.ts
+├── webpack.config.js                     # Example Webpack config
+├── rollup.config.js                      # Example Rollup config
+├── vite.config.js                        # Example Vite config
+└── package.json
 ```
 
 ## Running Tests
@@ -44,6 +70,20 @@ npm run test:e2e
 
 # From e2e directory
 cd e2e && npm test
+
+# Run specific bundler tests
+npm run test:webpack   # Webpack only
+npm run test:rollup    # Rollup only
+npm run test:vite      # Vite only
+npm run test:cli       # CLI only
+
+# Build bundles without running tests
+npm run build:webpack
+npm run build:rollup
+npm run build:vite
+
+# Watch mode
+npm run test:watch
 ```
 
 ## Example Transformations
