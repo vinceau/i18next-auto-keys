@@ -1,7 +1,7 @@
 import { validate } from "schema-utils";
 import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
-import { transformMessages } from "../transformer/core";
+import { transformMessages } from "../transformer/transformer";
 import { loadConfig } from "../common/config/loadConfig";
 
 export type I18nextAutoKeyLoaderOptions = {

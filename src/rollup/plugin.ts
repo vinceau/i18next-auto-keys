@@ -2,7 +2,7 @@
 import type { Plugin } from "rollup";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
-import { transformMessages } from "../transformer/core";
+import { transformMessages } from "../transformer/transformer";
 
 export type I18nextAutoKeyRollupPluginOptions = {
   /** Pattern(s) to match files for processing. Defaults to /\.messages\.(ts|tsx)$/ */

@@ -1,296 +1,325 @@
-// transformers/i18nMessagesTransformer.ts
+// src/transformer/core.ts
+/**
+ * Unified transformer core for i18next-auto-keys.
+ *
+ * This module provides a single, unified transformation implementation that:
+ * - Uses MagicString for precise source map generation
+ * - Uses TypeScript only for AST analysis (not code generation)
+ * - Works seamlessly with both Rollup/Vite and Webpack
+ * - Eliminates ALL code duplication between bundler integrations
+ *
+ * @example
+ * ```ts
+ * const result = transformMessages(code, filename, {
+ *   argMode: 'named',
+ *   setDefaultValue: true,
+ *   debug: false,
+ *   hashLength: 10
+ * });
+ *
+ * if (result.didTransform) {
+ *   return { code: result.code, map: result.map };
+ * }
+ * ```
+ */
+
 import ts from "typescript";
+import MagicString from "magic-string";
+import { i18nStore } from "../common/i18nStore";
+import { stringPool } from "../common/stringPool";
 import {
   shouldTransformNode,
   generateMessageId,
   recordMessage,
   extractTranslationContext,
-  hasNoTranslateTag,
-} from "./transformHelpers";
-import { stringPool } from "../common/stringPool";
+} from "./helpers";
 
-export type I18nextAutoKeyTransformerOptions = {
-  hashLength?: number;
+export type TransformOptions = {
   /** How to pass runtime args into i18next.t */
-  argMode?: "indexed" | "named";
+  argMode: "indexed" | "named";
   /** Whether to include the original string as defaultValue in i18next.t calls */
-  setDefaultValue?: boolean;
+  setDefaultValue: boolean;
   /** Wrap transformed strings with "~~" markers for visual debugging in development */
-  debug?: boolean;
+  debug: boolean;
+  /** Length of generated hash IDs */
+  hashLength: number;
 };
 
-/** Global store for tracking seen strings and their hashes.
- * Shared across all transformations in this build.
+export type TransformResult = {
+  /** Transformed code */
+  code: string;
+  /** Source map object (compatible with both Rollup and Webpack) */
+  map: any;
+  /** Whether any transformations were made */
+  didTransform: boolean;
+};
+
+/**
+ * Global store for tracking seen strings and their hashes within a single transformation.
+ * This ensures consistent hash generation across multiple message functions.
  */
-const globalStore: {
+type GlobalStore = {
   seen: Map<string, string>;
   reverse: Map<string, string>;
-} = {
-  seen: new Map(),
-  reverse: new Map(),
 };
 
-export function createI18nextAutoKeyTransformerFactory(
-  options: I18nextAutoKeyTransformerOptions = {}
-): ts.TransformerFactory<ts.SourceFile> {
-  const {
-    hashLength = 10,
-    argMode = "named", // Default to named to better support default i18next usage
-    setDefaultValue = false,
-    debug = false,
-  } = options;
+/**
+ * Core transformation function that processes i18n message files.
+ *
+ * This function:
+ * 1. Parses the TypeScript/JavaScript code into an AST
+ * 2. Identifies transformable message functions
+ * 3. Generates stable hash IDs for each message
+ * 4. Rewrites functions to i18next.t() calls using MagicString
+ * 5. Injects i18next import if needed
+ * 6. Generates accurate source maps
+ *
+ * @param code - Source code to transform
+ * @param filename - File path (for source maps and error reporting)
+ * @param options - Transformation options
+ * @returns TransformResult with code, source map, and transformation status
+ */
+export function transformMessages(
+  code: string,
+  filename: string,
+  options: TransformOptions
+): TransformResult {
+  // Parse source file for AST analysis
+  // Note: We use Latest to support all modern syntax during parsing.
+  // This is safe because we only analyze the AST (not generate code).
+  // The actual transpilation target is handled by the bundler (Rollup/Webpack/etc).
+  const sf = ts.createSourceFile(
+    filename,
+    code,
+    ts.ScriptTarget.Latest,
+    /*setParentNodes*/ true
+  );
 
-  return (context: ts.TransformationContext) => {
-    const f = context.factory;
+  // Initialize MagicString for tracking transformations
+  const s = new MagicString(code);
 
-    const makeI18nextCall = (
-      hashId: string,
-      argsExpr?: ts.Expression,
-      originalString?: string,
-      originalNode?: ts.Node
-    ): ts.Expression => {
-      const i18nextIdent = f.createIdentifier("i18next");
-      const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
-      const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
+  // TypeScript printer and factory for generating code
+  const printer = ts.createPrinter({ removeComments: false });
+  const f = ts.factory;
 
-      // If we need to set defaultValue or have other arguments, create an options object
-      if ((setDefaultValue && originalString) || argsExpr) {
-        let optionsExpr: ts.Expression;
+  // Track transformation state
+  let didRewrite = false;
+  const hadI18nextImport = /\bimport\s+i18next\b/.test(code);
 
-        if (argsExpr && ts.isObjectLiteralExpression(argsExpr)) {
-          // If we already have an args object, add defaultValue to it
-          const properties = [...argsExpr.properties];
-          if (setDefaultValue && originalString) {
-            const defaultValueProp = f.createPropertyAssignment(
+  // Local store for this file's transformations
+  const globalStore: GlobalStore = {
+    seen: new Map(),
+    reverse: new Map(),
+  };
+
+  /**
+   * Print a TypeScript expression node to string.
+   */
+  function printExpr(expr: ts.Expression): string {
+    return printer.printNode(ts.EmitHint.Unspecified, expr, sf);
+  }
+
+  /**
+   * Build the args expression for i18next.t() based on function parameters.
+   * Supports both "indexed" ({ "0": value }) and "named" ({ value }) modes.
+   */
+  function buildArgsExpr(
+    params: readonly ts.ParameterDeclaration[]
+  ): ts.Expression | undefined {
+    if (params.length === 0) return undefined;
+
+    if (options.argMode === "indexed") {
+      const indexedProps: ts.PropertyAssignment[] = [];
+      params.forEach((p, index) => {
+        if (ts.isIdentifier(p.name)) {
+          const key = f.createStringLiteral(index.toString());
+          const value = f.createIdentifier(p.name.text);
+          indexedProps.push(f.createPropertyAssignment(key, value));
+        }
+      });
+      if (indexedProps.length === 0) return undefined;
+      return f.createObjectLiteralExpression(indexedProps, true);
+    }
+
+    // "named" mode
+    const namedProps: ts.ShorthandPropertyAssignment[] = [];
+    for (const p of params) {
+      if (ts.isIdentifier(p.name)) {
+        namedProps.push(f.createShorthandPropertyAssignment(p.name));
+      }
+    }
+    if (namedProps.length === 0) return undefined;
+    return f.createObjectLiteralExpression(namedProps, true);
+  }
+
+  /**
+   * Create an i18next.t() call expression.
+   * Optionally includes defaultValue and debug markers.
+   */
+  function makeI18nextCall(
+    hashId: string,
+    argsExpr?: ts.Expression,
+    originalString?: string
+  ): ts.Expression {
+    const i18nextIdent = f.createIdentifier("i18next");
+    const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
+    const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
+
+    // Build options object if needed (for args or defaultValue)
+    if ((options.setDefaultValue && originalString) || argsExpr) {
+      let optionsExpr: ts.Expression;
+
+      if (argsExpr && ts.isObjectLiteralExpression(argsExpr)) {
+        const properties = [...argsExpr.properties];
+        if (options.setDefaultValue && originalString) {
+          const defaultValueProp = f.createPropertyAssignment(
+            f.createIdentifier("defaultValue"),
+            f.createStringLiteral(originalString)
+          );
+          properties.unshift(defaultValueProp);
+        }
+        optionsExpr = f.createObjectLiteralExpression(properties, true);
+      } else {
+        const properties: ts.ObjectLiteralElementLike[] = [];
+        if (options.setDefaultValue && originalString) {
+          properties.push(
+            f.createPropertyAssignment(
               f.createIdentifier("defaultValue"),
               f.createStringLiteral(originalString)
-            );
-            properties.unshift(defaultValueProp); // Add defaultValue first
-          }
-          optionsExpr = f.createObjectLiteralExpression(properties, true);
-        } else {
-          // Create new options object
-          const properties: ts.ObjectLiteralElementLike[] = [];
-          if (setDefaultValue && originalString) {
-            properties.push(
-              f.createPropertyAssignment(f.createIdentifier("defaultValue"), f.createStringLiteral(originalString))
-            );
-          }
-          optionsExpr = f.createObjectLiteralExpression(properties, true);
+            )
+          );
         }
-
-        callArgs.push(optionsExpr);
-      } else if (argsExpr) {
-        // Just pass through the args expression without modification
-        callArgs.push(argsExpr);
+        optionsExpr = f.createObjectLiteralExpression(properties, true);
       }
 
-      const call = f.createCallExpression(tAccess, undefined, callArgs);
+      callArgs.push(optionsExpr);
+    } else if (argsExpr) {
+      callArgs.push(argsExpr);
+    }
 
-      // Preserve source map information from the original node
-      if (originalNode) {
-        ts.setTextRange(call, originalNode);
-        ts.setTextRange(tAccess, originalNode);
-      }
+    const call = f.createCallExpression(tAccess, undefined, callArgs);
 
-      // If debug mode is enabled, wrap the call in a template expression with ~~ markers
-      // e.g., `~~${i18next.t("hash")}~~`
-      if (debug) {
-        const templateExpression = f.createTemplateExpression(f.createTemplateHead("~~"), [
-          f.createTemplateSpan(call, f.createTemplateTail("~~")),
-        ]);
-        if (originalNode) {
-          ts.setTextRange(templateExpression, originalNode);
-        }
-        return templateExpression;
-      }
+    // Wrap in debug markers if enabled
+    if (options.debug) {
+      return f.createTemplateExpression(f.createTemplateHead("~~"), [
+        f.createTemplateSpan(call, f.createTemplateTail("~~")),
+      ]);
+    }
 
-      return call;
-    };
+    return call;
+  }
 
-    const buildArgsExpr = (params: readonly ts.ParameterDeclaration[]): ts.Expression | undefined => {
-      if (params.length === 0) return undefined;
+  /**
+   * Visit all nodes in the AST and transform matching patterns.
+   */
+  function visit(node: ts.Node): void {
+    // Pattern 1: PropertyAssignment with ArrowFunction/FunctionExpression
+    // e.g., greeting: (name) => `Hello ${name}`
+    if (
+      ts.isPropertyAssignment(node) &&
+      (ts.isArrowFunction(node.initializer) ||
+        ts.isFunctionExpression(node.initializer))
+    ) {
+      const fn = node.initializer;
+      const original = shouldTransformNode(node, fn, sf);
 
-      if (argMode === "indexed") {
-        const indexedProps: ts.PropertyAssignment[] = [];
-        params.forEach((p, index) => {
-          if (ts.isIdentifier(p.name)) {
-            const key = f.createStringLiteral(index.toString());
-            const value = f.createIdentifier(p.name.text);
-            if (p.name) ts.setTextRange(value, p.name);
-            const prop = f.createPropertyAssignment(key, value);
-            ts.setTextRange(prop, p.name);
-            indexedProps.push(prop);
-          }
-        });
-        if (indexedProps.length === 0) return undefined;
-
-        const obj = f.createObjectLiteralExpression(indexedProps, true);
-        if (params.length > 0) ts.setTextRange(obj, { pos: params[0].pos, end: params[params.length - 1].end } as any);
-        return obj;
-      }
-
-      // "named"
-      const namedProps: ts.ShorthandPropertyAssignment[] = [];
-      for (const p of params) {
-        if (ts.isIdentifier(p.name)) {
-          const prop = f.createShorthandPropertyAssignment(p.name);
-          ts.setTextRange(prop, p.name);
-          namedProps.push(prop);
-        }
-      }
-      if (namedProps.length === 0) return undefined;
-
-      const obj = f.createObjectLiteralExpression(namedProps, true);
-      if (params.length > 0) ts.setTextRange(obj, { pos: params[0].pos, end: params[params.length - 1].end } as any);
-      return obj;
-    };
-
-    let didRewrite = false;
-
-    const visitNode: ts.Visitor = (node) => {
-      // Transform property assignments that are functions
-      if (
-        ts.isPropertyAssignment(node) &&
-        (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
-      ) {
-        const fn = node.initializer as ts.ArrowFunction | ts.FunctionExpression;
-        const sf = node.getSourceFile?.() ?? (node as any).parent?.getSourceFile?.();
-        if (!sf) return ts.visitEachChild(node, visitNode, context);
-
-        // Skip if @noTranslate appears on the property OR the function
-        if (hasNoTranslateTag(node, sf) || hasNoTranslateTag(fn, sf)) {
-          return ts.visitEachChild(node, visitNode, context);
-        }
-
-        return processFunction(node, fn, sf, node.name);
-      }
-
-      // Transform method declarations (shorthand syntax)
-      if (ts.isMethodDeclaration(node) && node.body) {
-        const sf = node.getSourceFile?.() ?? (node as any).parent?.getSourceFile?.();
-        if (!sf) return ts.visitEachChild(node, visitNode, context);
-
-        // Skip if @noTranslate appears on the method
-        if (hasNoTranslateTag(node, sf)) {
-          return ts.visitEachChild(node, visitNode, context);
-        }
-
-        return processFunction(node, node, sf, node.name);
-      }
-
-      return ts.visitEachChild(node, visitNode, context);
-    };
-
-    const processFunction = (
-      containerNode: ts.PropertyAssignment | ts.MethodDeclaration,
-      fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
-      sf: ts.SourceFile,
-      nameNode: ts.PropertyName
-    ) => {
-      const original = shouldTransformNode(containerNode, fn, sf);
       if (original !== null) {
-        // Extract translation context from JSDoc
-        const translationContext = extractTranslationContext(containerNode, fn, sf);
+        transformFunction(node, fn, original);
+      }
+    }
 
-        // Generate unique message ID (hash) using shared core logic
-        const id = generateMessageId(original, translationContext, globalStore, hashLength);
-        
-        // Intern the string after generating the hash to maintain consistency
-        const internedOriginal = stringPool.intern(original);
+    // Pattern 2: MethodDeclaration (shorthand syntax)
+    // e.g., greeting(name) { return `Hello ${name}` }
+    if (ts.isMethodDeclaration(node) && node.body) {
+      const original = shouldTransformNode(node, node, sf);
 
-        // Record the message in the i18n store using shared core logic
-        recordMessage(id, internedOriginal, translationContext, sf, containerNode, fn);
+      if (original !== null) {
+        transformFunction(node, node, original);
+      }
+    }
 
-        const argsExpr = buildArgsExpr(fn.parameters);
-        const newBodyExpr = makeI18nextCall(id, argsExpr, internedOriginal, fn.body);
+    // Continue traversing
+    ts.forEachChild(node, visit);
+  }
 
-        if (ts.isMethodDeclaration(containerNode)) {
-          // Handle method declaration
-          const returnStmt = f.createReturnStatement(newBodyExpr);
-          ts.setTextRange(returnStmt, fn.body);
-          const block = f.createBlock([returnStmt], true);
-          ts.setTextRange(block, fn.body);
+  /**
+   * Transform a single message function to an i18next.t() call.
+   */
+  function transformFunction(
+    containerNode: ts.PropertyAssignment | ts.MethodDeclaration,
+    fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
+    original: string
+  ): void {
+    // Extract translation context from JSDoc
+    const translationContext = extractTranslationContext(containerNode, fn, sf);
 
-          const newMethod = f.updateMethodDeclaration(
-            containerNode,
-            containerNode.modifiers as readonly ts.Modifier[] | undefined,
-            containerNode.asteriskToken,
-            containerNode.name,
-            containerNode.questionToken,
-            containerNode.typeParameters,
-            containerNode.parameters,
-            containerNode.type,
-            block
-          );
+    // Generate unique message ID using shared core logic
+    const id = generateMessageId(
+      original,
+      translationContext,
+      globalStore,
+      options.hashLength
+    );
 
-          ts.setTextRange(newMethod, containerNode);
+    // Intern the string for memory efficiency
+    const internedOriginal = stringPool.intern(original);
+
+    // Record the message in the i18n store
+    recordMessage(id, internedOriginal, translationContext, sf, containerNode, fn);
+
+    // Build new expression
+    const argsExpr = buildArgsExpr(fn.parameters);
+    const newExpr = makeI18nextCall(id, argsExpr, internedOriginal);
+
+    // Determine what to replace based on function structure
+    if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) {
+      // Arrow function with expression body: () => "string"
+      const bodyStart = fn.body.getStart(sf);
+      const bodyEnd = fn.body.getEnd();
+      s.overwrite(bodyStart, bodyEnd, printExpr(newExpr));
+      didRewrite = true;
+    } else {
+      // Block body: find and replace return statement
+      const body = fn.body;
+      if (body && ts.isBlock(body) && body.statements.length === 1) {
+        const st = body.statements[0];
+        if (ts.isReturnStatement(st) && st.expression) {
+          const exprStart = st.expression.getStart(sf);
+          const exprEnd = st.expression.getEnd();
+          s.overwrite(exprStart, exprEnd, printExpr(newExpr));
           didRewrite = true;
-          return newMethod;
-        } else {
-          // Handle property assignment
-          let newFn: ts.ArrowFunction | ts.FunctionExpression;
-          if (ts.isArrowFunction(fn)) {
-            newFn = f.updateArrowFunction(
-              fn,
-              fn.modifiers,
-              fn.typeParameters,
-              fn.parameters, // keep original params
-              fn.type,
-              fn.equalsGreaterThanToken ?? f.createToken(ts.SyntaxKind.EqualsGreaterThanToken),
-              newBodyExpr
-            );
-          } else {
-            const returnStmt = f.createReturnStatement(newBodyExpr);
-            ts.setTextRange(returnStmt, fn.body);
-            const block = f.createBlock([returnStmt], true);
-            ts.setTextRange(block, fn.body);
-            newFn = f.updateFunctionExpression(
-              fn as ts.FunctionExpression,
-              fn.modifiers as readonly ts.Modifier[] | undefined,
-              (fn as ts.FunctionExpression).asteriskToken,
-              (fn as ts.FunctionExpression).name,
-              fn.typeParameters,
-              fn.parameters,
-              fn.type,
-              block
-            );
-          }
-
-          ts.setTextRange(newFn, fn);
-          didRewrite = true;
-          const updated = f.updatePropertyAssignment(containerNode as ts.PropertyAssignment, nameNode, newFn);
-          ts.setTextRange(updated, containerNode);
-          return updated;
         }
       }
+    }
+  }
 
-      return ts.visitEachChild(containerNode, visitNode, context);
+  // Start traversal
+  visit(sf);
+
+  // Inject i18next import if we made transformations and it's not already present
+  if (didRewrite && !hadI18nextImport) {
+    const insertPos = sf.statements.length ? sf.statements[0].getFullStart() : 0;
+    const nl = code.includes("\r\n") ? "\r\n" : "\n";
+    s.appendLeft(insertPos, `import i18next from "i18next";${nl}`);
+  }
+
+  // Return result
+  if (!didRewrite) {
+    return {
+      code,
+      map: null,
+      didTransform: false,
     };
+  }
 
-    return (sf: ts.SourceFile) => {
-      const updated = ts.visitNode(sf, visitNode) as ts.SourceFile;
-      if (!updated) return sf;
-
-      if (didRewrite) {
-        const hasImport = updated.statements.some(
-          (stmt: ts.Statement) =>
-            ts.isImportDeclaration(stmt) &&
-            ts.isStringLiteral(stmt.moduleSpecifier) &&
-            stmt.moduleSpecifier.text === "i18next" &&
-            !!stmt.importClause?.name
-        );
-
-        if (!hasImport) {
-          const importDecl = f.createImportDeclaration(
-            undefined,
-            f.createImportClause(false, f.createIdentifier("i18next"), undefined),
-            f.createStringLiteral("i18next")
-          );
-          return f.updateSourceFile(updated, [importDecl, ...updated.statements]);
-        }
-      }
-      return updated;
-    };
+  return {
+    code: s.toString(),
+    map: s.generateMap({
+      hires: true,
+      includeContent: true,
+      source: filename,
+    }),
+    didTransform: true,
   };
 }
+
