@@ -4,7 +4,7 @@ import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 
 /** Best-effort check for a `@noTranslate` jsdoc/tsdoc tag on this node. */
-export function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
+function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
   const TAG = "noTranslate";
   const anyTs: any = ts as any;
 
@@ -52,7 +52,7 @@ export function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {
 }
 
 /** Collect leading comments as extracted translator notes. */
-export function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
+function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
   const text = sf.getFullText();
   const ranges = ts.getLeadingCommentRanges?.(text, node.getFullStart()) || [];
   const out: string[] = [];
@@ -75,7 +75,7 @@ export function getLeadingComments(sf: ts.SourceFile, node: ts.Node): string[] {
 }
 
 /** Extract JSDoc parameter information from function parameters */
-export function extractParameterMetadata(
+function extractParameterMetadata(
   fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration,
   sf: ts.SourceFile
 ): ParameterMetadata | undefined {
@@ -190,7 +190,7 @@ export function extractTranslationContext(
 }
 
 /** Extract type information from a parameter declaration */
-export function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile): string {
+function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile): string {
   if (param.type) {
     return param.type.getText(sf);
   }
@@ -198,7 +198,7 @@ export function getTypeString(param: ts.ParameterDeclaration, sf: ts.SourceFile)
 }
 
 /** Try to return the node that actually contains the string literal content for better refs. */
-export function anchorForMessageNode(
+function anchorForMessageNode(
   fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration
 ): ts.Node | undefined {
   const body = fn.body;
@@ -220,7 +220,7 @@ export function anchorForMessageNode(
   return fn;
 }
 
-export function evaluateStringConcat(expr: ts.Expression): string | null {
+function evaluateStringConcat(expr: ts.Expression): string | null {
   if (ts.isStringLiteral(expr) || ts.isNoSubstitutionTemplateLiteral(expr)) {
     return expr.text;
   }
@@ -232,7 +232,7 @@ export function evaluateStringConcat(expr: ts.Expression): string | null {
   return null;
 }
 
-export function extractReturnStringLiteral(
+function extractReturnStringLiteral(
   fn: ts.ArrowFunction | ts.FunctionExpression | ts.MethodDeclaration
 ): string | null {
   const body = fn.body;
