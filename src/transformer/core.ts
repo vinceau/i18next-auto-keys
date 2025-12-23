@@ -85,6 +85,9 @@ export function transformMessages(
   options: TransformOptions
 ): TransformResult {
   // Parse source file for AST analysis
+  // Note: We use Latest to support all modern syntax during parsing.
+  // This is safe because we only analyze the AST (not generate code).
+  // The actual transpilation target is handled by the bundler (Rollup/Webpack/etc).
   const sf = ts.createSourceFile(
     filename,
     code,
