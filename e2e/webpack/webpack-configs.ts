@@ -1,6 +1,6 @@
 import path from "path";
 import { Configuration } from "webpack";
-const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
+const { I18nextAutoKeyEmitPlugin } = require("../../dist/index.js");
 
 type WebpackConfigOptions = {
   configName?: string;
@@ -70,7 +70,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
               loader: "ts-loader",
             },
             {
-              loader: path.resolve(__dirname, "../dist/index.js"),
+              loader: path.resolve(__dirname, "../../dist/index.js"),
               options: {
                 include,
                 setDefaultValue,
