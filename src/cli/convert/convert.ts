@@ -102,7 +102,10 @@ export async function convertPoToJson(options: ConvertPoOptions): Promise<void> 
   const jsonContent = JSON.stringify(output_data, null, indent);
   fs.writeFileSync(output, jsonContent, "utf8");
 
-  console.log(`✅ i18next JSON file generated: ${output}`);
+  // Get file size from content (more efficient than fs.statSync)
+  const fileSizeKB = (Buffer.byteLength(jsonContent, "utf8") / 1024).toFixed(2);
+
+  console.log(`✅ i18next JSON file generated: ${output} (${fileSizeKB} KB)`);
 }
 
 /**
