@@ -25,7 +25,6 @@
 
 import ts from "typescript";
 import MagicString from "magic-string";
-import { i18nStore } from "../common/i18nStore";
 import { stringPool } from "../common/stringPool";
 import {
   shouldTransformNode,
