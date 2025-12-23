@@ -124,6 +124,12 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
 
     generateBundle() {
       if (!pluginOptions.jsonOutputPath) {
+        if (!pluginOptions.setDefaultValue) {
+          this.warn(
+            "No JSON output path was provided and `setDefaultValue` is false, so no assets will be emitted. There is likely a problem with your configuration, and translations will not be available at runtime."
+          );
+        }
+
         // If we have no JSON output path, don't emit anything
         return;
       }
