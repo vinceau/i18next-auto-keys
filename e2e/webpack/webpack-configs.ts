@@ -1,6 +1,6 @@
 import path from "path";
 import { Configuration } from "webpack";
-const { I18nextAutoKeyEmitPlugin } = require("../../dist/index.js");
+const { I18nextAutoKeyEmitPlugin } = require("i18next-auto-keys");
 
 type WebpackConfigOptions = {
   configName?: string;
