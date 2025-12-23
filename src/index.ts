@@ -1,6 +1,6 @@
-import { i18nextAutoKeyLoader } from "./loaders/i18nextAutoKeyLoader";
-import { I18nextAutoKeyEmitPlugin } from "./plugins/i18nextAutoKeyEmitPlugin";
-import { i18nextAutoKeyRollupPlugin } from "./plugins/i18nextAutoKeyRollupPlugin";
+import { i18nextAutoKeyLoader } from "./webpack/loader";
+import { I18nextAutoKeyEmitPlugin } from "./webpack/plugin";
+import { i18nextAutoKeyRollupPlugin } from "./rollup/plugin";
 import { createI18nextAutoKeyTransformerFactory } from "./transformers/i18nextAutoKeyTransformer";
 import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";

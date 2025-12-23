@@ -1,4 +1,4 @@
-import { i18nextAutoKeyRollupPlugin } from "../i18nextAutoKeyRollupPlugin";
+import { i18nextAutoKeyRollupPlugin } from "../plugin";
 import { i18nStore } from "../../common/i18nStore";
 import type { PluginContext, TransformPluginContext, RollupError } from "rollup";
 
