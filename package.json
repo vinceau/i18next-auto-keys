@@ -38,16 +38,7 @@
     "gettext-parser": "^8.0.0"
   },
   "peerDependencies": {
-    "webpack": "^5",
     "typescript": "^5"
-  },
-  "peerDependenciesMeta": {
-    "webpack": {
-      "optional": true
-    },
-    "rollup": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",
