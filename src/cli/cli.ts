@@ -58,7 +58,6 @@ program
     "Project ID for POT header (defaults to package.json name and version, fallback: 'app 1.0')"
   )
   .option("-e, --exclude <patterns...>", "File patterns to exclude", ["node_modules/**", "dist/**", "build/**"])
-  .option("-t, --tsconfig <path>", "Path to tsconfig.json file")
   .action(async (options: ExtractOptions) => {
     try {
       const poTemplatePath = path.join(config.poOutputDirectory, config.poTemplateName);
@@ -68,7 +67,6 @@ program
         projectId: options.projectId ?? config.projectId,
         include: options.include,
         exclude: options.exclude,
-        tsconfig: options.tsconfig,
       });
     } catch (error) {
       console.error("❌ Error extracting translation keys:", error);
