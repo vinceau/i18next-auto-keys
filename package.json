@@ -47,9 +47,6 @@
     },
     "rollup": {
       "optional": true
-    },
-    "vite": {
-      "optional": true
     }
   },
   "devDependencies": {
@@ -58,7 +55,6 @@
     "@types/jest": "^29",
     "@types/webpack": "^5",
     "rollup": "^4",
-    "vite": "^6",
     "dts-bundle-generator": "^9.5.1",
     "esbuild-loader": "^4.4.0",
     "gettext-parser": "^8.0.0",
