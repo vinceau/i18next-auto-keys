@@ -2,7 +2,7 @@ import { validate } from "schema-utils";
 import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
 import ts from "typescript";
-import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
+import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
 import { loadConfig } from "../common/config/loadConfig";
 
 export type I18nextAutoKeyLoaderOptions = {

@@ -1,7 +1,7 @@
 // plugins/i18nextAutoKeyRollupPlugin.ts
 import type { Plugin, PluginContext } from "rollup";
 import ts from "typescript";
-import { createI18nextAutoKeyTransformerFactory } from "../transformers/i18nextAutoKeyTransformer";
+import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
 

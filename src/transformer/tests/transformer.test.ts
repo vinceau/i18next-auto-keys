@@ -9,7 +9,7 @@ jest.mock("fs", () => ({
 
 import ts from "typescript";
 import fs from "fs";
-import { createI18nextAutoKeyTransformerFactory } from "../i18nextAutoKeyTransformer";
+import { createI18nextAutoKeyTransformerFactory } from "../transformer";
 import { stableHash } from "../../common/hash";
 import { i18nStore } from "../../common/i18nStore";
 
