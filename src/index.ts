@@ -1,7 +1,7 @@
 import { i18nextAutoKeyLoader } from "./webpack/loader";
 import { I18nextAutoKeyEmitPlugin } from "./webpack/plugin";
 import { i18nextAutoKeyRollupPlugin } from "./rollup/plugin";
-import { transformMessages } from "./transformer/transformer";
+import { transformMessages } from "./common/transformer/transformer";
 import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";
 import { stableHash } from "./common/hash";

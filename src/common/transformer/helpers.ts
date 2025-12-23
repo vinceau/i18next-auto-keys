@@ -1,7 +1,7 @@
 import ts from "typescript";
-import { stableHash } from "../common/hash";
-import { i18nStore, toRelPosix, ParameterMetadata } from "../common/i18nStore";
-import { stringPool } from "../common/stringPool";
+import { stableHash } from "../hash";
+import { i18nStore, toRelPosix, ParameterMetadata } from "../i18nStore";
+import { stringPool } from "../stringPool";
 
 /** Best-effort check for a `@noTranslate` jsdoc/tsdoc tag on this node. */
 function hasNoTranslateTag(node: ts.Node, sf: ts.SourceFile): boolean {

@@ -9,8 +9,8 @@ jest.mock("fs", () => ({
 
 import fs from "fs";
 import { transformMessages } from "../transformer";
-import { stableHash } from "../../common/hash";
-import { i18nStore } from "../../common/i18nStore";
+import { stableHash } from "../../hash";
+import { i18nStore } from "../../i18nStore";
 
 const mockedFs = fs as jest.Mocked<typeof fs>;
 

@@ -25,7 +25,7 @@
 
 import ts from "typescript";
 import MagicString from "magic-string";
-import { stringPool } from "../common/stringPool";
+import { stringPool } from "../stringPool";
 import { shouldTransformNode, generateMessageId, recordMessage, extractTranslationContext } from "./helpers";
 
 export type TransformOptions = {
