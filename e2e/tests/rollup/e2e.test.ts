@@ -220,6 +220,53 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       });
     });
 
+    describe("Source Map Generation", () => {
+      it("should generate source map files", () => {
+        const sourceMapPath = buildResult.bundlePath + ".map";
+        expect(fs.existsSync(sourceMapPath)).toBe(true);
+      });
+
+      it("should include source map reference in bundle", () => {
+        expect(transformedCode).toMatch(/\/\/# sourceMappingURL=.*\.js\.map/);
+      });
+
+      it("should generate valid source map JSON", () => {
+        const sourceMapPath = buildResult.bundlePath + ".map";
+        const sourceMapContent = fs.readFileSync(sourceMapPath, "utf8");
+        const sourceMap = JSON.parse(sourceMapContent);
+
+        // Verify required source map fields
+        expect(sourceMap.version).toBe(3);
+        expect(sourceMap.file).toBeDefined();
+        expect(sourceMap.sources).toBeDefined();
+        expect(Array.isArray(sourceMap.sources)).toBe(true);
+        expect(sourceMap.sources.length).toBeGreaterThan(0);
+        expect(sourceMap.sourcesContent).toBeDefined();
+        expect(Array.isArray(sourceMap.sourcesContent)).toBe(true);
+        expect(sourceMap.mappings).toBeDefined();
+        expect(typeof sourceMap.mappings).toBe("string");
+        expect(sourceMap.mappings.length).toBeGreaterThan(0);
+      });
+
+      it("should include original source files in source map", () => {
+        const sourceMapPath = buildResult.bundlePath + ".map";
+        const sourceMapContent = fs.readFileSync(sourceMapPath, "utf8");
+        const sourceMap = JSON.parse(sourceMapContent);
+
+        // Should include the original TypeScript message files
+        const sources = sourceMap.sources as string[];
+        const messageFiles = sources.filter((s: string) => s.includes("messages"));
+        expect(messageFiles.length).toBeGreaterThan(0);
+
+        // Should include source content for debugging
+        expect(sourceMap.sourcesContent.length).toBe(sources.length);
+        sourceMap.sourcesContent.forEach((content: string) => {
+          expect(content).toBeDefined();
+          expect(typeof content).toBe("string");
+        });
+      });
+    });
+
     describe("End-to-End Function Testing", () => {
       let bundle: any;
 

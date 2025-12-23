@@ -1,6 +1,7 @@
 // plugins/i18nextAutoKeyRollupPlugin.ts
 import type { Plugin, PluginContext } from "rollup";
 import ts from "typescript";
+import { SourceMapGenerator } from "source-map";
 import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
@@ -30,18 +31,55 @@ function matchesInclude(include: RegExp | RegExp[] | undefined, id: string): boo
 }
 
 /**
+ * Generate a source map for the transformed code.
+ * Since our transformer preserves most of the source structure via ts.setTextRange,
+ * we generate a source map that maps each line from output back to the input.
+ */
+function generateSourceMap(originalCode: string, transformedCode: string, fileName: string) {
+  const generator = new SourceMapGenerator({
+    file: fileName,
+  });
+
+  // Add the source file
+  generator.setSourceContent(fileName, originalCode);
+
+  // Split both codes into lines
+  const originalLines = originalCode.split("\n");
+  const transformedLines = transformedCode.split("\n");
+
+  // Create a simple line-to-line mapping
+  // This works because TypeScript's printer preserves structure and our transformer
+  // uses ts.setTextRange to maintain source positions
+  transformedLines.forEach((line, index) => {
+    if (line.trim().length > 0) {
+      // Map each line in the transformed code back to the corresponding line in the original
+      // We use a simple 1:1 mapping since the transformation preserves structure
+      const originalLine = Math.min(index, originalLines.length - 1);
+
+      generator.addMapping({
+        source: fileName,
+        original: { line: originalLine + 1, column: 0 }, // source-map uses 1-based lines
+        generated: { line: index + 1, column: 0 },
+      });
+    }
+  });
+
+  return generator.toJSON();
+}
+
+/**
  * Rollup/Vite plugin for i18next-auto-keys.
- * 
+ *
  * This plugin works with both Rollup and Vite because:
  * - Vite's plugin API is a superset of Rollup's plugin API
  * - We use only the common hooks (buildStart, transform, generateBundle)
  * - In Vite dev mode, transform still works (though buildStart/generateBundle are build-only)
- * 
+ *
  * @example Rollup
  * ```js
  * // rollup.config.js
  * import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys/rollup';
- * 
+ *
  * export default {
  *   plugins: [
  *     i18nextAutoKeyRollupPlugin({
@@ -50,12 +88,12 @@ function matchesInclude(include: RegExp | RegExp[] | undefined, id: string): boo
  *   ]
  * };
  * ```
- * 
+ *
  * @example Vite
  * ```js
  * // vite.config.js
  * import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys/rollup';
- * 
+ *
  * export default {
  *   plugins: [
  *     i18nextAutoKeyRollupPlugin({
@@ -125,9 +163,14 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
 
         result.dispose();
 
+        // Generate source map
+        // Since our transformer preserves most of the source structure via ts.setTextRange,
+        // we generate a source map that maps each line from output back to the input.
+        const map = generateSourceMap(code, transformedCode, id);
+
         return {
           code: transformedCode,
-          map: null, // TODO: Add source map support
+          map,
         };
       } catch (error) {
         this.error(`Failed to transform ${id}: ${error}`);
