@@ -26,12 +26,7 @@
 import ts from "typescript";
 import MagicString from "magic-string";
 import { stringPool } from "../common/stringPool";
-import {
-  shouldTransformNode,
-  generateMessageId,
-  recordMessage,
-  extractTranslationContext,
-} from "./helpers";
+import { shouldTransformNode, generateMessageId, recordMessage, extractTranslationContext } from "./helpers";
 
 export type TransformOptions = {
   /** How to pass runtime args into i18next.t */
@@ -78,21 +73,12 @@ type GlobalStore = {
  * @param options - Transformation options
  * @returns TransformResult with code, source map, and transformation status
  */
-export function transformMessages(
-  code: string,
-  filename: string,
-  options: TransformOptions
-): TransformResult {
+export function transformMessages(code: string, filename: string, options: TransformOptions): TransformResult {
   // Parse source file for AST analysis
   // Note: We use Latest to support all modern syntax during parsing.
   // This is safe because we only analyze the AST (not generate code).
   // The actual transpilation target is handled by the bundler (Rollup/Webpack/etc).
-  const sf = ts.createSourceFile(
-    filename,
-    code,
-    ts.ScriptTarget.Latest,
-    /*setParentNodes*/ true
-  );
+  const sf = ts.createSourceFile(filename, code, ts.ScriptTarget.Latest, /*setParentNodes*/ true);
 
   // Initialize MagicString for tracking transformations
   const s = new MagicString(code);
@@ -122,9 +108,7 @@ export function transformMessages(
    * Build the args expression for i18next.t() based on function parameters.
    * Supports both "indexed" ({ "0": value }) and "named" ({ value }) modes.
    */
-  function buildArgsExpr(
-    params: readonly ts.ParameterDeclaration[]
-  ): ts.Expression | undefined {
+  function buildArgsExpr(params: readonly ts.ParameterDeclaration[]): ts.Expression | undefined {
     if (params.length === 0) return undefined;
 
     if (options.argMode === "indexed") {
@@ -155,11 +139,7 @@ export function transformMessages(
    * Create an i18next.t() call expression.
    * Optionally includes defaultValue and debug markers.
    */
-  function makeI18nextCall(
-    hashId: string,
-    argsExpr?: ts.Expression,
-    originalString?: string
-  ): ts.Expression {
+  function makeI18nextCall(hashId: string, argsExpr?: ts.Expression, originalString?: string): ts.Expression {
     const i18nextIdent = f.createIdentifier("i18next");
     const tAccess = f.createPropertyAccessExpression(i18nextIdent, "t");
     const callArgs: ts.Expression[] = [f.createStringLiteral(hashId)];
@@ -182,10 +162,7 @@ export function transformMessages(
         const properties: ts.ObjectLiteralElementLike[] = [];
         if (options.setDefaultValue && originalString) {
           properties.push(
-            f.createPropertyAssignment(
-              f.createIdentifier("defaultValue"),
-              f.createStringLiteral(originalString)
-            )
+            f.createPropertyAssignment(f.createIdentifier("defaultValue"), f.createStringLiteral(originalString))
           );
         }
         optionsExpr = f.createObjectLiteralExpression(properties, true);
@@ -216,8 +193,7 @@ export function transformMessages(
     // e.g., greeting: (name) => `Hello ${name}`
     if (
       ts.isPropertyAssignment(node) &&
-      (ts.isArrowFunction(node.initializer) ||
-        ts.isFunctionExpression(node.initializer))
+      (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
     ) {
       const fn = node.initializer;
       const original = shouldTransformNode(node, fn, sf);
@@ -253,12 +229,7 @@ export function transformMessages(
     const translationContext = extractTranslationContext(containerNode, fn, sf);
 
     // Generate unique message ID using shared core logic
-    const id = generateMessageId(
-      original,
-      translationContext,
-      globalStore,
-      options.hashLength
-    );
+    const id = generateMessageId(original, translationContext, globalStore, options.hashLength);
 
     // Intern the string for memory efficiency
     const internedOriginal = stringPool.intern(original);
@@ -321,4 +292,3 @@ export function transformMessages(
     didTransform: true,
   };
 }
-

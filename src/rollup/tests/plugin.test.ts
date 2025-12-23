@@ -168,7 +168,7 @@ export const Messages = {
 `;
       const result = callHook(plugin.transform, mockTransformContext, code, "src/test.messages.ts");
 
-      expect(result?.code).toContain('i18next.t(');
+      expect(result?.code).toContain("i18next.t(");
       // In indexed mode, parameters are passed as { "0": name }
       expect(result?.code).toMatch(/"0":/);
     });
@@ -311,14 +311,14 @@ export const Messages = {
 
       i18nStore.add({
         id: "special",
-        source: 'Hello "World" with \'quotes\' and \n newlines \t tabs',
+        source: "Hello \"World\" with 'quotes' and \n newlines \t tabs",
         ref: { file: "test.ts", line: 1, column: 1 },
       });
 
       callHook(plugin.generateBundle, mockPluginContext, {} as any, {} as any, false);
 
       const jsonContent = JSON.parse(emittedFiles[0].source);
-      expect(jsonContent.special).toBe('Hello "World" with \'quotes\' and \n newlines \t tabs');
+      expect(jsonContent.special).toBe("Hello \"World\" with 'quotes' and \n newlines \t tabs");
     });
 
     it("should handle unicode characters", () => {
@@ -394,7 +394,7 @@ export const OtherMessages = {
       // Should match default pattern: /\.messages\.(ts|tsx)$/
       const matchingResult = callHook(plugin.transform, mockTransformContext, code, "test.messages.ts");
       expect(matchingResult).not.toBeNull();
-      expect(matchingResult.code).toContain('i18next.t(');
+      expect(matchingResult.code).toContain("i18next.t(");
 
       const nonMatchingResult = callHook(plugin.transform, mockTransformContext, code, "test.ts");
       expect(nonMatchingResult).toBeNull();
@@ -412,4 +412,3 @@ export const OtherMessages = {
     });
   });
 });
-

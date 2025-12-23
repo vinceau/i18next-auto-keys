@@ -48,38 +48,38 @@ function createRollupConfig(options: RollupConfigOptions = {}): { config: Rollup
         exports: "named",
       },
       plugins: [
-      // Handle path aliases if provided
-      ...(Object.keys(resolveAlias).length > 0
-        ? [
-            alias({
-              entries: Object.entries(resolveAlias).map(([find, replacement]) => ({
-                find,
-                replacement,
-              })),
-            }),
-          ]
-        : []),
-      resolve({
-        extensions: [".ts", ".tsx", ".js", ".jsx"],
-      }),
-      commonjs(),
-      typescript({
-        tsconfig: path.resolve(__dirname, "../../tsconfig.json"),
-        compilerOptions: {
-          declaration: false,
-          declarationMap: false,
-          module: "ESNext",
-          outDir: path.resolve(__dirname, outputPath),
-        },
-      }),
-      i18nextAutoKeyRollupPlugin({
-        include: [include],
-        argMode,
-        setDefaultValue,
-        jsonOutputPath,
-      }),
-    ],
-    external: ["i18next", "i18next-icu", "fs", "path"],
+        // Handle path aliases if provided
+        ...(Object.keys(resolveAlias).length > 0
+          ? [
+              alias({
+                entries: Object.entries(resolveAlias).map(([find, replacement]) => ({
+                  find,
+                  replacement,
+                })),
+              }),
+            ]
+          : []),
+        resolve({
+          extensions: [".ts", ".tsx", ".js", ".jsx"],
+        }),
+        commonjs(),
+        typescript({
+          tsconfig: path.resolve(__dirname, "../../tsconfig.json"),
+          compilerOptions: {
+            declaration: false,
+            declarationMap: false,
+            module: "ESNext",
+            outDir: path.resolve(__dirname, outputPath),
+          },
+        }),
+        i18nextAutoKeyRollupPlugin({
+          include: [include],
+          argMode,
+          setDefaultValue,
+          jsonOutputPath,
+        }),
+      ],
+      external: ["i18next", "i18next-icu", "fs", "path"],
     },
     jsonOutputPath,
   };
@@ -146,4 +146,3 @@ const TEST_CONFIGURATIONS = {
 };
 
 export { createRollupConfig, TEST_CONFIGURATIONS };
-

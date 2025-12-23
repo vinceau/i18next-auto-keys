@@ -411,13 +411,13 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       expect(contextConfig.config.plugins).toBeDefined();
 
       // Verify the plugins array exists and contains the i18next plugin
-      const plugins = Array.isArray(contextConfig.config.plugins) ? contextConfig.config.plugins : [contextConfig.config.plugins];
+      const plugins = Array.isArray(contextConfig.config.plugins)
+        ? contextConfig.config.plugins
+        : [contextConfig.config.plugins];
       expect(plugins.length).toBeGreaterThan(0);
 
       // Verify the include pattern includes context message files
-      const i18nextPlugin = plugins.find(
-        (p: any) => p && p.name === "i18next-auto-keys"
-      );
+      const i18nextPlugin = plugins.find((p: any) => p && p.name === "i18next-auto-keys");
       expect(i18nextPlugin).toBeDefined();
     });
 
@@ -530,4 +530,3 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
     });
   });
 });
-

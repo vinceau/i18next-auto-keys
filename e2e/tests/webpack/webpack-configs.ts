@@ -45,55 +45,55 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): { config: Conf
 
   return {
     config: {
-    name: configName,
-    mode,
-    entry,
-    output: {
-      path: outputPath,
-      filename: `bundle-${configName}.js`,
-      clean: configName === "default", // Only clean on first build
-      library: {
-        name: libraryName,
-        type: "commonjs2",
-      },
-    },
-    optimization: {
-      minimize,
-    },
-    resolve: {
-      extensions: [".ts", ".tsx", ".js", ".jsx"],
-      alias: resolveAlias,
-    },
-    module: {
-      rules: [
-        {
-          test: /\.tsx?$/,
-          exclude: /node_modules/,
-          use: [
-            {
-              loader: "ts-loader",
-            },
-            {
-              loader: "i18next-auto-keys",
-              options: {
-                include,
-                setDefaultValue,
-                sourcemap,
-                argMode,
-                ...loaderOptions,
-              },
-            },
-          ],
+      name: configName,
+      mode,
+      entry,
+      output: {
+        path: outputPath,
+        filename: `bundle-${configName}.js`,
+        clean: configName === "default", // Only clean on first build
+        library: {
+          name: libraryName,
+          type: "commonjs2",
         },
+      },
+      optimization: {
+        minimize,
+      },
+      resolve: {
+        extensions: [".ts", ".tsx", ".js", ".jsx"],
+        alias: resolveAlias,
+      },
+      module: {
+        rules: [
+          {
+            test: /\.tsx?$/,
+            exclude: /node_modules/,
+            use: [
+              {
+                loader: "ts-loader",
+              },
+              {
+                loader: "i18next-auto-keys",
+                options: {
+                  include,
+                  setDefaultValue,
+                  sourcemap,
+                  argMode,
+                  ...loaderOptions,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      plugins: [
+        new I18nextAutoKeyEmitPlugin({
+          jsonOutputPath,
+        }),
       ],
-    },
-    plugins: [
-      new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath,
-      }),
-    ],
-    devtool: sourcemap ? "source-map" : false,
-    target,
+      devtool: sourcemap ? "source-map" : false,
+      target,
     },
     jsonOutputPath,
   };
