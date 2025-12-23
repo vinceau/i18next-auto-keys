@@ -1,9 +1,8 @@
 // plugins/i18nextAutoKeyRollupPlugin.ts
-import type { Plugin, PluginContext } from "rollup";
-import ts from "typescript";
-import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
+import type { Plugin } from "rollup";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
+import { transformMessages } from "../transformer/transformer";
 
 export type I18nextAutoKeyRollupPluginOptions = {
   /** Pattern(s) to match files for processing. Defaults to /\.messages\.(ts|tsx)$/ */
@@ -31,17 +30,28 @@ function matchesInclude(include: RegExp | RegExp[] | undefined, id: string): boo
 
 /**
  * Rollup/Vite plugin for i18next-auto-keys.
- * 
+ *
  * This plugin works with both Rollup and Vite because:
  * - Vite's plugin API is a superset of Rollup's plugin API
  * - We use only the common hooks (buildStart, transform, generateBundle)
  * - In Vite dev mode, transform still works (though buildStart/generateBundle are build-only)
- * 
+ *
+ * ## Source Map Support
+ *
+ * The plugin uses **magic-string** to track text transformations and generate accurate source maps.
+ * This provides:
+ * - High-fidelity line and column mappings
+ * - Proper handling of injected imports
+ * - Accurate multi-line expression tracking
+ * - Original source content preservation
+ *
+ * Source maps work seamlessly with debuggers and error reporting tools.
+ *
  * @example Rollup
  * ```js
  * // rollup.config.js
  * import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys/rollup';
- * 
+ *
  * export default {
  *   plugins: [
  *     i18nextAutoKeyRollupPlugin({
@@ -50,12 +60,12 @@ function matchesInclude(include: RegExp | RegExp[] | undefined, id: string): boo
  *   ]
  * };
  * ```
- * 
+ *
  * @example Vite
  * ```js
  * // vite.config.js
  * import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys/rollup';
- * 
+ *
  * export default {
  *   plugins: [
  *     i18nextAutoKeyRollupPlugin({
@@ -92,50 +102,26 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
       }
     },
 
-    // Transform TypeScript files (works in both Rollup and Vite, including Vite dev mode)
-    transform(code: string, id: string) {
-      // Skip if file doesn't match include pattern
-      if (!matchesInclude(pluginOptions.include, id)) {
-        return null;
-      }
+    transform(code, id) {
+      if (!matchesInclude(pluginOptions.include, id)) return null;
+      if (!id.endsWith(".ts") && !id.endsWith(".tsx")) return null;
 
-      // Skip non-TypeScript files
-      if (!id.endsWith(".ts") && !id.endsWith(".tsx")) {
-        return null;
-      }
+      // Use the unified core transformer
+      const result = transformMessages(code, id, {
+        argMode: pluginOptions.argMode,
+        setDefaultValue: pluginOptions.setDefaultValue,
+        debug: pluginOptions.debug,
+        hashLength: config.hashLength,
+      });
 
-      try {
-        // Create TypeScript source file
-        const sourceFile = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, true);
+      if (!result.didTransform) return null;
 
-        // Apply the transformer
-        const transformer = createI18nextAutoKeyTransformerFactory({
-          hashLength: config.hashLength,
-          argMode: pluginOptions.argMode,
-          setDefaultValue: pluginOptions.setDefaultValue,
-          debug: pluginOptions.debug,
-        });
-
-        const result = ts.transform(sourceFile, [transformer]);
-        const transformedFile = result.transformed[0] as ts.SourceFile;
-
-        // Print the transformed code
-        const printer = ts.createPrinter();
-        const transformedCode = printer.printFile(transformedFile);
-
-        result.dispose();
-
-        return {
-          code: transformedCode,
-          map: null, // TODO: Add source map support
-        };
-      } catch (error) {
-        this.error(`Failed to transform ${id}: ${error}`);
-        return null;
-      }
+      return {
+        code: result.code,
+        map: result.map,
+      };
     },
 
-    // Emit JSON file with collected translations (works in both Rollup and Vite build)
     generateBundle() {
       // Build a stable snapshot of entries
       const entries = Array.from(i18nStore.all().values()).sort((a, b) => a.id.localeCompare(b.id));
@@ -161,4 +147,3 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
     },
   };
 }
-

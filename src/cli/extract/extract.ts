@@ -2,12 +2,11 @@ import fs from "fs";
 import path from "path";
 import { sync as globSync } from "glob";
 import { normalizeGlobPattern } from "../utils/glob";
-import ts from "typescript";
 import type { ParameterMetadata } from "../../common/i18nStore";
 import { loadGettextParser } from "../loadGettextParser";
 import type { GetTextTranslationRecord } from "gettext-parser";
 
-import { loadConfig, i18nStore, createI18nextAutoKeyTransformerFactory } from "@/index";
+import { loadConfig, i18nStore, transformMessages } from "@/index";
 
 export type ExtractOptions = {
   source?: string;
@@ -15,7 +14,6 @@ export type ExtractOptions = {
   projectId?: string;
   include: string[];
   exclude?: string[];
-  tsconfig?: string;
 };
 
 /**
@@ -38,10 +36,6 @@ export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Pr
   // Clear the global store for each run (transformer uses the global store)
   i18nStore.clear();
 
-  // Find TypeScript config
-  const tsconfigPath = options.tsconfig || findTsConfig(source);
-  const compilerOptions = loadTsConfig(tsconfigPath);
-
   // Find source files to process
   const sourceFiles = findSourceFiles(source, include, exclude);
   console.log(`📁 Found ${sourceFiles.length} source files`);
@@ -51,15 +45,9 @@ export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Pr
     return;
   }
 
-  // Process each source file with the transformer
-  const transformer = createI18nextAutoKeyTransformerFactory({
-    // This needs to be the same as the loader options
-    hashLength: config.hashLength,
-    argMode: config.argMode,
-  });
-
+  // Process each source file with the unified core transformer
   for (const filePath of sourceFiles) {
-    await processSourceFile(filePath, transformer, compilerOptions);
+    await processSourceFile(filePath, config);
   }
 
   // Get collected translations
@@ -74,43 +62,6 @@ export async function extractKeysAndGeneratePotFile(options: ExtractOptions): Pr
   // Generate POT file
   await generatePot(entries, output, projectId);
   console.log(`✅ POT file generated: ${output}`);
-}
-
-function findTsConfig(sourceDir: string): string | undefined {
-  let currentDir = path.resolve(sourceDir);
-
-  while (currentDir !== path.dirname(currentDir)) {
-    const tsconfigPath = path.join(currentDir, "tsconfig.json");
-    if (fs.existsSync(tsconfigPath)) {
-      return tsconfigPath;
-    }
-    currentDir = path.dirname(currentDir);
-  }
-
-  return undefined;
-}
-
-function loadTsConfig(tsconfigPath?: string): ts.CompilerOptions {
-  if (!tsconfigPath || !fs.existsSync(tsconfigPath)) {
-    return {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ESNext,
-      esModuleInterop: true,
-      allowSyntheticDefaultImports: true,
-      strict: true,
-      skipLibCheck: true,
-    };
-  }
-
-  const configFile = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
-  if (configFile.error) {
-    console.warn(`⚠️  Error reading tsconfig.json: ${configFile.error.messageText}`);
-    return {};
-  }
-
-  const parsedConfig = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(tsconfigPath));
-
-  return parsedConfig.options;
 }
 
 function findSourceFiles(sourceDir: string, include: string[], exclude: string[]): string[] {
@@ -131,22 +82,20 @@ function findSourceFiles(sourceDir: string, include: string[], exclude: string[]
 
 async function processSourceFile(
   filePath: string,
-  transformer: ts.TransformerFactory<ts.SourceFile>,
-  compilerOptions: ts.CompilerOptions
+  config: { hashLength: number; argMode: "indexed" | "named" }
 ): Promise<void> {
   try {
     const sourceCode = fs.readFileSync(filePath, "utf8");
 
-    const sourceFile = ts.createSourceFile(
-      filePath,
-      sourceCode,
-      compilerOptions.target || ts.ScriptTarget.ES2020,
-      true // setParentNodes
-    );
+    // Use the unified core transformer - same as Rollup/Webpack
+    transformMessages(sourceCode, filePath, {
+      argMode: config.argMode,
+      setDefaultValue: false, // Not needed for extraction
+      debug: false, // Not needed for extraction
+      hashLength: config.hashLength,
+    });
 
-    // Apply the transformer to collect translation keys
-    const result = ts.transform(sourceFile, [transformer]);
-    result.dispose();
+    // transformMessages automatically records entries in i18nStore
   } catch (error) {
     console.error(`❌ Error processing ${filePath}:`, error);
   }

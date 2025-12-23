@@ -1,8 +1,7 @@
 import { validate } from "schema-utils";
 import type { LoaderContext } from "webpack";
 import type { RawSourceMap } from "source-map";
-import ts from "typescript";
-import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
+import { transformMessages } from "../transformer/transformer";
 import { loadConfig } from "../common/config/loadConfig";
 
 export type I18nextAutoKeyLoaderOptions = {
@@ -61,29 +60,30 @@ export function i18nextAutoKeyLoader(
     return;
   }
 
-  // ✅ Minimal working version - simpler than full program but still correct
-  const sourceFile = ts.createSourceFile(
-    this.resourcePath,
-    source,
-    ts.ScriptTarget.Latest,
-    true // ⚠️ setParentNodes REQUIRED for transformations
-  );
-
-  const transformer = createI18nextAutoKeyTransformerFactory({
-    hashLength: config.hashLength, // This needs to be the same as the config so don't override it with options
-    argMode: options.argMode,
-    setDefaultValue: options.setDefaultValue,
-    debug: options.debug,
+  // Use the unified core transformer (same as Rollup)
+  const result = transformMessages(source, this.resourcePath, {
+    argMode: options.argMode ?? "named",
+    setDefaultValue: options.setDefaultValue ?? false,
+    debug: options.debug ?? false,
+    hashLength: config.hashLength,
   });
 
-  const transformationResult = ts.transform(sourceFile, [transformer]);
-  const transformedSourceFile = transformationResult.transformed[0] as ts.SourceFile;
+  // Pass through if no transformation occurred
+  if (!result.didTransform) {
+    this.callback(null, source, inputMap, meta);
+    return;
+  }
 
-  const printer = ts.createPrinter();
-  const result = printer.printFile(transformedSourceFile); // Use printFile for SourceFile
-
-  transformationResult.dispose(); // Clean up
-
-  // ✅ Proper webpack loader protocol
-  this.callback(null, result, inputMap, meta);
+  // Return transformed code with source map
+  // Note: We're returning result.map directly without composing with inputMap.
+  // This is sufficient because:
+  // 1. Our loader typically processes standalone .messages.ts files directly
+  // 2. MagicString generates accurate mappings from input source to output
+  // 3. The source map includes the original source content (includeContent: true)
+  // 4. Webpack can compose source maps automatically in most configurations
+  //
+  // If source map composition is needed (rare case of loader chains), webpack's
+  // devtool configuration will handle it, or the source-map library could be used
+  // to manually compose inputMap + result.map.
+  this.callback(null, result.code, result.map, meta);
 }

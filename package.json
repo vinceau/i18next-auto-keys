@@ -31,6 +31,7 @@
     "commander": "^12.1.0",
     "cosmiconfig": "^9.0.0",
     "glob": "^11.0.0",
+    "magic-string": "^0.30.0",
     "schema-utils": "^4.3.3",
     "zod": "^4.1.12"
   },
@@ -53,7 +54,6 @@
     "memfs": "^4",
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
-    "source-map": "^0.7.6",
     "ts-jest": "^29.4.5",
     "ts-loader": "^9.5.4",
     "ts-node": "^10.9.2",

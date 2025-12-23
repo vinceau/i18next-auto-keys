@@ -7,9 +7,8 @@ jest.mock("fs", () => ({
   writeFileSync: jest.fn(),
 }));
 
-import ts from "typescript";
 import fs from "fs";
-import { createI18nextAutoKeyTransformerFactory } from "../transformer";
+import { transformMessages } from "../transformer";
 import { stableHash } from "../../common/hash";
 import { i18nStore } from "../../common/i18nStore";
 
@@ -18,59 +17,15 @@ const mockedFs = fs as jest.Mocked<typeof fs>;
 function transformTypeScript(sourceCode: string, transformerOptions: any): string {
   const fileName = "test.messages.ts";
 
-  // Create in-memory source file
-  const sourceFile = ts.createSourceFile(
-    fileName,
-    sourceCode,
-    ts.ScriptTarget.ES2020,
-    true // setParentNodes
-  );
-
-  // Create in-memory compiler host
-  const compilerHost: ts.CompilerHost = {
-    getSourceFile: (name) => (name === fileName ? sourceFile : undefined),
-    writeFile: () => {}, // No-op for in-memory
-    getCurrentDirectory: () => "",
-    getDirectories: () => [],
-    fileExists: (name) => name === fileName,
-    readFile: (name) => (name === fileName ? sourceCode : undefined),
-    getCanonicalFileName: (name) => name,
-    useCaseSensitiveFileNames: () => true,
-    getNewLine: () => "\n",
-    getDefaultLibFileName: () => "lib.d.ts",
-    resolveModuleNames: () => [],
-  };
-
-  // Create TypeScript program with in-memory host
-  const program = ts.createProgram(
-    [fileName],
-    {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.ES2020,
-      esModuleInterop: true,
-      allowSyntheticDefaultImports: true,
-      noLib: true, // Skip loading standard library for testing
-    },
-    compilerHost
-  );
-
-  // Apply transformer with mock output paths (won't be used in memory)
-  const transformer = createI18nextAutoKeyTransformerFactory({
-    ...transformerOptions,
-    jsonOutputPath: "/mock/output.json",
-    xliffOutputPath: "/mock/output.xliff",
+  // Use the unified core transformer - much simpler!
+  const result = transformMessages(sourceCode, fileName, {
+    argMode: transformerOptions.argMode ?? "named",
+    setDefaultValue: transformerOptions.setDefaultValue ?? false,
+    debug: transformerOptions.debug ?? false,
+    hashLength: transformerOptions.hashLength ?? 10,
   });
 
-  // Transform the source file
-  const result = ts.transform(sourceFile, [transformer]);
-  const transformedSourceFile = result.transformed[0] as ts.SourceFile;
-
-  // Print the transformed code
-  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed });
-  const transformedCode = printer.printFile(transformedSourceFile);
-
-  result.dispose();
-  return transformedCode;
+  return result.code;
 }
 
 beforeEach(() => {
@@ -270,13 +225,13 @@ it("handles @noTranslate with function expressions", () => {
   });
 
   // Functions with @noTranslate should remain unchanged
-  expect(transformedCode).toContain('skipFunction: function (): string { return "skip this"; }');
+  // Note: The unified transformer preserves original formatting
+  expect(transformedCode).toContain('skipFunction: function(): string { return "skip this"; }');
   expect(transformedCode).toContain('skipArrow: (): string => "skip arrow"');
 
   // Functions without @noTranslate should be transformed
-  // Function expressions get formatted with proper indentation by TypeScript printer
   expect(transformedCode).toContain(`return i18next.t("${stableHash("transform this", { hashLength: 10 })}");`);
-  expect(transformedCode).toMatch(/transformFunction:\s*function\s*\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
+  expect(transformedCode).toMatch(/transformFunction:\s*function\(\):\s*string\s*\{\s*return\s*i18next\.t\(/);
   expect(transformedCode).toContain(
     `transformArrow: (): string => i18next.t("${stableHash("transform arrow", { hashLength: 10 })}")`
   );
