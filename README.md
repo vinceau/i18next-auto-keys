@@ -1,7 +1,7 @@
 # i18next-auto-keys
 
 [![npm version](https://img.shields.io/npm/v/i18next-auto-keys.svg?style=flat)](https://npmjs.org/package/i18next-auto-keys "View this project on npm")
-[![Build Status](https://github.com/vinceau/i18next-auto-keys/workflows/build/badge.svg)](https://github.com/vinceau/i18next-auto-keys/actions?workflow=build)
+[![Build Status](https://github.com/vinceau/i18next-auto-keys/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/vinceau/i18next-auto-keys/actions/workflows/build.yml?query=branch%3Amaster)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Automatic translation key generation for i18next** - No more manual key management!
