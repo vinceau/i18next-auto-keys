@@ -13,19 +13,19 @@ export async function buildWithVite(configWithPath: { config: InlineConfig; json
 
   // Dynamically import Vite to handle ESM
   const { build } = await import("vite");
-  
+
   // Run Vite build with configFile: false to use inline config only
   // Use logLevel: 'silent' to suppress build output in tests
   await build({
     ...config,
     configFile: false,
-    logLevel: 'silent',
+    logLevel: "silent",
   });
 
   // Determine output paths from build config
   const outputDir = config.build?.outDir || path.resolve(__dirname, "../dist/vite");
   const lib = config.build?.lib;
-  
+
   let fileName = "bundle-default.js";
   if (lib && typeof lib !== "boolean") {
     if (typeof lib.fileName === "function") {
@@ -34,7 +34,7 @@ export async function buildWithVite(configWithPath: { config: InlineConfig; json
       fileName = lib.fileName;
     }
   }
-  
+
   const bundlePath = path.join(outputDir, fileName);
   const translationsPath = path.join(outputDir, jsonOutputPath);
 

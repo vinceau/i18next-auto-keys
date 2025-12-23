@@ -15,7 +15,7 @@ import { buildWithVite } from "./build";
  * - Easy to add/modify test scenarios
  * - Parameterized tests for comprehensive coverage
  * - Isolation between different configuration scenarios
- * 
+ *
  * Note: The i18nextAutoKeyRollupPlugin works seamlessly with Vite because Vite
  * uses Rollup under the hood for production builds and supports Rollup plugins.
  */
@@ -469,4 +469,3 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
     });
   });
 });
-

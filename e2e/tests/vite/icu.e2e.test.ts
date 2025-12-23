@@ -9,7 +9,7 @@
  * - Number formatting: {value, number, percent}
  * - Date formatting: {date, date, short}
  * - Select statements: {status, select, online {Online} offline {Offline}}
- * 
+ *
  * Note: Vite uses Rollup under the hood, so the i18nextAutoKeyRollupPlugin
  * works seamlessly with Vite's build process.
  */
@@ -102,21 +102,21 @@ describe("ICU Vite E2E Tests", () => {
           expect(bundleContent).not.toContain("Total size:");
         });
 
-      it("should preserve ICU formatting syntax in parameter objects", () => {
-        const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
+        it("should preserve ICU formatting syntax in parameter objects", () => {
+          const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
 
-        // Should contain parameter objects for ICU messages with appropriate parameter names
-        // Note: The code may be minified, so we check for the parameter names in the source
-        if (configName === "icuNamed") {
-          // Check for parameter names (count, readableBytes, completed, total, etc.)
-          expect(bundleContent).toMatch(/count[:\s,}]/);
-          expect(bundleContent).toMatch(/readableBytes[:\s,}]/);
-          expect(bundleContent).toMatch(/completed[:\s,}]/);
-        } else {
-          // For indexed, parameters should still be passed (0, 1, 2, etc.)
-          expect(bundleContent).toMatch(/[{,]\s*0\s*:/);
-        }
-      });
+          // Should contain parameter objects for ICU messages with appropriate parameter names
+          // Note: The code may be minified, so we check for the parameter names in the source
+          if (configName === "icuNamed") {
+            // Check for parameter names (count, readableBytes, completed, total, etc.)
+            expect(bundleContent).toMatch(/count[:\s,}]/);
+            expect(bundleContent).toMatch(/readableBytes[:\s,}]/);
+            expect(bundleContent).toMatch(/completed[:\s,}]/);
+          } else {
+            // For indexed, parameters should still be passed (0, 1, 2, etc.)
+            expect(bundleContent).toMatch(/[{,]\s*0\s*:/);
+          }
+        });
       });
 
       describe("ICU Translation File Generation", () => {
@@ -323,4 +323,3 @@ describe("ICU Vite E2E Tests", () => {
     });
   });
 });
-

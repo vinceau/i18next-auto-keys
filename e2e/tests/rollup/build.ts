@@ -11,7 +11,7 @@ export async function buildWithRollup(configWithPath: { config: RollupOptions; j
 }> {
   const { config, jsonOutputPath } = configWithPath;
   const { rollup } = await import("rollup");
-  
+
   const bundle = await rollup(config);
 
   // Generate the output

@@ -16,7 +16,7 @@ type ViteConfigOptions = {
 /**
  * Factory function to create different Vite configurations for testing
  * Returns an object with the Vite config and the jsonOutputPath for test consumption
- * 
+ *
  * Note: Vite uses Rollup under the hood for builds, so the i18nextAutoKeyRollupPlugin
  * works seamlessly with Vite's build process.
  */
@@ -131,4 +131,3 @@ const TEST_CONFIGURATIONS = {
 };
 
 export { createViteConfig, TEST_CONFIGURATIONS };
-
