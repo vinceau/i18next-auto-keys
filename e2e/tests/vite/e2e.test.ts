@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { build, InlineConfig } from "vite";
-import { TEST_CONFIGURATIONS, createViteConfig } from "./vite-configs";
+import type { InlineConfig } from "vite";
+import { TEST_CONFIGURATIONS } from "./vite-configs";
 
 /**
  * Helper function to build Vite with a specific configuration
@@ -12,14 +12,27 @@ async function buildWithConfig(configWithPath: { config: InlineConfig; jsonOutpu
 }> {
   const { config, jsonOutputPath } = configWithPath;
 
-  // Run Vite build
-  await build(config);
+  // Dynamically import Vite to handle ESM
+  const { build } = await import("vite");
+  
+  // Run Vite build with configFile: false to use inline config only
+  await build({
+    ...config,
+    configFile: false,
+  });
 
   // Determine output paths from build config
   const outputDir = config.build?.outDir || path.resolve(__dirname, "../../dist/vite");
-  const fileName = typeof config.build?.lib?.fileName === "function" 
-    ? config.build.lib.fileName("cjs", "")
-    : config.build?.lib?.fileName || "bundle-default.js";
+  const lib = config.build?.lib;
+  
+  let fileName = "bundle-default.js";
+  if (lib && typeof lib !== "boolean") {
+    if (typeof lib.fileName === "function") {
+      fileName = lib.fileName("cjs", "");
+    } else if (typeof lib.fileName === "string") {
+      fileName = lib.fileName;
+    }
+  }
   
   const bundlePath = path.join(outputDir, fileName);
   const translationsPath = path.join(outputDir, jsonOutputPath);

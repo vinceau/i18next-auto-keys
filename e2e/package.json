@@ -15,7 +15,7 @@
     "test:bundlers": "npm-run-all --parallel test:webpack test:rollup test:vite",
     "test:webpack": "jest --testPathPattern=tests/webpack",
     "test:rollup": "jest --testPathPattern=tests/rollup",
-    "test:vite": "jest --testPathPattern=tests/vite",
+    "test:vite": "NODE_OPTIONS=\"--experimental-vm-modules\" jest --testPathPattern=tests/vite",
     "test:watch": "jest --watch",
     "clean": "rimraf dist"
   },

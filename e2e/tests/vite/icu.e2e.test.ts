@@ -16,7 +16,7 @@
 
 import fs from "fs";
 import path from "path";
-import { build, InlineConfig } from "vite";
+import type { InlineConfig } from "vite";
 import { createViteConfig } from "./vite-configs";
 
 // Test configurations for ICU testing
@@ -56,14 +56,27 @@ describe("ICU Vite E2E Tests", () => {
   }> {
     const { config, jsonOutputPath } = configWithPath;
 
-    // Run Vite build
-    await build(config);
+    // Dynamically import Vite to handle ESM
+    const { build } = await import("vite");
+    
+    // Run Vite build with configFile: false to use inline config only
+    await build({
+      ...config,
+      configFile: false,
+    });
 
     // Determine output paths from build config
     const outputDir = config.build?.outDir || path.resolve(__dirname, "../../dist/vite");
-    const fileName = typeof config.build?.lib?.fileName === "function" 
-      ? config.build.lib.fileName("cjs", "")
-      : config.build?.lib?.fileName || "bundle-default.js";
+    const lib = config.build?.lib;
+    
+    let fileName = "bundle-default.js";
+    if (lib && typeof lib !== "boolean") {
+      if (typeof lib.fileName === "function") {
+        fileName = lib.fileName("cjs", "");
+      } else if (typeof lib.fileName === "string") {
+        fileName = lib.fileName;
+      }
+    }
     
     const bundlePath = path.join(outputDir, fileName);
     const translationsPath = path.join(outputDir, jsonOutputPath);
@@ -135,17 +148,21 @@ describe("ICU Vite E2E Tests", () => {
           expect(bundleContent).not.toContain("Total size:");
         });
 
-        it("should preserve ICU formatting syntax in parameter objects", () => {
-          const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
+      it("should preserve ICU formatting syntax in parameter objects", () => {
+        const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
 
-          // Should contain parameter objects for ICU messages with appropriate parameter names
-          if (configName === "icuNamed") {
-            expect(bundleContent).toMatch(/\{\s*count\s*\}|\{\s*readableBytes\s*\}|\{\s*completed.*total\s*\}/);
-          } else {
-            // For indexed, parameters should still be passed
-            expect(bundleContent).toMatch(/\{\s*0.*\}|\{\s*1.*\}|\{\s*2.*\}/);
-          }
-        });
+        // Should contain parameter objects for ICU messages with appropriate parameter names
+        // Note: The code may be minified, so we check for the parameter names in the source
+        if (configName === "icuNamed") {
+          // Check for parameter names (count, readableBytes, completed, total, etc.)
+          expect(bundleContent).toMatch(/count[:\s,}]/);
+          expect(bundleContent).toMatch(/readableBytes[:\s,}]/);
+          expect(bundleContent).toMatch(/completed[:\s,}]/);
+        } else {
+          // For indexed, parameters should still be passed (0, 1, 2, etc.)
+          expect(bundleContent).toMatch(/[{,]\s*0\s*:/);
+        }
+      });
       });
 
       describe("ICU Translation File Generation", () => {

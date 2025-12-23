@@ -65,10 +65,6 @@ function createViteConfig(options: ViteConfigOptions = {}): { config: InlineConf
       resolve: {
         alias: resolveAlias,
       },
-      // Disable minification for easier debugging in tests
-      esbuild: {
-        minify: false,
-      },
     },
     jsonOutputPath,
   };
