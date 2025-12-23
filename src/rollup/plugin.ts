@@ -32,10 +32,31 @@ function matchesInclude(include: RegExp | RegExp[] | undefined, id: string): boo
 
 /**
  * Generate a source map for the transformed code.
- * Since our transformer preserves most of the source structure via ts.setTextRange,
- * we generate a source map that maps each line from output back to the input.
+ *
+ * IMPORTANT LIMITATIONS:
+ * This is an APPROXIMATE source map that handles basic cases but has known limitations:
+ * 1. Accounts for the injected i18next import (if present)
+ * 2. Assumes mostly 1:1 line mappings for the rest
+ * 3. Does NOT accurately handle:
+ *    - Multi-line expressions that get collapsed
+ *    - Significant whitespace changes
+ *    - Complex AST transformations
+ *
+ * For perfect source maps, we would need to use a library like magic-string
+ * to track actual text transformations, but that's incompatible with
+ * TypeScript's AST-based approach.
+ *
+ * This approximate mapping is still useful for:
+ * - Basic debugging
+ * - Getting close to the right line when errors occur
+ * - Better than no source map for simple transformations
  */
-function generateSourceMap(originalCode: string, transformedCode: string, fileName: string) {
+function generateSourceMap(
+  originalCode: string,
+  transformedCode: string,
+  fileName: string,
+  importWasInjected: boolean
+) {
   const generator = new SourceMapGenerator({
     file: fileName,
   });
@@ -43,23 +64,36 @@ function generateSourceMap(originalCode: string, transformedCode: string, fileNa
   // Add the source file
   generator.setSourceContent(fileName, originalCode);
 
-  // Split both codes into lines
-  const originalLines = originalCode.split("\n");
   const transformedLines = transformedCode.split("\n");
+  const originalLines = originalCode.split("\n");
 
-  // Create a simple line-to-line mapping
-  // This works because TypeScript's printer preserves structure and our transformer
-  // uses ts.setTextRange to maintain source positions
-  transformedLines.forEach((line, index) => {
-    if (line.trim().length > 0) {
-      // Map each line in the transformed code back to the corresponding line in the original
-      // We use a simple 1:1 mapping since the transformation preserves structure
-      const originalLine = Math.min(index, originalLines.length - 1);
+  // If we injected an import, it's at line 1, so we need to offset
+  const importLineCount = importWasInjected ? 1 : 0;
 
+  transformedLines.forEach((line, transformedIndex) => {
+    if (line.trim().length === 0) return; // Skip empty lines
+
+    // Handle the injected import line specially
+    if (importWasInjected && transformedIndex === 0 && line.includes('import i18next')) {
+      // Map the import line to the first line of original file
+      // (it doesn't really exist in original, but this is the best we can do)
       generator.addMapping({
         source: fileName,
-        original: { line: originalLine + 1, column: 0 }, // source-map uses 1-based lines
-        generated: { line: index + 1, column: 0 },
+        original: { line: 1, column: 0 },
+        generated: { line: 1, column: 0 },
+      });
+      return;
+    }
+
+    // For other lines, offset by the number of injected lines
+    const originalIndex = transformedIndex - importLineCount;
+
+    // Ensure we don't go out of bounds
+    if (originalIndex >= 0 && originalIndex < originalLines.length) {
+      generator.addMapping({
+        source: fileName,
+        original: { line: originalIndex + 1, column: 0 }, // source-map uses 1-based lines
+        generated: { line: transformedIndex + 1, column: 0 },
       });
     }
   });
@@ -74,6 +108,22 @@ function generateSourceMap(originalCode: string, transformedCode: string, fileNa
  * - Vite's plugin API is a superset of Rollup's plugin API
  * - We use only the common hooks (buildStart, transform, generateBundle)
  * - In Vite dev mode, transform still works (though buildStart/generateBundle are build-only)
+ *
+ * ## Source Map Support
+ *
+ * The plugin generates source maps with the following characteristics:
+ * - Accounts for injected i18next imports
+ * - Provides approximate line-to-line mappings
+ * - Useful for basic debugging and error tracking
+ *
+ * **Known Limitations:**
+ * - Multi-line expressions that get collapsed may not map perfectly
+ * - Significant whitespace changes are not tracked
+ * - Column-level mappings are not provided (line-level only)
+ *
+ * These limitations are inherent to using TypeScript's AST transformation API,
+ * which doesn't provide detailed source position tracking during code generation.
+ * For most use cases, the approximate mappings are sufficient for debugging.
  *
  * @example Rollup
  * ```js
@@ -146,6 +196,9 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
         // Create TypeScript source file
         const sourceFile = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, true);
 
+        // Check if original file has i18next import
+        const hadI18nextImport = code.includes('import i18next');
+
         // Apply the transformer
         const transformer = createI18nextAutoKeyTransformerFactory({
           hashLength: config.hashLength,
@@ -163,10 +216,12 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
 
         result.dispose();
 
-        // Generate source map
-        // Since our transformer preserves most of the source structure via ts.setTextRange,
-        // we generate a source map that maps each line from output back to the input.
-        const map = generateSourceMap(code, transformedCode, id);
+        // Check if transformer injected an import
+        const hasI18nextImport = transformedCode.includes('import i18next');
+        const importWasInjected = hasI18nextImport && !hadI18nextImport;
+
+        // Generate source map (with limitations - see function documentation)
+        const map = generateSourceMap(code, transformedCode, id, importWasInjected);
 
         return {
           code: transformedCode,
