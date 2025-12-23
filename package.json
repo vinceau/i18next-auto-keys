@@ -41,6 +41,11 @@
     "webpack": "^5",
     "typescript": "^5"
   },
+  "peerDependenciesMeta": {
+    "webpack": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",
     "@types/glob": "^8.1.0",
@@ -71,6 +76,7 @@
     "translation",
     "webpack",
     "loader",
+    "plugin",
     "transformer"
   ]
 }

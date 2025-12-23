@@ -1,6 +1,6 @@
 import path from "path";
 import { Configuration } from "webpack";
-const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
+const { I18nextAutoKeyEmitPlugin } = require("i18next-auto-keys");
 
 type WebpackConfigOptions = {
   configName?: string;
@@ -21,31 +21,35 @@ type WebpackConfigOptions = {
 
 /**
  * Factory function to create different webpack configurations for testing
+ * Returns an object with the webpack config and the jsonOutputPath for test consumption
  */
-function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration {
+function createWebpackConfig(options: WebpackConfigOptions = {}): { config: Configuration; jsonOutputPath: string } {
   const {
     configName = "default",
     mode = "development",
     include = /\.messages\.(ts|tsx)$/,
     setDefaultValue = false,
     sourcemap = true,
-    jsonOutputPath = "locales/en.json",
     minimize = false,
-    outputPath = "dist",
+    outputPath = path.resolve(__dirname, "../../dist/webpack"),
     libraryName = "TestBundle",
     target = "node",
     loaderOptions = {},
     argMode = "named",
     resolveAlias = {},
-    entry = "./src/index.ts",
+    entry = path.resolve(__dirname, "../../fixtures/index.ts"),
   } = options;
 
+  // Always use standard translation file name
+  const jsonOutputPath = options.jsonOutputPath || "locales/en.json";
+
   return {
+    config: {
     name: configName,
     mode,
     entry,
     output: {
-      path: path.resolve(__dirname, outputPath),
+      path: outputPath,
       filename: `bundle-${configName}.js`,
       clean: configName === "default", // Only clean on first build
       library: {
@@ -70,7 +74,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
               loader: "ts-loader",
             },
             {
-              loader: path.resolve(__dirname, "../dist/index.js"),
+              loader: "i18next-auto-keys",
               options: {
                 include,
                 setDefaultValue,
@@ -85,11 +89,13 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     },
     plugins: [
       new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: jsonOutputPath,
+        jsonOutputPath,
       }),
     ],
     devtool: sourcemap ? "source-map" : false,
     target,
+    },
+    jsonOutputPath,
   };
 }
 
@@ -146,8 +152,8 @@ const TEST_CONFIGURATIONS = {
     configName: "indexed-arguments",
     argMode: "indexed",
     resolveAlias: {
-      "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
-      "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
+      "./messages/auth.messages": path.resolve(__dirname, "../../fixtures/messages/auth-indexed.messages.ts"),
+      "./messages/ui.messages": path.resolve(__dirname, "../../fixtures/messages/ui-indexed.messages.ts"),
     },
   }),
 

@@ -1,4 +1,4 @@
-import { I18nextAutoKeyEmitPlugin } from "../i18nextAutoKeyEmitPlugin";
+import { I18nextAutoKeyEmitPlugin } from "../plugin";
 import { i18nStore } from "../../common/i18nStore";
 import type { Compiler, Compilation } from "webpack";
 

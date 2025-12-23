@@ -1,6 +1,6 @@
-import { i18nextAutoKeyLoader } from "./loaders/i18nextAutoKeyLoader";
-import { I18nextAutoKeyEmitPlugin } from "./plugins/i18nextAutoKeyEmitPlugin";
-import { createI18nextAutoKeyTransformerFactory } from "./transformers/i18nextAutoKeyTransformer";
+import { i18nextAutoKeyLoader } from "./webpack/loader";
+import { I18nextAutoKeyEmitPlugin } from "./webpack/plugin";
+import { createI18nextAutoKeyTransformerFactory } from "./transformer/transformer";
 import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";
 import { stableHash } from "./common/hash";

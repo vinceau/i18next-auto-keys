@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { loadConfig } from "../../dist/index";
+import { loadConfig } from "i18next-auto-keys";
 
 /**
  * Simplified E2E Tests for Configuration System

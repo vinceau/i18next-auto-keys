@@ -1,4 +1,4 @@
-import { compileWithMemoryFS } from "../../loaders/tests/helpers/compile";
+import { compileWithMemoryFS } from "./helpers/compile";
 import { stableHash } from "../../common/hash";
 
 // Import from the SAME path that the bundled loader uses to ensure same instance

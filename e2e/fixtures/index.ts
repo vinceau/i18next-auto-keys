@@ -1,20 +1,20 @@
 // Main entry point for e2e testing
 import fs from "fs";
 import path from "path";
-import { AuthMessages } from "./auth.messages";
-import { UIMessages } from "./ui.messages";
-import { ContextMessages } from "./context.messages";
+import { AuthMessages } from "./messages/auth.messages";
+import { UIMessages } from "./messages/ui.messages";
+import { ContextMessages } from "./messages/context.messages";
 import i18next from "i18next";
 
-// Flag to track if i18next has been initialized
 let isInitialized = false;
 
 /**
  * Initialize i18next with the generated translations
  * This must be called after webpack has generated the translation files
+ * Set force=true to reinitialize even if already initialized
  */
-export async function initializeI18n(translationsDir: string): Promise<void> {
-  if (isInitialized) return;
+export async function initializeI18n(translationsDir: string, force: boolean = false): Promise<void> {
+  if (isInitialized && !force) return;
 
   const translationsPath = path.join(translationsDir, "en.json");
   let translations = {};

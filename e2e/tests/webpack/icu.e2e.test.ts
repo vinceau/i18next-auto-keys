@@ -13,11 +13,11 @@
 
 import fs from "fs";
 import path from "path";
-import webpack, { Configuration } from "webpack";
+import webpack, { Configuration, Stats } from "webpack";
 import { promisify } from "util";
-import { createWebpackConfig } from "../webpack-configs";
+import { createWebpackConfig } from "./webpack-configs";
 
-const webpackAsync = promisify(webpack);
+const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<Stats | undefined>;
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
@@ -26,7 +26,7 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "named",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./src/icu-index.ts",
+    entry: path.resolve(__dirname, "../../fixtures/icu-index.ts"),
     jsonOutputPath: "locales/icu-named-en.json",
   }),
 
@@ -35,33 +35,36 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "indexed",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./src/icu-index.ts",
+    entry: path.resolve(__dirname, "../../fixtures/icu-index.ts"),
     jsonOutputPath: "locales/icu-indexed-en.json",
     resolveAlias: {
-      "./replay-browser.messages": path.resolve(__dirname, "../src/replay-browser-indexed.messages.ts"),
+      "./messages/replay-browser.messages": path.resolve(__dirname, "../../fixtures/messages/replay-browser-indexed.messages.ts"),
     },
   }),
 };
 
 describe("ICU E2E Tests", () => {
-  const distPath = path.resolve(__dirname, "../dist");
+  const distPath = path.resolve(__dirname, "../../dist/webpack");
 
   // Helper function to build webpack with a given configuration
-  async function buildWithConfig(config: any): Promise<{
+  async function buildWithConfig(configWithPath: { config: Configuration; jsonOutputPath: string }): Promise<{
     bundlePath: string;
     translationsPath: string;
-    stats: any;
+    stats: Stats | undefined;
   }> {
+    // Extract config and jsonOutputPath
+    const { config, jsonOutputPath } = configWithPath;
+
     const stats = await webpackAsync([config]);
 
     if (stats && stats.hasErrors()) {
       const errors = stats.toJson().errors;
-      throw new Error(`Webpack build failed: ${errors?.map((e: any) => e.message).join("\n") || "Unknown error"}`);
+      throw new Error(`Webpack build failed: ${errors?.map((e) => e.message).join("\n") || "Unknown error"}`);
     }
 
     const configName = config.name || "default";
     const bundlePath = path.join(config.output!.path!, `bundle-${configName}.js`);
-    const translationsPath = path.join(config.output!.path!, `locales/${configName}-en.json`);
+    const translationsPath = path.join(config.output!.path!, jsonOutputPath);
 
     return { bundlePath, translationsPath, stats };
   }
@@ -94,11 +97,11 @@ describe("ICU E2E Tests", () => {
     });
   });
 
-  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, config: any) => {
+  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
     let buildResult: {
       bundlePath: string;
       translationsPath: string;
-      stats: webpack.Stats;
+      stats: Stats | undefined;
     };
 
     beforeAll(async () => {
@@ -109,7 +112,7 @@ describe("ICU E2E Tests", () => {
         }
       });
 
-      buildResult = await buildWithConfig(config);
+      buildResult = await buildWithConfig(configWithPath);
     }, 60000);
 
     afterAll(() => {
@@ -120,8 +123,8 @@ describe("ICU E2E Tests", () => {
       it("should transform ICU messages to i18next.t() calls", () => {
         const bundleContent = fs.readFileSync(buildResult.bundlePath, "utf8");
 
-        // Should contain i18next.t() calls (webpack bundles it as i18next_1.default.t)
-        expect(bundleContent).toMatch(/i18next_\d+\.default\.t\(|i18next\.t\(/);
+        // Should contain i18next.t() calls (webpack bundles it as i18next__WEBPACK_IMPORTED_MODULE_0__["default"].t or i18next.t)
+        expect(bundleContent).toMatch(/i18next[_\w]*\["default"\]\.t\(|i18next\.t\(/);
 
         // Should not contain the original ICU template strings
         expect(bundleContent).not.toContain("plural, one {# file} other {# files}} found");

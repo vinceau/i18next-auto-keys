@@ -1,16 +1,13 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/tests'],
-  testMatch: ['**/*.test.ts'],
+  testMatch: ['**/tests/**/*.test.ts'],
   collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
+    'tests/**/*.ts',
+    '!tests/**/*.d.ts',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  transform: {
-    '^.+\\.tsx?$': 'ts-jest',
-  },
-  testTimeout: 30000, // Webpack builds might take time
-  verbose: true,
+  testTimeout: 30000,
+  maxWorkers: 1, // Run tests serially since builds can interfere
 };
+
