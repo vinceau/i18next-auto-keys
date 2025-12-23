@@ -1,5 +1,5 @@
 // plugins/i18nextAutoKeyRollupPlugin.ts
-import type { Plugin, PluginContext } from "rollup";
+import type { Plugin } from "rollup";
 import ts from "typescript";
 import MagicString from "magic-string";
 import { i18nStore } from "../common/i18nStore";

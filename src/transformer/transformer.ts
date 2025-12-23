@@ -6,13 +6,8 @@ import {
   recordMessage,
   extractTranslationContext,
   hasNoTranslateTag,
-  extractReturnStringLiteral,
-  extractParameterMetadata,
-  anchorForMessageNode,
-  getLeadingComments,
 } from "./transformHelpers";
 import { stringPool } from "../common/stringPool";
-import { i18nStore, toRelPosix } from "../common/i18nStore";
 
 export type I18nextAutoKeyTransformerOptions = {
   hashLength?: number;
