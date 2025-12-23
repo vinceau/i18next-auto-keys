@@ -70,6 +70,10 @@ module.exports = {
           loader: 'ts-loader',
           options: {
             configFile: 'tsconfig.build.json',
+            transpileOnly: false,
+            compilerOptions: {
+              skipLibCheck: true,
+            },
           },
         },
         exclude: [/node_modules/, /\.test\.ts$/, /tests/],
@@ -81,6 +85,7 @@ module.exports = {
     {
       webpack: 'webpack',
       typescript: 'typescript',
+      rollup: 'rollup',
       'gettext-parser': 'gettext-parser',
       // Keep external dependencies as externals instead of bundling them
       ...Object.keys(pkg.dependencies).reduce((acc, dep) => {
