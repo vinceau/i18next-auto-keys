@@ -12,7 +12,6 @@
 - 📍 **Colocated translations** - Text strings live next to the components that use them
 - 📦 **Framework agnostic** - Works with React, Vue, Angular, or vanilla JS
 - 🔒 **Typesafe by default** - Full TypeScript support with AST transformation
-- ⚡ **Multiple bundler support** - Works with Webpack, Vite, and Rollup
 
 ## 🎯 Why this over other i18next libraries?
 
@@ -32,11 +31,8 @@ With `i18next-auto-keys`, you:
 ## 📋 Requirements
 
 - Node.js 16+
-- TypeScript 5+ (We use a TypeScript transformer)
-- One of the following bundlers:
-  - **Webpack 5+** (Webpack loader + plugin)
-  - **Vite** (Rollup plugin, works in dev and build)
-  - **Rollup 4+** (Rollup plugin)
+- Webpack 5+
+- TypeScript 5+ (We use a Typescript transformer)
 
 ## 📦 Installation
 
@@ -99,10 +95,7 @@ function LoginForm(props) {
 }
 ```
 
-### 3. Configure your bundler
-
-<details>
-<summary><strong>Webpack Configuration</strong></summary>
+### 3. Configure webpack
 
 ```javascript
 // webpack.config.js
@@ -131,52 +124,6 @@ module.exports = {
   ]
 };
 ```
-
-</details>
-
-<details>
-<summary><strong>Vite Configuration</strong></summary>
-
-```javascript
-// vite.config.js
-import { defineConfig } from 'vite';
-import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys';
-
-export default defineConfig({
-  plugins: [
-    i18nextAutoKeyRollupPlugin({
-      jsonOutputPath: 'locales/en.json',
-      setDefaultValue: process.env.NODE_ENV === 'development',
-    }),
-  ],
-});
-```
-
-</details>
-
-<details>
-<summary><strong>Rollup Configuration</strong></summary>
-
-```javascript
-// rollup.config.js
-import { i18nextAutoKeyRollupPlugin } from 'i18next-auto-keys';
-import typescript from '@rollup/plugin-typescript';
-
-export default {
-  input: 'src/index.ts',
-  output: { dir: 'dist', format: 'esm' },
-  plugins: [
-    typescript(),
-    i18nextAutoKeyRollupPlugin({
-      jsonOutputPath: 'locales/en.json',
-    }),
-  ],
-};
-```
-
-[**→ Full Vite & Rollup documentation**](USAGE_VITE_ROLLUP.md)
-
-</details>
 
 ### 4. Profit!
 
