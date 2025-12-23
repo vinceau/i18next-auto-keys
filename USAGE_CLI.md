@@ -89,7 +89,6 @@ Here's a complete translation workflow using all three CLI commands:
 - `--project-id, -p` (optional): Project ID for POT header (defaults to `projectId` from config, which defaults to package.json name and version if available, fallback: 'app 1.0')
 - `--source, -s`: Source directory to scan for translation keys (default: current directory)
 - `--exclude, -e`: File patterns to exclude (default: ["node_modules/**", "dist/**", "build/**"])
-- `--tsconfig, -t`: Path to tsconfig.json file (auto-detected if not specified)
 
 **Translation Context Support:**
 - Extracts `@translationContext` from JSDoc comments for message disambiguation
