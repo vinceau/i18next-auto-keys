@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import type { InlineConfig } from "vite";
 import { createViteConfig } from "./vite-configs";
+import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
@@ -88,15 +89,7 @@ describe("ICU Vite E2E Tests", () => {
 
   // Helper function to clean up artifacts for a specific configuration
   function cleanConfigArtifacts(configName: string, distPath: string) {
-    const bundlePath = path.join(distPath, `bundle-${configName}.js`);
-    const bundleMapPath = path.join(distPath, `bundle-${configName}.js.map`);
-    const translationsPath = path.join(distPath, `locales/${configName}-en.json`);
-
-    [bundlePath, bundleMapPath, translationsPath].forEach((filePath) => {
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
-    });
+    cleanIcuConfigArtifacts(configName, distPath);
   }
 
   beforeAll(() => {
@@ -125,11 +118,7 @@ describe("ICU Vite E2E Tests", () => {
 
       beforeAll(async () => {
         // Clear require cache to prevent global state leakage
-        Object.keys(require.cache).forEach((key) => {
-          if (key.includes("dist/index.js") || key.includes("i18next-auto-keys")) {
-            delete require.cache[key];
-          }
-        });
+        clearModuleCache();
 
         buildResult = await buildWithConfig(configWithPath);
       }, 60000);

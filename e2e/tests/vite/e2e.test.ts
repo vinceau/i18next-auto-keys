@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { InlineConfig } from "vite";
 import { TEST_CONFIGURATIONS } from "./vite-configs";
+import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
 
 /**
  * Helper function to build Vite with a specific configuration
@@ -40,21 +41,6 @@ async function buildWithConfig(configWithPath: { config: InlineConfig; jsonOutpu
   const translationsPath = path.join(outputDir, jsonOutputPath);
 
   return { bundlePath, translationsPath };
-}
-
-/**
- * Helper to clean build artifacts for a specific configuration
- */
-function cleanConfigArtifacts(configName: string, distPath: string) {
-  const bundlePath = path.join(distPath, `bundle-${configName}.js`);
-  const bundleMapPath = path.join(distPath, `bundle-${configName}.js.map`);
-  const translationsPath = path.join(distPath, "locales/en.json");
-
-  [bundlePath, bundleMapPath, translationsPath].forEach((filePath) => {
-    if (fs.existsSync(filePath)) {
-      fs.rmSync(filePath, { force: true });
-    }
-  });
 }
 
 /**
@@ -102,11 +88,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
     beforeAll(async () => {
       // Clear any cached modules and global state between configurations
       // This prevents the global store in the transformer from persisting across configurations
-      Object.keys(require.cache).forEach((key) => {
-        if (key.includes("dist/index.js") || key.includes("i18next-auto-keys")) {
-          delete require.cache[key];
-        }
-      });
+      clearModuleCache();
 
       // Build with the specific configuration
       buildResult = await buildWithConfig(configWithPath);
@@ -366,11 +348,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
   describe("Configuration-Specific Behavior", () => {
     beforeEach(() => {
       // Clear require cache before each test to ensure fresh global state
-      Object.keys(require.cache).forEach((key) => {
-        if (key.includes("dist/index.js") || key.includes("i18next-auto-keys")) {
-          delete require.cache[key];
-        }
-      });
+      clearModuleCache();
     });
 
     it("should demonstrate programmatic configuration capabilities", async () => {
@@ -492,11 +470,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
       const indexedResult = await buildWithConfig(indexedConfig);
 
       // Clear require cache to ensure fresh module load including i18next state
-      Object.keys(require.cache).forEach((key) => {
-        if (key.includes(path.dirname(indexedResult.bundlePath)) || key.includes("i18next")) {
-          delete require.cache[key];
-        }
-      });
+      clearBundleCache(indexedResult.bundlePath);
 
       const indexedBundle = require(indexedResult.bundlePath);
       await indexedBundle.initializeI18n(path.dirname(indexedResult.translationsPath), true); // force reinit
