@@ -101,6 +101,8 @@ function LoginForm(props) {
 
 ### 3. Configure your bundler
 
+[**→ Full Vite & Rollup documentation**](USAGE_VITE_ROLLUP.md)
+
 <details>
 <summary><strong>Webpack Configuration</strong></summary>
 
@@ -169,13 +171,11 @@ export default {
     typescript(),
     i18nextAutoKeyRollupPlugin({
       jsonOutputPath: 'locales/en.json',
+      setDefaultValue: process.env.NODE_ENV === 'development',
     }),
   ],
 };
 ```
-
-[**→ Full Vite & Rollup documentation**](USAGE_VITE_ROLLUP.md)
-
 </details>
 
 ### 4. Profit!
