@@ -1,5 +1,6 @@
 import { i18nextAutoKeyLoader } from "./webpack/loader";
 import { I18nextAutoKeyEmitPlugin } from "./webpack/plugin";
+import { i18nextAutoKeyRollupPlugin } from "./rollup/plugin";
 import { createI18nextAutoKeyTransformerFactory } from "./transformer/transformer";
 import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";
@@ -9,6 +10,7 @@ import { stableHash } from "./common/hash";
 module.exports = i18nextAutoKeyLoader;
 module.exports.I18nextAutoKeyEmitPlugin = I18nextAutoKeyEmitPlugin;
 module.exports.i18nextAutoKeyLoader = i18nextAutoKeyLoader;
+module.exports.i18nextAutoKeyRollupPlugin = i18nextAutoKeyRollupPlugin;
 
 // Shared functionality for CLI and advanced users
 module.exports.createI18nextAutoKeyTransformerFactory = createI18nextAutoKeyTransformerFactory;
@@ -21,6 +23,7 @@ module.exports.stableHash = stableHash;
 export {
   i18nextAutoKeyLoader,
   I18nextAutoKeyEmitPlugin,
+  i18nextAutoKeyRollupPlugin,
   createI18nextAutoKeyTransformerFactory,
   i18nStore,
   loadConfig,

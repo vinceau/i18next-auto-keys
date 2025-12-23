@@ -81,6 +81,7 @@ module.exports = {
     {
       webpack: 'webpack',
       typescript: 'typescript',
+      rollup: 'rollup',
       'gettext-parser': 'gettext-parser',
       // Keep external dependencies as externals instead of bundling them
       ...Object.keys(pkg.dependencies).reduce((acc, dep) => {

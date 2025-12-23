@@ -38,19 +38,14 @@
     "gettext-parser": "^8.0.0"
   },
   "peerDependencies": {
-    "webpack": "^5",
     "typescript": "^5"
-  },
-  "peerDependenciesMeta": {
-    "webpack": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@types/gettext-parser": "^8.0.0",
     "@types/glob": "^8.1.0",
     "@types/jest": "^29",
     "@types/webpack": "^5",
+    "rollup": "^4",
     "dts-bundle-generator": "^9.5.1",
     "esbuild-loader": "^4.4.0",
     "gettext-parser": "^8.0.0",
@@ -75,6 +70,8 @@
     "i18next",
     "translation",
     "webpack",
+    "rollup",
+    "vite",
     "loader",
     "plugin",
     "transformer"
