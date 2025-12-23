@@ -2,46 +2,7 @@ import fs from "fs";
 import path from "path";
 import type { InlineConfig } from "vite";
 import { TEST_CONFIGURATIONS } from "./vite-configs";
-import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
-
-/**
- * Helper function to build Vite with a specific configuration
- */
-async function buildWithConfig(configWithPath: { config: InlineConfig; jsonOutputPath: string }): Promise<{
-  bundlePath: string;
-  translationsPath: string;
-}> {
-  const { config, jsonOutputPath } = configWithPath;
-
-  // Dynamically import Vite to handle ESM
-  const { build } = await import("vite");
-  
-  // Run Vite build with configFile: false to use inline config only
-  // Use logLevel: 'silent' to suppress build output in tests
-  await build({
-    ...config,
-    configFile: false,
-    logLevel: 'silent',
-  });
-
-  // Determine output paths from build config
-  const outputDir = config.build?.outDir || path.resolve(__dirname, "../../dist/vite");
-  const lib = config.build?.lib;
-  
-  let fileName = "bundle-default.js";
-  if (lib && typeof lib !== "boolean") {
-    if (typeof lib.fileName === "function") {
-      fileName = lib.fileName("cjs", "");
-    } else if (typeof lib.fileName === "string") {
-      fileName = lib.fileName;
-    }
-  }
-  
-  const bundlePath = path.join(outputDir, fileName);
-  const translationsPath = path.join(outputDir, jsonOutputPath);
-
-  return { bundlePath, translationsPath };
-}
+import { buildWithVite, cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
 
 /**
  * E2E Tests for i18next-auto-keys with Programmatic Vite Configurations
@@ -81,7 +42,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
 
   // Parameterized tests for each Vite configuration
   describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
-    let buildResult: Awaited<ReturnType<typeof buildWithConfig>>;
+    let buildResult: Awaited<ReturnType<typeof buildWithVite>>;
     let transformedCode: string;
     let translations: Record<string, string>;
 
@@ -91,7 +52,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
       clearModuleCache();
 
       // Build with the specific configuration
-      buildResult = await buildWithConfig(configWithPath);
+      buildResult = await buildWithVite(configWithPath);
 
       // Verify build outputs exist
       expect(fs.existsSync(buildResult.bundlePath)).toBe(true);
@@ -359,8 +320,8 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
       const defaultConfig = TEST_CONFIGURATIONS.default;
       const prodConfig = TEST_CONFIGURATIONS.production;
 
-      const defaultResult = await buildWithConfig(defaultConfig);
-      const prodResult = await buildWithConfig(prodConfig);
+      const defaultResult = await buildWithVite(defaultConfig);
+      const prodResult = await buildWithVite(prodConfig);
 
       // Test that both configurations produce working bundles
       delete require.cache[defaultResult.bundlePath];
@@ -405,7 +366,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
 
     it("should handle production mode correctly", async () => {
       const prodConfig = TEST_CONFIGURATIONS.production;
-      const result = await buildWithConfig(prodConfig);
+      const result = await buildWithVite(prodConfig);
 
       expect(fs.existsSync(result.bundlePath)).toBe(true);
       expect(fs.existsSync(result.translationsPath)).toBe(true);
@@ -419,7 +380,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
 
     it("should respect include patterns correctly", async () => {
       const strictConfig = TEST_CONFIGURATIONS.strictInclude;
-      const result = await buildWithConfig(strictConfig);
+      const result = await buildWithVite(strictConfig);
 
       // Clear require cache and load the bundle
       delete require.cache[result.bundlePath];
@@ -452,7 +413,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
 
     it("should produce correct results with named argument mode", async () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
-      const namedResult = await buildWithConfig(namedConfig);
+      const namedResult = await buildWithVite(namedConfig);
 
       delete require.cache[namedResult.bundlePath];
       const namedBundle = require(namedResult.bundlePath);
@@ -467,7 +428,7 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
 
     it("should produce correct results with indexed argument mode", async () => {
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       // Clear require cache to ensure fresh module load including i18next state
       clearBundleCache(indexedResult.bundlePath);
@@ -488,8 +449,8 @@ describe("i18next-auto-keys Vite E2E Tests", () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
 
-      const namedResult = await buildWithConfig(namedConfig);
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const namedResult = await buildWithVite(namedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));

@@ -2,36 +2,7 @@ import fs from "fs";
 import path from "path";
 import { rollup, RollupOptions } from "rollup";
 import { TEST_CONFIGURATIONS, createRollupConfig } from "./rollup-configs";
-import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
-
-/**
- * Helper function to build rollup with a specific configuration
- */
-async function buildWithConfig(configWithPath: { config: RollupOptions; jsonOutputPath: string }): Promise<{
-  bundlePath: string;
-  translationsPath: string;
-}> {
-  const { config, jsonOutputPath } = configWithPath;
-  const bundle = await rollup(config);
-
-  // Generate the output
-  if (Array.isArray(config.output)) {
-    await bundle.write(config.output[0]);
-  } else if (config.output) {
-    await bundle.write(config.output);
-  } else {
-    throw new Error("No output configuration found");
-  }
-
-  await bundle.close();
-
-  const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
-  const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
-  const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
-  const translationsPath = path.join(outputConfig.dir!, jsonOutputPath);
-
-  return { bundlePath, translationsPath };
-}
+import { buildWithRollup, cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
 
 /**
  * E2E Tests for i18next-auto-keys with Programmatic Rollup Configurations
@@ -68,7 +39,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
   // Parameterized tests for each rollup configuration
   describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
-    let buildResult: Awaited<ReturnType<typeof buildWithConfig>>;
+    let buildResult: Awaited<ReturnType<typeof buildWithRollup>>;
     let transformedCode: string;
     let translations: Record<string, string>;
 
@@ -78,7 +49,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       clearModuleCache();
 
       // Build with the specific configuration
-      buildResult = await buildWithConfig(configWithPath);
+      buildResult = await buildWithRollup(configWithPath);
 
       // Verify build outputs exist
       expect(fs.existsSync(buildResult.bundlePath)).toBe(true);
@@ -355,8 +326,8 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const defaultConfig = TEST_CONFIGURATIONS.default;
       const prodConfig = TEST_CONFIGURATIONS.production;
 
-      const defaultResult = await buildWithConfig(defaultConfig);
-      const prodResult = await buildWithConfig(prodConfig);
+      const defaultResult = await buildWithRollup(defaultConfig);
+      const prodResult = await buildWithRollup(prodConfig);
 
       // Test that both configurations produce working bundles
       delete require.cache[defaultResult.bundlePath];
@@ -401,7 +372,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should handle production mode correctly", async () => {
       const prodConfig = TEST_CONFIGURATIONS.production;
-      const result = await buildWithConfig(prodConfig);
+      const result = await buildWithRollup(prodConfig);
 
       expect(fs.existsSync(result.bundlePath)).toBe(true);
       expect(fs.existsSync(result.translationsPath)).toBe(true);
@@ -415,7 +386,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should respect include patterns correctly", async () => {
       const strictConfig = TEST_CONFIGURATIONS.strictInclude;
-      const result = await buildWithConfig(strictConfig);
+      const result = await buildWithRollup(strictConfig);
 
       // Clear require cache and load the bundle
       delete require.cache[result.bundlePath];
@@ -448,7 +419,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should produce correct results with named argument mode", async () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
-      const namedResult = await buildWithConfig(namedConfig);
+      const namedResult = await buildWithRollup(namedConfig);
 
       delete require.cache[namedResult.bundlePath];
       const namedBundle = require(namedResult.bundlePath);
@@ -463,7 +434,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
     it("should produce correct results with indexed argument mode", async () => {
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const indexedResult = await buildWithRollup(indexedConfig);
 
       // Clear require cache to ensure fresh module load including i18next state
       clearBundleCache(indexedResult.bundlePath);
@@ -484,8 +455,8 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const namedConfig = TEST_CONFIGURATIONS.default;
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
 
-      const namedResult = await buildWithConfig(namedConfig);
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const namedResult = await buildWithRollup(namedConfig);
+      const indexedResult = await buildWithRollup(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));

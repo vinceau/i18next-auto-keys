@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { rollup, RollupOptions } from "rollup";
 import { createRollupConfig } from "./rollup-configs";
-import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { buildWithRollup, cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
 
 /**
  * ICU E2E Tests for Rollup
@@ -47,33 +47,6 @@ const ICU_TEST_CONFIGURATIONS = {
 describe("ICU Rollup E2E Tests", () => {
   const distPath = path.resolve(__dirname, "../../dist/rollup");
 
-  // Helper function to build rollup with a given configuration
-  async function buildWithConfig(configWithPath: { config: RollupOptions; jsonOutputPath: string }): Promise<{
-    bundlePath: string;
-    translationsPath: string;
-  }> {
-    const { config, jsonOutputPath } = configWithPath;
-    const bundle = await rollup(config);
-
-    // Generate the output
-    if (Array.isArray(config.output)) {
-      await bundle.write(config.output[0]);
-    } else if (config.output) {
-      await bundle.write(config.output);
-    } else {
-      throw new Error("No output configuration found");
-    }
-
-    await bundle.close();
-
-    const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
-    const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
-    const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
-    const translationsPath = path.join(outputConfig.dir!, jsonOutputPath);
-
-    return { bundlePath, translationsPath };
-  }
-
   // Helper function to clean up artifacts for a specific configuration
   function cleanConfigArtifacts(configName: string, distPath: string) {
     cleanIcuConfigArtifacts(configName, distPath);
@@ -107,7 +80,7 @@ describe("ICU Rollup E2E Tests", () => {
         // Clear require cache to prevent global state leakage
         clearModuleCache();
 
-        buildResult = await buildWithConfig(configWithPath);
+        buildResult = await buildWithRollup(configWithPath);
       }, 60000);
 
       afterAll(() => {
@@ -319,8 +292,8 @@ describe("ICU Rollup E2E Tests", () => {
       const namedConfig = ICU_TEST_CONFIGURATIONS.icuNamed;
       const indexedConfig = ICU_TEST_CONFIGURATIONS.icuIndexed;
 
-      const namedResult = await buildWithConfig(namedConfig);
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const namedResult = await buildWithRollup(namedConfig);
+      const indexedResult = await buildWithRollup(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));

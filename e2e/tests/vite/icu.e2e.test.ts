@@ -18,7 +18,7 @@ import fs from "fs";
 import path from "path";
 import type { InlineConfig } from "vite";
 import { createViteConfig } from "./vite-configs";
-import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { buildWithVite, cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
@@ -49,43 +49,6 @@ const ICU_TEST_CONFIGURATIONS = {
 
 describe("ICU Vite E2E Tests", () => {
   const distPath = path.resolve(__dirname, "../../dist/vite");
-
-  // Helper function to build Vite with a given configuration
-  async function buildWithConfig(configWithPath: { config: InlineConfig; jsonOutputPath: string }): Promise<{
-    bundlePath: string;
-    translationsPath: string;
-  }> {
-    const { config, jsonOutputPath } = configWithPath;
-
-    // Dynamically import Vite to handle ESM
-    const { build } = await import("vite");
-    
-    // Run Vite build with configFile: false to use inline config only
-    // Use logLevel: 'silent' to suppress build output in tests
-    await build({
-      ...config,
-      configFile: false,
-      logLevel: 'silent',
-    });
-
-    // Determine output paths from build config
-    const outputDir = config.build?.outDir || path.resolve(__dirname, "../../dist/vite");
-    const lib = config.build?.lib;
-    
-    let fileName = "bundle-default.js";
-    if (lib && typeof lib !== "boolean") {
-      if (typeof lib.fileName === "function") {
-        fileName = lib.fileName("cjs", "");
-      } else if (typeof lib.fileName === "string") {
-        fileName = lib.fileName;
-      }
-    }
-    
-    const bundlePath = path.join(outputDir, fileName);
-    const translationsPath = path.join(outputDir, jsonOutputPath);
-
-    return { bundlePath, translationsPath };
-  }
 
   // Helper function to clean up artifacts for a specific configuration
   function cleanConfigArtifacts(configName: string, distPath: string) {
@@ -120,7 +83,7 @@ describe("ICU Vite E2E Tests", () => {
         // Clear require cache to prevent global state leakage
         clearModuleCache();
 
-        buildResult = await buildWithConfig(configWithPath);
+        buildResult = await buildWithVite(configWithPath);
       }, 60000);
 
       afterAll(() => {
@@ -336,8 +299,8 @@ describe("ICU Vite E2E Tests", () => {
       const namedConfig = ICU_TEST_CONFIGURATIONS.icuNamed;
       const indexedConfig = ICU_TEST_CONFIGURATIONS.icuIndexed;
 
-      const namedResult = await buildWithConfig(namedConfig);
-      const indexedResult = await buildWithConfig(indexedConfig);
+      const namedResult = await buildWithVite(namedConfig);
+      const indexedResult = await buildWithVite(indexedConfig);
 
       const namedTranslations = JSON.parse(fs.readFileSync(namedResult.translationsPath, "utf8"));
       const indexedTranslations = JSON.parse(fs.readFileSync(indexedResult.translationsPath, "utf8"));
