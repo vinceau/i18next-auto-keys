@@ -2,12 +2,14 @@
   "name": "i18next-auto-keys-e2e",
   "version": "1.0.0",
   "private": true,
-  "description": "End-to-end tests for i18next-auto-keys",
+  "description": "End-to-end tests for i18next-auto-keys (webpack, rollup, vite)",
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "npm run test:webpack && npm run test:rollup",
+    "test:webpack": "jest --config jest.config.js --runInBand",
+    "test:rollup": "echo 'Rollup E2E tests not yet implemented'",
+    "test:vite": "echo 'Vite E2E tests not yet implemented'",
     "test:watch": "jest --watch",
-    "build": "webpack --mode production",
-    "build:dev": "webpack --mode development"
+    "build:webpack": "cd webpack && webpack --mode production"
   },
   "dependencies": {
     "i18next": "^23.16.8",
@@ -17,10 +19,13 @@
     "@types/jest": "^29",
     "@types/webpack": "^5",
     "jest": "^29",
+    "rollup": "^4",
     "ts-jest": "^29.4.5",
     "ts-loader": "^9.5.4",
     "typescript": "^5",
+    "vite": "^6",
     "webpack": "^5",
     "webpack-cli": "^6.0.1"
   }
 }
+

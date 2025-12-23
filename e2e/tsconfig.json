@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": [
+    "webpack/src/**/*", 
+    "webpack/tests/**/*", 
+    "shared/src/**/*",
+    "rollup/src/**/*",
+    "rollup/tests/**/*",
+    "vite/src/**/*",
+    "vite/tests/**/*"
+  ]
+}
+

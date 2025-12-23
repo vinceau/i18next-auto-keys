@@ -37,7 +37,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     loaderOptions = {},
     argMode = "named",
     resolveAlias = {},
-    entry = "./src/index.ts",
+    entry = "./webpack/src/index.ts",
   } = options;
 
   return {

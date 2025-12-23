@@ -26,7 +26,7 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "named",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./src/icu-index.ts",
+    entry: "./webpack/src/icu-index.ts",
     jsonOutputPath: "locales/icu-named-en.json",
   }),
 
@@ -35,16 +35,16 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "indexed",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./src/icu-index.ts",
+    entry: "./webpack/src/icu-index.ts",
     jsonOutputPath: "locales/icu-indexed-en.json",
     resolveAlias: {
-      "./replay-browser.messages": path.resolve(__dirname, "../src/replay-browser-indexed.messages.ts"),
+      "./replay-browser.messages": path.resolve(__dirname, "../../shared/src/replay-browser-indexed.messages.ts"),
     },
   }),
 };
 
 describe("ICU E2E Tests", () => {
-  const distPath = path.resolve(__dirname, "../../dist");
+  const distPath = path.resolve(__dirname, "../dist");
 
   // Helper function to build webpack with a given configuration
   async function buildWithConfig(config: any): Promise<{
