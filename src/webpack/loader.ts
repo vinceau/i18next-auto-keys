@@ -75,6 +75,15 @@ export function i18nextAutoKeyLoader(
   }
 
   // Return transformed code with source map
-  // Webpack expects source maps in a specific format
+  // Note: We're returning result.map directly without composing with inputMap.
+  // This is sufficient because:
+  // 1. Our loader typically processes standalone .messages.ts files directly
+  // 2. MagicString generates accurate mappings from input source to output
+  // 3. The source map includes the original source content (includeContent: true)
+  // 4. Webpack can compose source maps automatically in most configurations
+  //
+  // If source map composition is needed (rare case of loader chains), webpack's
+  // devtool configuration will handle it, or the source-map library could be used
+  // to manually compose inputMap + result.map.
   this.callback(null, result.code, result.map, meta);
 }
