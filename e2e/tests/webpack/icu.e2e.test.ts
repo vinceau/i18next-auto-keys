@@ -13,11 +13,11 @@
 
 import fs from "fs";
 import path from "path";
-import webpack, { Configuration, MultiStats } from "webpack";
+import webpack, { Configuration, Stats } from "webpack";
 import { promisify } from "util";
 import { createWebpackConfig } from "./webpack-configs";
 
-const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<MultiStats | undefined>;
+const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<Stats | undefined>;
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
@@ -47,16 +47,15 @@ describe("ICU E2E Tests", () => {
   const distPath = path.resolve(__dirname, "../../dist/webpack");
 
   // Helper function to build webpack with a given configuration
-  async function buildWithConfig(config: any): Promise<{
+  async function buildWithConfig(configWithPath: { config: Configuration; jsonOutputPath: string }): Promise<{
     bundlePath: string;
     translationsPath: string;
-    stats: MultiStats | undefined;
+    stats: Stats | undefined;
   }> {
-    // Extract and store jsonOutputPath before passing to webpack
-    const jsonOutputPath = config.jsonOutputPath || `locales/${config.name || "default"}-en.json`;
-    const { jsonOutputPath: _, ...webpackConfig } = config; // Remove jsonOutputPath from webpack config
+    // Extract config and jsonOutputPath
+    const { config, jsonOutputPath } = configWithPath;
 
-    const stats = await webpackAsync([webpackConfig]);
+    const stats = await webpackAsync([config]);
 
     if (stats && stats.hasErrors()) {
       const errors = stats.toJson().errors;
@@ -98,11 +97,11 @@ describe("ICU E2E Tests", () => {
     });
   });
 
-  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, config: any) => {
+  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
     let buildResult: {
       bundlePath: string;
       translationsPath: string;
-      stats: webpack.Stats | MultiStats | undefined;
+      stats: Stats | undefined;
     };
 
     beforeAll(async () => {
@@ -113,7 +112,7 @@ describe("ICU E2E Tests", () => {
         }
       });
 
-      buildResult = await buildWithConfig(config);
+      buildResult = await buildWithConfig(configWithPath);
     }, 60000);
 
     afterAll(() => {

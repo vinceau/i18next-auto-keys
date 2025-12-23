@@ -6,10 +6,11 @@ import { TEST_CONFIGURATIONS, createRollupConfig } from "./rollup-configs";
 /**
  * Helper function to build rollup with a specific configuration
  */
-async function buildWithConfig(config: RollupOptions): Promise<{
+async function buildWithConfig(configWithPath: { config: RollupOptions; jsonOutputPath: string }): Promise<{
   bundlePath: string;
   translationsPath: string;
 }> {
+  const { config, jsonOutputPath } = configWithPath;
   const bundle = await rollup(config);
 
   // Generate the output
@@ -26,7 +27,7 @@ async function buildWithConfig(config: RollupOptions): Promise<{
   const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
   const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
   const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
-  const translationsPath = path.join(outputConfig.dir!, (config as any).jsonOutputPath || "locales/en.json");
+  const translationsPath = path.join(outputConfig.dir!, jsonOutputPath);
 
   return { bundlePath, translationsPath };
 }
@@ -80,7 +81,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
   });
 
   // Parameterized tests for each rollup configuration
-  describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, config: any) => {
+  describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
     let buildResult: Awaited<ReturnType<typeof buildWithConfig>>;
     let transformedCode: string;
     let translations: Record<string, string>;
@@ -95,7 +96,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       });
 
       // Build with the specific configuration
-      buildResult = await buildWithConfig(config);
+      buildResult = await buildWithConfig(configWithPath);
 
       // Verify build outputs exist
       expect(fs.existsSync(buildResult.bundlePath)).toBe(true);
@@ -360,10 +361,10 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const contextConfig = TEST_CONFIGURATIONS.translationContext;
 
       expect(contextConfig).toBeDefined();
-      expect(contextConfig.plugins).toBeDefined();
+      expect(contextConfig.config.plugins).toBeDefined();
 
       // Verify the plugins array exists and contains the i18next plugin
-      const plugins = Array.isArray(contextConfig.plugins) ? contextConfig.plugins : [contextConfig.plugins];
+      const plugins = Array.isArray(contextConfig.config.plugins) ? contextConfig.config.plugins : [contextConfig.config.plugins];
       expect(plugins.length).toBeGreaterThan(0);
 
       // Verify the include pattern includes context message files

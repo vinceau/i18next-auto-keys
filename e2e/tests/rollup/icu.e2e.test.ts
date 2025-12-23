@@ -44,10 +44,11 @@ describe("ICU Rollup E2E Tests", () => {
   const distPath = path.resolve(__dirname, "../../dist/rollup");
 
   // Helper function to build rollup with a given configuration
-  async function buildWithConfig(config: RollupOptions): Promise<{
+  async function buildWithConfig(configWithPath: { config: RollupOptions; jsonOutputPath: string }): Promise<{
     bundlePath: string;
     translationsPath: string;
   }> {
+    const { config, jsonOutputPath } = configWithPath;
     const bundle = await rollup(config);
 
     // Generate the output
@@ -64,7 +65,7 @@ describe("ICU Rollup E2E Tests", () => {
     const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
     const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
     const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
-    const translationsPath = path.join(outputConfig.dir!, (config as any).jsonOutputPath || "locales/en.json");
+    const translationsPath = path.join(outputConfig.dir!, jsonOutputPath);
 
     return { bundlePath, translationsPath };
   }
@@ -98,7 +99,7 @@ describe("ICU Rollup E2E Tests", () => {
     });
   });
 
-  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, config: any) => {
+  describe.each(Object.entries(ICU_TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
     let buildResult: {
       bundlePath: string;
       translationsPath: string;
@@ -112,7 +113,7 @@ describe("ICU Rollup E2E Tests", () => {
         }
       });
 
-      buildResult = await buildWithConfig(config);
+      buildResult = await buildWithConfig(configWithPath);
     }, 60000);
 
     afterAll(() => {

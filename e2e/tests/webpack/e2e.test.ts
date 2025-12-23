@@ -1,24 +1,23 @@
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
-import webpack, { Configuration, MultiStats } from "webpack";
+import webpack, { Configuration, Stats } from "webpack";
 import { TEST_CONFIGURATIONS, createWebpackConfig } from "./webpack-configs";
 
-const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<MultiStats | undefined>;
+const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<Stats | undefined>;
 
 /**
  * Helper function to build webpack with a specific configuration
  */
-async function buildWithConfig(config: any): Promise<{
+async function buildWithConfig(configWithPath: { config: Configuration; jsonOutputPath: string }): Promise<{
   bundlePath: string;
   translationsPath: string;
-  stats: MultiStats | undefined;
+  stats: Stats | undefined;
 }> {
-  // Extract and store jsonOutputPath before passing to webpack
-  const jsonOutputPath = config.jsonOutputPath || "locales/en.json";
-  const { jsonOutputPath: _, ...webpackConfig } = config; // Remove jsonOutputPath from webpack config
+  // Extract config and jsonOutputPath
+  const { config, jsonOutputPath } = configWithPath;
 
-  const stats = await webpackAsync([webpackConfig]);
+  const stats = await webpackAsync([config]);
 
   if (stats && stats.hasErrors()) {
     const errors = stats.toJson().errors;
@@ -81,7 +80,7 @@ describe("i18next-auto-keys E2E Tests", () => {
   });
 
   // Parameterized tests for each webpack configuration
-  describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, config: any) => {
+  describe.each(Object.entries(TEST_CONFIGURATIONS))("Configuration: %s", (configName: string, configWithPath: any) => {
     let buildResult: Awaited<ReturnType<typeof buildWithConfig>>;
     let transformedCode: string;
     let translations: Record<string, string>;
@@ -96,7 +95,7 @@ describe("i18next-auto-keys E2E Tests", () => {
       });
 
       // Build with the specific configuration
-      buildResult = await buildWithConfig(config);
+      buildResult = await buildWithConfig(configWithPath);
 
       // Verify build outputs exist
       expect(fs.existsSync(buildResult.bundlePath)).toBe(true);
@@ -363,13 +362,13 @@ describe("i18next-auto-keys E2E Tests", () => {
       const contextConfig = TEST_CONFIGURATIONS.translationContext;
 
       expect(contextConfig).toBeDefined();
-      expect(contextConfig.name).toBe("translation-context");
-      expect(contextConfig.module).toBeDefined();
-      expect(contextConfig.module!.rules).toBeDefined();
-      expect(Array.isArray(contextConfig.module!.rules)).toBe(true);
+      expect(contextConfig.config.name).toBe("translation-context");
+      expect(contextConfig.config.module).toBeDefined();
+      expect(contextConfig.config.module!.rules).toBeDefined();
+      expect(Array.isArray(contextConfig.config.module!.rules)).toBe(true);
 
       // Verify the include pattern includes context message files
-      const rule = contextConfig.module!.rules!.find(
+      const rule = contextConfig.config.module!.rules!.find(
         (r: any) => r && typeof r === "object" && r.test && r.test.test && r.test.test(".ts")
       ) as any;
       expect(rule).toBeDefined();

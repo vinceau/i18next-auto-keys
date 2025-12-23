@@ -21,8 +21,9 @@ type WebpackConfigOptions = {
 
 /**
  * Factory function to create different webpack configurations for testing
+ * Returns an object with the webpack config and the jsonOutputPath for test consumption
  */
-function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration {
+function createWebpackConfig(options: WebpackConfigOptions = {}): { config: Configuration; jsonOutputPath: string } {
   const {
     configName = "default",
     mode = "development",
@@ -43,10 +44,10 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
   const jsonOutputPath = options.jsonOutputPath || "locales/en.json";
 
   return {
+    config: {
     name: configName,
     mode,
     entry,
-    jsonOutputPath, // Store for test consumption
     output: {
       path: outputPath,
       filename: `bundle-${configName}.js`,
@@ -93,7 +94,9 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     ],
     devtool: sourcemap ? "source-map" : false,
     target,
-  } as any; // Cast to any to allow jsonOutputPath property
+    },
+    jsonOutputPath,
+  };
 }
 
 /**

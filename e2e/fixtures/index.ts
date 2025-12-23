@@ -6,7 +6,6 @@ import { UIMessages } from "./messages/ui.messages";
 import { ContextMessages } from "./messages/context.messages";
 import i18next from "i18next";
 
-// Flag to track if i18next has been initialized
 let isInitialized = false;
 
 /**

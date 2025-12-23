@@ -20,8 +20,9 @@ type RollupConfigOptions = {
 
 /**
  * Factory function to create different rollup configurations for testing
+ * Returns an object with the rollup config and the jsonOutputPath for test consumption
  */
-function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
+function createRollupConfig(options: RollupConfigOptions = {}): { config: RollupOptions; jsonOutputPath: string } {
   const {
     configName = "default",
     include = /\.messages\.(ts|tsx)$/,
@@ -37,16 +38,16 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
   const jsonOutputPath = options.jsonOutputPath || "locales/en.json";
 
   return {
-    input: entry,
-    output: {
-      dir: outputPath,
-      format: outputFormat,
-      entryFileNames: `bundle-${configName}.js`,
-      sourcemap: true,
-      exports: "named",
-    },
-    jsonOutputPath, // Store for test consumption
-    plugins: [
+    config: {
+      input: entry,
+      output: {
+        dir: outputPath,
+        format: outputFormat,
+        entryFileNames: `bundle-${configName}.js`,
+        sourcemap: true,
+        exports: "named",
+      },
+      plugins: [
       // Handle path aliases if provided
       ...(Object.keys(resolveAlias).length > 0
         ? [
@@ -79,7 +80,9 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
       }),
     ],
     external: ["i18next", "i18next-icu", "fs", "path"],
-  } as any; // Cast to any to allow jsonOutputPath property
+    },
+    jsonOutputPath,
+  };
 }
 
 /**
