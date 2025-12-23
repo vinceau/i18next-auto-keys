@@ -388,11 +388,13 @@ export const OtherMessages = {
         jsonOutputPath: "locales/en.json",
       });
 
-      const code = 'export const test = "Hello";';
+      // Use actual transformable code (message function)
+      const code = 'export const messages = { greeting: () => "Hello" };';
 
       // Should match default pattern: /\.messages\.(ts|tsx)$/
       const matchingResult = callHook(plugin.transform, mockTransformContext, code, "test.messages.ts");
       expect(matchingResult).not.toBeNull();
+      expect(matchingResult.code).toContain('i18next.t(');
 
       const nonMatchingResult = callHook(plugin.transform, mockTransformContext, code, "test.ts");
       expect(nonMatchingResult).toBeNull();
