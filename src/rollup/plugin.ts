@@ -3,6 +3,7 @@ import type { Plugin, PluginContext } from "rollup";
 import ts from "typescript";
 import { SourceMapGenerator } from "source-map";
 import { createI18nextAutoKeyTransformerFactory } from "../transformer/transformer";
+import MagicString from "magic-string";
 import { i18nStore } from "../common/i18nStore";
 import { loadConfig } from "../common/config/loadConfig";
 
@@ -74,7 +75,7 @@ function generateSourceMap(
     if (line.trim().length === 0) return; // Skip empty lines
 
     // Handle the injected import line specially
-    if (importWasInjected && transformedIndex === 0 && line.includes('import i18next')) {
+    if (importWasInjected && transformedIndex === 0 && line.includes("import i18next")) {
       // Map the import line to the first line of original file
       // (it doesn't really exist in original, but this is the best we can do)
       generator.addMapping({
@@ -180,60 +181,102 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
       }
     },
 
-    // Transform TypeScript files (works in both Rollup and Vite, including Vite dev mode)
-    transform(code: string, id: string) {
-      // Skip if file doesn't match include pattern
-      if (!matchesInclude(pluginOptions.include, id)) {
-        return null;
+    transform(code, id) {
+      if (!matchesInclude(options.include, id)) return null;
+      if (!id.endsWith(".ts") && !id.endsWith(".tsx")) return null;
+
+      const sf = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, /*setParentNodes*/ true);
+      const s = new MagicString(code);
+
+      const printer = ts.createPrinter({ removeComments: false });
+
+      let didRewrite = false;
+      const hadI18nextImport = /\bimport\s+i18next\b/.test(code);
+
+      // You can keep almost all your existing helper logic:
+      // - hasNoTranslateTag
+      // - extractReturnStringLiteral
+      // - buildArgsExpr
+      // - makeI18nextCall (but it should return a ts.Expression, as you already do)
+
+      const f = ts.factory;
+
+      function printExpr(expr: ts.Expression): string {
+        // Important: print ONLY the new node, anchored to the original source file for context.
+        return printer.printNode(ts.EmitHint.Unspecified, expr, sf);
       }
 
-      // Skip non-TypeScript files
-      if (!id.endsWith(".ts") && !id.endsWith(".tsx")) {
-        return null;
+      function visit(node: ts.Node) {
+        // PropertyAssignment with ArrowFunction/FunctionExpression
+        if (
+          ts.isPropertyAssignment(node) &&
+          (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))
+        ) {
+          const fn = node.initializer;
+          // ... apply your hasNoTranslateTag checks etc.
+
+          const original = extractReturnStringLiteral(fn);
+          if (original !== null) {
+            // ... compute id/hash, store refs, build argsExpr, makeI18nextCall etc.
+            const argsExpr = buildArgsExpr(fn.parameters);
+            const newExpr = makeI18nextCall(idHash, argsExpr, internedOriginal, fn.body);
+
+            // Choose span to replace
+            if (ts.isArrowFunction(fn) && !ts.isBlock(fn.body)) {
+              const start = fn.body.getStart(sf);
+              const end = fn.body.getEnd();
+              s.overwrite(start, end, printExpr(newExpr));
+              didRewrite = true;
+            } else {
+              // block-bodied: replace return expression if it is exactly `return <expr>`
+              const body = fn.body;
+              if (body && ts.isBlock(body) && body.statements.length === 1) {
+                const st = body.statements[0];
+                if (ts.isReturnStatement(st) && st.expression) {
+                  const start = st.expression.getStart(sf);
+                  const end = st.expression.getEnd();
+                  s.overwrite(start, end, printExpr(newExpr));
+                  didRewrite = true;
+                }
+              }
+            }
+          }
+        }
+
+        // MethodDeclaration
+        if (ts.isMethodDeclaration(node) && node.body) {
+          // ... same: compute original, id, args, newExpr
+          // then replace return expression span like above
+        }
+
+        ts.forEachChild(node, visit);
       }
 
-      try {
-        // Create TypeScript source file
-        const sourceFile = ts.createSourceFile(id, code, ts.ScriptTarget.Latest, true);
+      visit(sf);
 
-        // Check if original file has i18next import
-        const hadI18nextImport = code.includes('import i18next');
+      // Inject import if needed
+      if (didRewrite && !hadI18nextImport) {
+        // Choose insertion point: before first statement.
+        // This keeps line numbers stable & avoids weird prologues.
+        const insertPos = sf.statements.length ? sf.statements[0].getFullStart() : 0;
 
-        // Apply the transformer
-        const transformer = createI18nextAutoKeyTransformerFactory({
-          hashLength: config.hashLength,
-          argMode: pluginOptions.argMode,
-          setDefaultValue: pluginOptions.setDefaultValue,
-          debug: pluginOptions.debug,
-        });
-
-        const result = ts.transform(sourceFile, [transformer]);
-        const transformedFile = result.transformed[0] as ts.SourceFile;
-
-        // Print the transformed code
-        const printer = ts.createPrinter();
-        const transformedCode = printer.printFile(transformedFile);
-
-        result.dispose();
-
-        // Check if transformer injected an import
-        const hasI18nextImport = transformedCode.includes('import i18next');
-        const importWasInjected = hasI18nextImport && !hadI18nextImport;
-
-        // Generate source map (with limitations - see function documentation)
-        const map = generateSourceMap(code, transformedCode, id, importWasInjected);
-
-        return {
-          code: transformedCode,
-          map,
-        };
-      } catch (error) {
-        this.error(`Failed to transform ${id}: ${error}`);
-        return null;
+        // Preserve existing newline style if you care:
+        const nl = code.includes("\r\n") ? "\r\n" : "\n";
+        s.appendLeft(insertPos, `import i18next from "i18next";${nl}`);
       }
+
+      if (!didRewrite) return null;
+
+      return {
+        code: s.toString(),
+        map: s.generateMap({
+          hires: true,
+          includeContent: true,
+          source: id,
+        }),
+      }; // Emit JSON file with collected translations (works in both Rollup and Vite build)
     },
 
-    // Emit JSON file with collected translations (works in both Rollup and Vite build)
     generateBundle() {
       // Build a stable snapshot of entries
       const entries = Array.from(i18nStore.all().values()).sort((a, b) => a.id.localeCompare(b.id));
@@ -259,4 +302,3 @@ export function i18nextAutoKeyRollupPlugin(options: I18nextAutoKeyRollupPluginOp
     },
   };
 }
-
