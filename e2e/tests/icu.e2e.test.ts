@@ -26,7 +26,7 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "named",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./webpack/src/icu-index.ts",
+    entry: "./src/icu-index.ts",
     jsonOutputPath: "locales/icu-named-en.json",
   }),
 
@@ -35,10 +35,10 @@ const ICU_TEST_CONFIGURATIONS = {
     argMode: "indexed",
     include: /replay-browser.*\.messages\.(ts|tsx)$/,
     // Override entry point for ICU testing
-    entry: "./webpack/src/icu-index.ts",
+    entry: "./src/icu-index.ts",
     jsonOutputPath: "locales/icu-indexed-en.json",
     resolveAlias: {
-      "./replay-browser.messages": path.resolve(__dirname, "../../shared/src/replay-browser-indexed.messages.ts"),
+      "./replay-browser.messages": path.resolve(__dirname, "../src/replay-browser-indexed.messages.ts"),
     },
   }),
 };

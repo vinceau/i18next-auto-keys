@@ -1,6 +1,6 @@
 import path from "path";
 import { Configuration } from "webpack";
-const { I18nextAutoKeyEmitPlugin } = require("../../dist/index.js");
+const { I18nextAutoKeyEmitPlugin } = require("../dist/index.js");
 
 type WebpackConfigOptions = {
   configName?: string;
@@ -37,7 +37,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     loaderOptions = {},
     argMode = "named",
     resolveAlias = {},
-    entry = "./webpack/src/index.ts",
+    entry = "./src/index.ts",
   } = options;
 
   return {
@@ -70,7 +70,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
               loader: "ts-loader",
             },
             {
-              loader: path.resolve(__dirname, "../../dist/index.js"),
+              loader: path.resolve(__dirname, "../dist/index.js"),
               options: {
                 include,
                 setDefaultValue,
@@ -146,8 +146,8 @@ const TEST_CONFIGURATIONS = {
     configName: "indexed-arguments",
     argMode: "indexed",
     resolveAlias: {
-      "./auth.messages": path.resolve(__dirname, "../shared/src/auth-indexed.messages.ts"),
-      "./ui.messages": path.resolve(__dirname, "../shared/src/ui-indexed.messages.ts"),
+      "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
+      "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
     },
   }),
 
