@@ -14,7 +14,7 @@ const execAsync = promisify(execSync);
 
 describe("CLI E2E Tests", () => {
   const testDir = path.join(__dirname, "temp-cli-tests");
-  const cliPath = path.resolve(__dirname, "../../dist/cli.js");
+  const cliPath = path.resolve(__dirname, "../../../dist/cli.js");
 
   // Test fixtures directory
   const fixturesDir = path.join(testDir, "fixtures");

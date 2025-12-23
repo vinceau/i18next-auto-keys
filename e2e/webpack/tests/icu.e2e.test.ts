@@ -44,7 +44,7 @@ const ICU_TEST_CONFIGURATIONS = {
 };
 
 describe("ICU E2E Tests", () => {
-  const distPath = path.resolve(__dirname, "../dist");
+  const distPath = path.resolve(__dirname, "../../dist");
 
   // Helper function to build webpack with a given configuration
   async function buildWithConfig(config: any): Promise<{

@@ -56,7 +56,7 @@ function cleanConfigArtifacts(configName: string, distPath: string) {
  * - Isolation between different configuration scenarios
  */
 describe("i18next-auto-keys E2E Tests", () => {
-  const e2eRoot = path.resolve(__dirname, "..");
+  const e2eRoot = path.resolve(__dirname, "../../");
   const distPath = path.join(e2eRoot, "dist");
 
   beforeAll(async () => {
