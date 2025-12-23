@@ -373,7 +373,7 @@ describe("i18next-auto-keys E2E Tests", () => {
 
       // Find the i18next-auto-keys loader options
       const loaderConfig = Array.isArray(rule.use)
-        ? rule.use.find((loader: any) => loader && loader.loader && loader.loader.includes("dist/index.js"))
+        ? rule.use.find((loader: any) => loader && loader.loader && (loader.loader.includes("dist/index.js") || loader.loader.includes("i18next-auto-keys")))
         : rule.use;
 
       expect(loaderConfig).toBeDefined();

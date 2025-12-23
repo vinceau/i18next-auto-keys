@@ -70,7 +70,7 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
               loader: "ts-loader",
             },
             {
-              loader: path.resolve(__dirname, "../../dist/index.js"),
+              loader: "i18next-auto-keys",
               options: {
                 include,
                 setDefaultValue,
