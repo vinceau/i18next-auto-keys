@@ -14,7 +14,11 @@ async function buildWithConfig(config: any): Promise<{
   translationsPath: string;
   stats: MultiStats | undefined;
 }> {
-  const stats = await webpackAsync([config]);
+  // Extract and store jsonOutputPath before passing to webpack
+  const jsonOutputPath = config.jsonOutputPath || "locales/en.json";
+  const { jsonOutputPath: _, ...webpackConfig } = config; // Remove jsonOutputPath from webpack config
+
+  const stats = await webpackAsync([webpackConfig]);
 
   if (stats && stats.hasErrors()) {
     const errors = stats.toJson().errors;
@@ -23,7 +27,7 @@ async function buildWithConfig(config: any): Promise<{
 
   const configName = config.name || "default";
   const bundlePath = path.join(config.output!.path!, `bundle-${configName}.js`);
-  const translationsPath = path.join(config.output!.path!, `locales/en.json`);
+  const translationsPath = path.join(config.output!.path!, jsonOutputPath);
 
   return { bundlePath, translationsPath, stats };
 }

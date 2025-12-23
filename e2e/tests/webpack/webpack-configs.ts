@@ -29,7 +29,6 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     include = /\.messages\.(ts|tsx)$/,
     setDefaultValue = false,
     sourcemap = true,
-    jsonOutputPath = "locales/en.json",
     minimize = false,
     outputPath = path.resolve(__dirname, "../../dist/webpack"),
     libraryName = "TestBundle",
@@ -40,10 +39,14 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     entry = path.resolve(__dirname, "../../fixtures/index.ts"),
   } = options;
 
+  // Always use standard translation file name
+  const jsonOutputPath = options.jsonOutputPath || "locales/en.json";
+
   return {
     name: configName,
     mode,
     entry,
+    jsonOutputPath, // Store for test consumption
     output: {
       path: outputPath,
       filename: `bundle-${configName}.js`,
@@ -85,12 +88,12 @@ function createWebpackConfig(options: WebpackConfigOptions = {}): Configuration 
     },
     plugins: [
       new I18nextAutoKeyEmitPlugin({
-        jsonOutputPath: path.resolve(outputPath, jsonOutputPath),
+        jsonOutputPath,
       }),
     ],
     devtool: sourcemap ? "source-map" : false,
     target,
-  };
+  } as any; // Cast to any to allow jsonOutputPath property
 }
 
 /**
@@ -146,8 +149,8 @@ const TEST_CONFIGURATIONS = {
     configName: "indexed-arguments",
     argMode: "indexed",
     resolveAlias: {
-      "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
-      "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
+      "./messages/auth.messages": path.resolve(__dirname, "../../fixtures/messages/auth-indexed.messages.ts"),
+      "./messages/ui.messages": path.resolve(__dirname, "../../fixtures/messages/ui-indexed.messages.ts"),
     },
   }),
 

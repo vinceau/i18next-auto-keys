@@ -11,7 +11,7 @@ async function buildWithConfig(config: RollupOptions): Promise<{
   translationsPath: string;
 }> {
   const bundle = await rollup(config);
-  
+
   // Generate the output
   if (Array.isArray(config.output)) {
     await bundle.write(config.output[0]);
@@ -26,7 +26,7 @@ async function buildWithConfig(config: RollupOptions): Promise<{
   const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
   const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
   const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
-  const translationsPath = path.join(outputConfig.dir!, "locales/en.json");
+  const translationsPath = path.join(outputConfig.dir!, (config as any).jsonOutputPath || "locales/en.json");
 
   return { bundlePath, translationsPath };
 }
@@ -230,7 +230,7 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
         // Initialize i18next with the generated translations
         const localesDir = path.dirname(buildResult.translationsPath);
         await bundleExports.initializeI18n(localesDir);
-        
+
         bundle = bundleExports;
       });
 
@@ -361,11 +361,11 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
 
       expect(contextConfig).toBeDefined();
       expect(contextConfig.plugins).toBeDefined();
-      
+
       // Verify the plugins array exists and contains the i18next plugin
       const plugins = Array.isArray(contextConfig.plugins) ? contextConfig.plugins : [contextConfig.plugins];
       expect(plugins.length).toBeGreaterThan(0);
-      
+
       // Verify the include pattern includes context message files
       const i18nextPlugin = plugins.find(
         (p: any) => p && p.name === "i18next-auto-keys"
@@ -439,15 +439,23 @@ describe("i18next-auto-keys Rollup E2E Tests", () => {
       const indexedConfig = TEST_CONFIGURATIONS.indexedArguments;
       const indexedResult = await buildWithConfig(indexedConfig);
 
-      delete require.cache[indexedResult.bundlePath];
+      // Clear require cache to ensure fresh module load including i18next state
+      Object.keys(require.cache).forEach((key) => {
+        if (key.includes(path.dirname(indexedResult.bundlePath)) || key.includes("i18next")) {
+          delete require.cache[key];
+        }
+      });
+
       const indexedBundle = require(indexedResult.bundlePath);
-      await indexedBundle.initializeI18n(path.dirname(indexedResult.translationsPath));
+      await indexedBundle.initializeI18n(path.dirname(indexedResult.translationsPath), true); // force reinit
 
       expect(indexedBundle.getWelcomeMessage("John")).toBe("Welcome back, John!");
       expect(indexedBundle.getResetEmailMessage("user@example.com", 15)).toBe(
         "Password reset link sent to user@example.com. Expires in 15 minutes."
       );
       expect(indexedBundle.getComplexMessage()).toBe("3 of 5 login attempts remaining");
+
+      cleanConfigArtifacts("indexed-arguments", distPath);
     }, 60000);
 
     it("should generate identical translations with both argument modes", async () => {

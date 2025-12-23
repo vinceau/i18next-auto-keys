@@ -12,9 +12,10 @@ let isInitialized = false;
 /**
  * Initialize i18next with the generated translations
  * This must be called after webpack has generated the translation files
+ * Set force=true to reinitialize even if already initialized
  */
-export async function initializeI18n(translationsDir: string): Promise<void> {
-  if (isInitialized) return;
+export async function initializeI18n(translationsDir: string, force: boolean = false): Promise<void> {
+  if (isInitialized && !force) return;
 
   const translationsPath = path.join(translationsDir, "en.json");
   let translations = {};

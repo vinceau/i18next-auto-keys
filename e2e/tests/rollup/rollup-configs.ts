@@ -26,13 +26,15 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
     configName = "default",
     include = /\.messages\.(ts|tsx)$/,
     setDefaultValue = false,
-    jsonOutputPath = "locales/en.json",
     outputPath = path.resolve(__dirname, "../../dist/rollup"),
     outputFormat = "cjs",
     argMode = "named",
     resolveAlias = {},
     entry = path.resolve(__dirname, "../../fixtures/index.ts"),
   } = options;
+
+  // Always use standard translation file name unless explicitly overridden
+  const jsonOutputPath = options.jsonOutputPath || "locales/en.json";
 
   return {
     input: entry,
@@ -43,6 +45,7 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
       sourcemap: true,
       exports: "named",
     },
+    jsonOutputPath, // Store for test consumption
     plugins: [
       // Handle path aliases if provided
       ...(Object.keys(resolveAlias).length > 0
@@ -76,7 +79,7 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
       }),
     ],
     external: ["i18next", "i18next-icu", "fs", "path"],
-  };
+  } as any; // Cast to any to allow jsonOutputPath property
 }
 
 /**
@@ -128,8 +131,8 @@ const TEST_CONFIGURATIONS = {
     configName: "indexed-arguments",
     argMode: "indexed",
     resolveAlias: {
-      "./auth.messages": path.resolve(__dirname, "../../fixtures/messages/auth-indexed.messages.ts"),
-      "./ui.messages": path.resolve(__dirname, "../../fixtures/messages/ui-indexed.messages.ts"),
+      "./messages/auth.messages": path.resolve(__dirname, "../../fixtures/messages/auth-indexed.messages.ts"),
+      "./messages/ui.messages": path.resolve(__dirname, "../../fixtures/messages/ui-indexed.messages.ts"),
     },
   }),
 
