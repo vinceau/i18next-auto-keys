@@ -70,6 +70,10 @@ module.exports = {
           loader: 'ts-loader',
           options: {
             configFile: 'tsconfig.build.json',
+            transpileOnly: true,
+            compilerOptions: {
+              skipLibCheck: true,
+            },
           },
         },
         exclude: [/node_modules/, /\.test\.ts$/, /tests/],
