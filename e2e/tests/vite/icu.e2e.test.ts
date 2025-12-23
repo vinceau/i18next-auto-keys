@@ -60,9 +60,11 @@ describe("ICU Vite E2E Tests", () => {
     const { build } = await import("vite");
     
     // Run Vite build with configFile: false to use inline config only
+    // Use logLevel: 'silent' to suppress build output in tests
     await build({
       ...config,
       configFile: false,
+      logLevel: 'silent',
     });
 
     // Determine output paths from build config
