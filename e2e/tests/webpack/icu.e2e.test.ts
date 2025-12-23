@@ -13,11 +13,11 @@
 
 import fs from "fs";
 import path from "path";
-import webpack, { Configuration } from "webpack";
+import webpack, { Configuration, MultiStats } from "webpack";
 import { promisify } from "util";
 import { createWebpackConfig } from "./webpack-configs";
 
-const webpackAsync = promisify(webpack);
+const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<MultiStats | undefined>;
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {
@@ -50,13 +50,13 @@ describe("ICU E2E Tests", () => {
   async function buildWithConfig(config: any): Promise<{
     bundlePath: string;
     translationsPath: string;
-    stats: any;
+    stats: MultiStats | undefined;
   }> {
     const stats = await webpackAsync([config]);
 
     if (stats && stats.hasErrors()) {
       const errors = stats.toJson().errors;
-      throw new Error(`Webpack build failed: ${errors?.map((e: any) => e.message).join("\n") || "Unknown error"}`);
+      throw new Error(`Webpack build failed: ${errors?.map((e) => e.message).join("\n") || "Unknown error"}`);
     }
 
     const configName = config.name || "default";

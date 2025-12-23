@@ -10,9 +10,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "fixtures/**/*",
-    "tests/**/*"
+    "fixtures/**/*"
   ],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "tests"]
 }
 

@@ -24,7 +24,7 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /tests/],
         use: [
           {
             loader: "ts-loader",
@@ -47,7 +47,7 @@ module.exports = {
   },
   plugins: [
     new I18nextAutoKeyEmitPlugin({
-      jsonOutputPath: path.resolve(__dirname, "dist/webpack/locales/en.json"),
+      jsonOutputPath: "locales/en.json",
     }),
   ],
   devtool: "source-map",

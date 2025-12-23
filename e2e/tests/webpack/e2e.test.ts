@@ -1,10 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { promisify } from "util";
-import webpack, { Configuration } from "webpack";
+import webpack, { Configuration, MultiStats } from "webpack";
 import { TEST_CONFIGURATIONS, createWebpackConfig } from "./webpack-configs";
 
-const webpackAsync = promisify(webpack);
+const webpackAsync = promisify(webpack) as (config: Configuration[]) => Promise<MultiStats | undefined>;
 
 /**
  * Helper function to build webpack with a specific configuration
@@ -12,7 +12,7 @@ const webpackAsync = promisify(webpack);
 async function buildWithConfig(config: any): Promise<{
   bundlePath: string;
   translationsPath: string;
-  stats: any;
+  stats: MultiStats | undefined;
 }> {
   const stats = await webpackAsync([config]);
 

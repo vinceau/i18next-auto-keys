@@ -23,10 +23,11 @@ module.exports = {
       setDefaultValue: false,
       sourcemap: true,
       argMode: "named",
-      jsonOutputPath: path.resolve(__dirname, "dist/rollup/locales/en.json"),
+      jsonOutputPath: "locales/en.json",
     }),
     typescript({
       tsconfig: path.resolve(__dirname, "tsconfig.json"),
+      outDir: path.resolve(__dirname, "dist/rollup"),
     }),
   ],
 };

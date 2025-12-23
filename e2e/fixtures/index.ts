@@ -1,9 +1,9 @@
 // Main entry point for e2e testing
 import fs from "fs";
 import path from "path";
-import { AuthMessages } from "./auth.messages";
-import { UIMessages } from "./ui.messages";
-import { ContextMessages } from "./context.messages";
+import { AuthMessages } from "./messages/auth.messages";
+import { UIMessages } from "./messages/ui.messages";
+import { ContextMessages } from "./messages/context.messages";
 import i18next from "i18next";
 
 // Flag to track if i18next has been initialized

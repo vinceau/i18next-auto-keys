@@ -35,7 +35,7 @@ const ICU_TEST_CONFIGURATIONS = {
     entry: path.resolve(__dirname, "../../fixtures/icu-index.ts"),
     jsonOutputPath: "locales/icu-indexed-en.json",
     resolveAlias: {
-      "./replay-browser.messages": path.resolve(__dirname, "../src/replay-browser-indexed.messages.ts"),
+      "./replay-browser.messages": path.resolve(__dirname, "../../fixtures/messages/replay-browser-indexed.messages.ts"),
     },
   }),
 };
@@ -64,6 +64,8 @@ describe("ICU Rollup E2E Tests", () => {
     const outputConfig = Array.isArray(config.output) ? config.output[0] : config.output!;
     const configName = outputConfig.entryFileNames?.toString().replace("bundle-", "").replace(".js", "") || "default";
     const bundlePath = path.join(outputConfig.dir!, `bundle-${configName}.js`);
+    
+    // Find the translations file - it should match the jsonOutputPath from the config
     const translationsPath = path.join(outputConfig.dir!, `locales/${configName}-en.json`);
 
     return { bundlePath, translationsPath };

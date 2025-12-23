@@ -60,7 +60,7 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
       }),
       commonjs(),
       typescript({
-        tsconfig: path.resolve(__dirname, "tsconfig.json"),
+        tsconfig: path.resolve(__dirname, "../../tsconfig.json"),
         compilerOptions: {
           declaration: false,
           declarationMap: false,
@@ -72,7 +72,7 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
         include: [include],
         argMode,
         setDefaultValue,
-        jsonOutputPath: path.resolve(outputPath, jsonOutputPath),
+        jsonOutputPath,
       }),
     ],
     external: ["i18next", "i18next-icu", "fs", "path"],
@@ -128,8 +128,8 @@ const TEST_CONFIGURATIONS = {
     configName: "indexed-arguments",
     argMode: "indexed",
     resolveAlias: {
-      "./auth.messages": path.resolve(__dirname, "src/auth-indexed.messages.ts"),
-      "./ui.messages": path.resolve(__dirname, "src/ui-indexed.messages.ts"),
+      "./auth.messages": path.resolve(__dirname, "../../fixtures/messages/auth-indexed.messages.ts"),
+      "./ui.messages": path.resolve(__dirname, "../../fixtures/messages/ui-indexed.messages.ts"),
     },
   }),
 
