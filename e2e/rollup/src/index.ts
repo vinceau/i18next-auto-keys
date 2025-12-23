@@ -14,7 +14,8 @@ let isInitialized = false;
  * This must be called after rollup has generated the translation files
  */
 export async function initializeI18n(translationsDir: string): Promise<void> {
-  if (isInitialized) return;
+  // For testing, always allow re-initialization
+  isInitialized = false;
 
   const translationsPath = path.join(translationsDir, "en.json");
   let translations = {};

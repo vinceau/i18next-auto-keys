@@ -157,6 +157,7 @@ npm run test:watch            # Watch mode
 - i18next-auto-keys@file:../.. (local)
 
 ### Development Dependencies
+- @rollup/plugin-alias@^5.1.1
 - @rollup/plugin-commonjs@^28.0.2
 - @rollup/plugin-node-resolve@^15.3.0
 - @rollup/plugin-typescript@^12.1.1

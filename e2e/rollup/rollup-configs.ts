@@ -1,5 +1,6 @@
 import path from "path";
 import type { RollupOptions } from "rollup";
+import alias from "@rollup/plugin-alias";
 import typescript from "@rollup/plugin-typescript";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
@@ -43,6 +44,17 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
       exports: "named",
     },
     plugins: [
+      // Handle path aliases if provided
+      ...(Object.keys(resolveAlias).length > 0
+        ? [
+            alias({
+              entries: Object.entries(resolveAlias).map(([find, replacement]) => ({
+                find,
+                replacement,
+              })),
+            }),
+          ]
+        : []),
       resolve({
         extensions: [".ts", ".tsx", ".js", ".jsx"],
       }),
@@ -52,12 +64,9 @@ function createRollupConfig(options: RollupConfigOptions = {}): RollupOptions {
         compilerOptions: {
           declaration: false,
           declarationMap: false,
+          module: "ESNext",
           outDir: path.resolve(__dirname, outputPath),
         },
-        // Handle path aliases if needed
-        ...(Object.keys(resolveAlias).length > 0 && {
-          paths: resolveAlias,
-        }),
       }),
       i18nextAutoKeyRollupPlugin({
         include: [include],
