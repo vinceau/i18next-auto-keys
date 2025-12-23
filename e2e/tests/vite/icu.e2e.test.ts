@@ -16,9 +16,9 @@
 
 import fs from "fs";
 import path from "path";
-import type { InlineConfig } from "vite";
 import { createViteConfig } from "./vite-configs";
-import { buildWithVite, cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { buildWithVite } from "./build";
 
 // Test configurations for ICU testing
 const ICU_TEST_CONFIGURATIONS = {

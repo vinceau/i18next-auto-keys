@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import type { InlineConfig } from "vite";
 import { TEST_CONFIGURATIONS } from "./vite-configs";
-import { buildWithVite, cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
+import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
+import { buildWithVite } from "./build";
 
 /**
  * E2E Tests for i18next-auto-keys with Programmatic Vite Configurations

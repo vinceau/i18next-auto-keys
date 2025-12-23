@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { rollup, RollupOptions } from "rollup";
 import { createRollupConfig } from "./rollup-configs";
-import { buildWithRollup, cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { cleanIcuConfigArtifacts, clearModuleCache } from "../test-helpers";
+import { buildWithRollup } from "./build";
 
 /**
  * ICU E2E Tests for Rollup

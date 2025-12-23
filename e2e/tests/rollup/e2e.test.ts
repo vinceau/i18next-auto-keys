@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { rollup, RollupOptions } from "rollup";
-import { TEST_CONFIGURATIONS, createRollupConfig } from "./rollup-configs";
-import { buildWithRollup, cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
+import { TEST_CONFIGURATIONS } from "./rollup-configs";
+import { buildWithRollup } from "./build";
+import { cleanConfigArtifacts, clearModuleCache, clearBundleCache } from "../test-helpers";
 
 /**
  * E2E Tests for i18next-auto-keys with Programmatic Rollup Configurations
