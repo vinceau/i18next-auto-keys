@@ -5,28 +5,22 @@ import fs from "fs";
 import path from "path";
 import { ReplayBrowserMessages } from "./replay-browser.messages";
 
-// Flag to track if i18next has been initialized
-let isInitialized = false;
-
 /**
  * Initialize i18next with ICU support and generated translations
  * This must be called after rollup has generated the translation files
  */
 export async function initializeI18n(translationsDir: string): Promise<void> {
-  // For testing, always allow re-initialization
-  isInitialized = false;
-
   let translations = {};
 
   // Find the correct translation file in the directory
   // Look for any *-en.json file or fallback to en.json
-  const files = fs.readdirSync(translationsDir);
+  const files = await fs.promises.readdir(translationsDir);
   const translationFile = files.find((file) => file.endsWith("-en.json")) || "en.json";
   const translationsPath = path.join(translationsDir, translationFile);
 
   // Load translations if they exist
   if (fs.existsSync(translationsPath)) {
-    const translationsContent = fs.readFileSync(translationsPath, "utf8");
+    const translationsContent = await fs.promises.readFile(translationsPath, "utf8");
     translations = JSON.parse(translationsContent);
   }
 
@@ -42,8 +36,6 @@ export async function initializeI18n(translationsDir: string): Promise<void> {
         },
       },
     });
-
-  isInitialized = true;
 }
 
 // Export all ICU message functions for testing

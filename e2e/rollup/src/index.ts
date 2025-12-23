@@ -6,17 +6,11 @@ import { UIMessages } from "./ui.messages";
 import { ContextMessages } from "./context.messages";
 import i18next from "i18next";
 
-// Flag to track if i18next has been initialized
-let isInitialized = false;
-
 /**
  * Initialize i18next with the generated translations
  * This must be called after rollup has generated the translation files
  */
 export async function initializeI18n(translationsDir: string): Promise<void> {
-  // For testing, always allow re-initialization
-  isInitialized = false;
-
   const translationsPath = path.join(translationsDir, "en.json");
   let translations = {};
 
@@ -36,8 +30,6 @@ export async function initializeI18n(translationsDir: string): Promise<void> {
       },
     },
   });
-
-  isInitialized = true;
 }
 
 // Export all message modules for testing
