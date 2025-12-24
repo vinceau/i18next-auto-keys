@@ -1,6 +1,6 @@
 {
   "name": "i18next-auto-keys",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "type": "commonjs",
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
