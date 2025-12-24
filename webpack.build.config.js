@@ -2,20 +2,31 @@ const pkg = require('./package.json');
 const path = require('path');
 const webpack = require('webpack');
 
-module.exports = {
+// Create a base config function
+const createConfig = (outputType) => ({
   mode: 'production',
   entry: {
     index: './src/index.ts',
-    'cli': './src/cli/cli.ts'
+    ...(outputType === 'cjs' ? { 'cli': './src/cli/cli.ts' } : {}),
   },
   target: 'node',
+  experiments: {
+    outputModule: outputType === 'esm',
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: '[name].js',
-    library: {
-      type: 'commonjs2',
+    filename: (pathData) => {
+      // CLI always gets .js extension
+      if (pathData.chunk.name === 'cli') {
+        return 'cli.js';
+      }
+      // Index gets .cjs or .mjs based on output type
+      return outputType === 'cjs' ? '[name].cjs' : '[name].mjs';
     },
-    clean: true,
+    library: {
+      type: outputType === 'esm' ? 'module' : 'commonjs2',
+    },
+    clean: outputType === 'cjs', // Only clean on first build
   },
   // Preserve shebang for CLI executables
   plugins: [
@@ -23,7 +34,7 @@ module.exports = {
       'process.env.PACKAGE_NAME': JSON.stringify(pkg.name),
       'process.env.PACKAGE_VERSION': JSON.stringify(pkg.version),
     }),
-    {
+    ...(outputType === 'cjs' ? [{
       apply(compiler) {
         compiler.hooks.compilation.tap('BannerPlugin', (compilation) => {
           compilation.hooks.processAssets.tap(
@@ -54,7 +65,7 @@ module.exports = {
           );
         });
       }
-    }
+    }] : [])
   ],
   resolve: {
     extensions: ['.ts', '.js'],
@@ -80,7 +91,7 @@ module.exports = {
       },
     ],
   },
-  devtool: 'source-map',
+  devtool: 'hidden-source-map',
   externals: [
     {
       webpack: 'webpack',
@@ -93,17 +104,11 @@ module.exports = {
         return acc;
       }, {}),
     },
-    // For the CLI bundle, make index.js external to avoid duplication
-    function ({ context, request }, callback) {
-      const isCliBuild = context && context.includes('cli');
-
-      if (isCliBuild) {
-        // Make main index external for CLI to reuse shared functionality
-        if (request === '@/index') {
-          return callback(null, 'commonjs2 ./index');
-        }
-      }
-      callback();
-    }
   ],
-};
+});
+
+// Export both configs for parallel builds
+module.exports = [
+  createConfig('cjs'),  // CommonJS for Node.js and CLI
+  createConfig('esm'),  // ESM for Vite and modern bundlers
+];

@@ -164,8 +164,7 @@ program
     }
   });
 
-if (require.main === module) {
-  program.parse(process.argv);
-}
+// Always parse when the CLI is run (webpack bundles remove require.main check)
+program.parse(process.argv);
 
 export { program };

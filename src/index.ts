@@ -6,20 +6,7 @@ import { i18nStore } from "./common/i18nStore";
 import { loadConfig } from "./common/config/loadConfig";
 import { stableHash } from "./common/hash";
 
-// Webpack loader compatibility: Export loader as default, plugin as property
-module.exports = i18nextAutoKeyLoader;
-module.exports.I18nextAutoKeyEmitPlugin = I18nextAutoKeyEmitPlugin;
-module.exports.i18nextAutoKeyLoader = i18nextAutoKeyLoader;
-module.exports.i18nextAutoKeyRollupPlugin = i18nextAutoKeyRollupPlugin;
-
-// Shared functionality for CLI and advanced users
-module.exports.transformMessages = transformMessages;
-module.exports.i18nStore = i18nStore;
-module.exports.loadConfig = loadConfig;
-module.exports.stableHash = stableHash;
-// stableHashWithContext is now merged into stableHash
-
-// Also provide TypeScript-friendly named exports for better DX
+// ESM named exports
 export {
   i18nextAutoKeyLoader,
   I18nextAutoKeyEmitPlugin,
@@ -29,3 +16,6 @@ export {
   loadConfig,
   stableHash,
 };
+
+// Default export for Webpack loader compatibility
+export default i18nextAutoKeyLoader;

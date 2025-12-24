@@ -2,7 +2,7 @@ import { compileWithMemoryFS } from "./helpers/compile";
 import { stableHash } from "../../common/hash";
 
 // Import from the SAME path that the bundled loader uses to ensure same instance
-const LOADER_PATH = require.resolve("../../../dist/index.js");
+const LOADER_PATH = require.resolve("../../../dist/index.cjs");
 const { I18nextAutoKeyEmitPlugin } = require(LOADER_PATH);
 
 describe("I18nextAutoKeyEmitPlugin integration", () => {

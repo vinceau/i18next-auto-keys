@@ -5,7 +5,7 @@ import { ufs } from "unionfs";
 import realfs from "fs";
 
 // Absolute path to the built loader for testing
-const LOADER_PATH = path.resolve(__dirname, "../../../../dist/index.js");
+const LOADER_PATH = path.resolve(__dirname, "../../../../dist/index.cjs");
 
 export async function compileWithMemoryFS(
   entryFiles: Record<string, string>,
