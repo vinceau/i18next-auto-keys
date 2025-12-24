@@ -26,7 +26,8 @@ const createConfig = (outputType) => ({
     library: {
       type: outputType === 'esm' ? 'module' : 'commonjs2',
     },
-    clean: outputType === 'cjs', // Only clean on first build
+    // Only clean on CJS build (first build)
+    clean: outputType === 'cjs',
   },
   // Preserve shebang for CLI executables
   plugins: [
@@ -107,8 +108,8 @@ const createConfig = (outputType) => ({
   ],
 });
 
-// Export both configs for parallel builds
-module.exports = [
-  createConfig('cjs'),  // CommonJS for Node.js and CLI
-  createConfig('esm'),  // ESM for Vite and modern bundlers
-];
+// Export config based on environment variable
+module.exports = (env) => {
+  const format = env?.format || 'cjs';
+  return createConfig(format);
+};

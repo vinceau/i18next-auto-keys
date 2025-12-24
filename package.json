@@ -7,9 +7,10 @@
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
+      "default": "./dist/index.mjs"
     }
   },
   "bin": {
@@ -25,8 +26,10 @@
   "author": "Vincent Au",
   "license": "MIT",
   "scripts": {
-    "build": "npm run build:js && npm run build:types && npm run build:clean",
-    "build:js": "webpack --config webpack.build.config.js",
+    "build": "npm run build:js:cjs && npm run build:js:esm && npm run build:types && npm run build:clean",
+    "build:js": "npm run build:js:cjs && npm run build:js:esm",
+    "build:js:cjs": "webpack --config webpack.build.config.js --env format=cjs",
+    "build:js:esm": "webpack --config webpack.build.config.js --env format=esm",
     "build:types": "node scripts/build-types.js",
     "build:clean": "node scripts/clean-build-artifacts.js",
     "clean": "rimraf dist",
